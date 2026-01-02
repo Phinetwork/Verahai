@@ -105,7 +105,7 @@ export const MarketCell = (props: MarketCellProps) => {
               {closeLabel}
             </span>
 
-            <Chip size="sm" selected={false} variant="outline" tone={toneForCategory(cat)}>
+            <Chip as="span" size="sm" selected={false} variant="outline" tone={toneForCategory(cat)}>
               {cat}
             </Chip>
           </div>
