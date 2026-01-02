@@ -19,6 +19,11 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Button } from "../ui/atoms/Button";
 import { Icon } from "../ui/atoms/Icon";
 import { useSigilMarketsUi } from "../state/uiStore";
+import { canonicalize } from "../../lib/sigil/canonicalize";
+import { blake3Hex } from "../../lib/sigil/hash";
+import { computeZkPoseidonHash } from "../../utils/kai";
+import { buildProofHints, generateZkProofFromPoseidonHash } from "../../utils/zkProof";
+import type { SigilProofHints } from "../../types/sigil";
 
 type ExportResult = Readonly<{ ok: true } | { ok: false; error: string }>;
 
@@ -40,6 +45,130 @@ const fetchText = async (url: string): Promise<string> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.text();
+};
+
+const xmlEntityMap: Readonly<Record<string, string>> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&apos;": "'",
+};
+
+const decodeXmlEntities = (value: string): string =>
+  value.replace(/&(amp|lt|gt|quot|apos);/g, (match) => xmlEntityMap[match] ?? match);
+
+const encodeXmlEntities = (value: string): string =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
+const stripCdata = (value: string): { text: string; usedCdata: boolean } => {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("<![CDATA[") && trimmed.endsWith("]]>") ) {
+    return { text: trimmed.slice(9, -3), usedCdata: true };
+  }
+  return { text: trimmed, usedCdata: false };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<string> => {
+  const integrity = payload.integrity;
+  if (isRecord(integrity)) {
+    const payloadHash = integrity.payloadHash;
+    if (isRecord(payloadHash)) {
+      const value = payloadHash.value;
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+  }
+
+  const payloadForHash: Record<string, unknown> = { ...payload };
+  delete payloadForHash.zkProof;
+  delete payloadForHash.zkPublicInputs;
+  delete payloadForHash.zkPoseidonHash;
+
+  const bytes = canonicalize(payloadForHash);
+  return blake3Hex(bytes);
+};
+
+const ensureZkProofInSvg = async (svgText: string): Promise<string> => {
+  const metadataRegex = /<metadata(?:\s[^>]*)?>([\s\S]*?)<\/metadata>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = metadataRegex.exec(svgText)) !== null) {
+    const raw = match[1] ?? "";
+    const { text: stripped, usedCdata } = stripCdata(raw);
+    const decoded = decodeXmlEntities(stripped);
+
+    let payload: Record<string, unknown> | null = null;
+    try {
+      const parsed = JSON.parse(decoded) as unknown;
+      if (isRecord(parsed)) payload = parsed;
+    } catch {
+      payload = null;
+    }
+
+    if (!payload) continue;
+
+    const kind = payload.v;
+    const isPositionPayload = kind === "SM-POS-1";
+    const isResolutionPayload = kind === "SM-RES-1";
+    const isEmbeddedSigil =
+      "payload" in payload && "integrity" in payload && "header" in payload;
+    const isSigilPayload = isPositionPayload || isResolutionPayload || isEmbeddedSigil;
+    if (!isSigilPayload) continue;
+
+    const payloadHashHex = await getPayloadHashHex(payload);
+    const { hash: poseidonHash, secret } = await computeZkPoseidonHash(payloadHashHex);
+
+    const proofHints = buildProofHints(
+      poseidonHash,
+      isRecord(payload.proofHints)
+        ? (payload.proofHints as Partial<SigilProofHints>)
+        : undefined
+    );
+
+    const existingPublicInputs = Array.isArray(payload.zkPublicInputs)
+      ? payload.zkPublicInputs.map((entry) => String(entry))
+      : [];
+    const hasValidProof =
+      !!payload.zkProof &&
+      existingPublicInputs.length > 0 &&
+      existingPublicInputs[0] === poseidonHash;
+
+    if (!hasValidProof) {
+      const generated = await generateZkProofFromPoseidonHash({
+        poseidonHash,
+        secret,
+        proofHints,
+      });
+      if (!generated) {
+        throw new Error("ZK proof unavailable for export");
+      }
+      payload.zkProof = generated.proof as unknown;
+      payload.zkPublicInputs = generated.zkPublicInputs;
+      payload.proofHints = generated.proofHints;
+    } else {
+      payload.proofHints = proofHints;
+    }
+
+    payload.zkPoseidonHash = poseidonHash;
+
+    const updatedJson = JSON.stringify(payload);
+    const wrapped = usedCdata ? `<![CDATA[${updatedJson}]]>` : encodeXmlEntities(updatedJson);
+    const updatedMetadata = match[0].replace(raw, wrapped);
+
+    return `${svgText.slice(0, match.index)}${updatedMetadata}${svgText.slice(
+      match.index + match[0].length
+    )}`;
+  }
+
+  throw new Error("Sigil metadata missing; cannot generate ZK proof");
 };
 
 const ensureSvgXmlns = (svgText: string): string => {
@@ -113,14 +242,16 @@ export const exportSigil = async (opts: SigilExportOptions): Promise<ExportResul
     const svgText = opts.svgText ?? (opts.svgUrl ? await fetchText(opts.svgUrl) : null);
     if (!svgText) return { ok: false, error: "Missing svgText/svgUrl" };
 
+    const svgWithProof = await ensureZkProofInSvg(svgText);
+
     if (exportSvg) {
-      const blob = new Blob([svgText], { type: "image/svg+xml" });
+      const blob = new Blob([svgWithProof], { type: "image/svg+xml" });
       downloadBlob(blob, `${base}.svg`);
     }
 
     if (exportPng) {
       const size = Math.max(256, Math.min(4096, Math.floor(opts.pngSizePx ?? 1024)));
-      const png = await svgToPngBlob(svgText, size);
+      const png = await svgToPngBlob(svgWithProof, size);
       downloadBlob(png, `${base}.png`);
     }
 
