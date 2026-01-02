@@ -26,6 +26,7 @@ import { useSfx } from "../../hooks/useSfx";
 
 import { executeLocalTrade } from "../../api/positionApi";
 import type { PositionRecord } from "../../types/sigilPositionTypes";
+import { deriveMarketStatus } from "../../utils/marketTiming";
 
 export type MarketOrderPanelProps = Readonly<{
   market: Market;
@@ -47,6 +48,17 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
   const yesPriceMicro = props.market.state.pricesMicro.yes;
   const noPriceMicro = (deriveNoPriceMicro(yesPriceMicro as unknown as bigint) as unknown) as PriceMicro;
 
+  const marketStatus = useMemo(() => deriveMarketStatus(props.market, props.now.pulse), [props.market, props.now.pulse]);
+  const tradingOpen = marketStatus === "open";
+  const statusMessage = useMemo(() => {
+    if (marketStatus === "closed") return "Trading closed • awaiting resolution.";
+    if (marketStatus === "resolving") return "Resolution in progress.";
+    if (marketStatus === "resolved") return "Resolved • claims available.";
+    if (marketStatus === "voided") return "Market voided.";
+    if (marketStatus === "canceled") return "Market canceled.";
+    return null;
+  }, [marketStatus]);
+
   const [side, setSide] = useState<MarketSide>("YES");
   const [stakeMicro, setStakeMicro] = useState<PhiMicro>(0n as PhiMicro);
 
@@ -62,8 +74,8 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
   const canTrade = useMemo(() => {
     const s = stakeMicro as unknown as bigint;
     const spend = spendableMicro as unknown as bigint;
-    return !!activeVault && s > 0n && spend >= s;
-  }, [activeVault, stakeMicro, spendableMicro]);
+    return tradingOpen && !!activeVault && s > 0n && spend >= s;
+  }, [activeVault, stakeMicro, spendableMicro, tradingOpen]);
 
   const updateQuote = async (nextStake: PhiMicro, nextSide: MarketSide): Promise<void> => {
     if (!activeVault) {
@@ -209,8 +221,9 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
         <CardContent>
           <div className="sm-order-top">
             <div className="sm-order-title">Take a side</div>
-            <div className="sm-order-sub">Lock Φ into your glyph and mint the position.</div>
-          </div>
+          <div className="sm-order-sub">Lock Φ into your glyph and mint the position.</div>
+          {!tradingOpen && statusMessage ? <div className="sm-order-status">{statusMessage}</div> : null}
+        </div>
 
           <Divider />
 
@@ -220,11 +233,17 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
             yesPriceMicro={yesPriceMicro}
             noPriceMicro={noPriceMicro}
             priceMode="cents"
+            disabled={!tradingOpen}
           />
 
           <Divider />
 
-          <StakeSlider spendableMicro={spendableMicro} valueMicro={stakeMicro} onChangeMicro={onStake} />
+          <StakeSlider
+            spendableMicro={spendableMicro}
+            valueMicro={stakeMicro}
+            onChangeMicro={onStake}
+            disabled={!tradingOpen}
+          />
 
           <Divider />
 

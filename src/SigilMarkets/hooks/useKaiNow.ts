@@ -3,10 +3,11 @@
 
 import { useMemo } from "react";
 import type { KaiMoment, KaiPulse } from "../types/marketTypes";
+import { getKaiTimeSource } from "../../utils/kai_pulse";
 
 type UnknownRecord = Record<string, unknown>;
 
-export type KaiNowSource = "global-fn" | "build-anchor" | "date-bridge";
+export type KaiNowSource = "global-fn" | "build-anchor" | "klock-engine" | "date-bridge";
 
 /**
  * Canonical breath length (bridge only).
@@ -94,7 +95,8 @@ export type KaiNowClock = Readonly<{
  * Priority:
  * 1) globalThis.__KAI_NOW_MICRO__() -> bigint/number/string
  * 2) globalThis.__KAI_ANCHOR_MICRO__ + performance.now() delta (bridge)
- * 3) Date.now() bridge from epoch 0 (last resort)
+ * 3) Kai-Klok engine time source (state machine)
+ * 4) Date.now() bridge from epoch 0 (last resort)
  */
 export const createKaiNowClock = (): KaiNowClock => {
   const g = getGlobal();
@@ -122,6 +124,15 @@ export const createKaiNowClock = (): KaiNowClock => {
         return anchor + add;
       },
       source: "build-anchor",
+      isSeeded: true,
+    };
+  }
+
+  const engine = getKaiTimeSource();
+  if (engine && typeof engine.nowMicroPulses === "function") {
+    return {
+      microNow: () => engine.nowMicroPulses(),
+      source: "klock-engine",
       isSeeded: true,
     };
   }

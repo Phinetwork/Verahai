@@ -18,7 +18,7 @@ import { usePulseTicker } from "./hooks/usePulseTicker";
 import { useSfx } from "./hooks/useSfx";
 
 import { defaultMarketApiConfig, fetchMarkets, type SigilMarketsMarketApiConfig } from "./api/marketApi";
-import type { KaiMoment, Market, MarketOutcome } from "./types/marketTypes";
+import type { KaiMoment, KaiPulse, Market, MarketOutcome } from "./types/marketTypes";
 
 export type SigilMarketsShellProps = Readonly<{
   className?: string;
@@ -102,7 +102,7 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
   const inFlightRef = useRef<boolean>(false);
   const lastFetchPulseRef = useRef<number>(-1);
 
-  const doFetchMarkets = async (reason: "mount" | "focus" | "visible" | "online" | "manual"): Promise<void> => {
+  const doFetchMarkets = async (reason: "mount" | "focus" | "visible" | "online" | "manual" | "pulse"): Promise<void> => {
     if (inFlightRef.current) return;
 
     // Avoid refetching multiple times inside the same pulse unless manual.
@@ -156,6 +156,40 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marketCfg, now.pulse]);
+
+  const lastAutoRefreshPulseRef = useRef<Map<string, KaiPulse>>(new Map());
+
+  useEffect(() => {
+    if (marketState.ids.length === 0) return;
+
+    const list = marketState.ids
+      .map((id) => marketState.byId[id as unknown as string])
+      .filter((m): m is Market => m !== undefined);
+
+    let shouldRefresh = false;
+
+    for (const m of list) {
+      if (isResolvedLike(m.state.status)) continue;
+
+      let boundaryPulse: KaiPulse | null = null;
+      if (m.state.status === "open") boundaryPulse = m.def.timing.closePulse;
+      if (m.state.status === "closed" || m.state.status === "resolving") {
+        boundaryPulse = m.def.timing.resolveEarliestPulse ?? m.def.timing.resolveByPulse ?? null;
+      }
+
+      if (boundaryPulse == null) continue;
+      if (now.pulse < boundaryPulse) continue;
+
+      const key = m.def.id as unknown as string;
+      const last = lastAutoRefreshPulseRef.current.get(key) ?? -1;
+      if (last >= boundaryPulse) continue;
+
+      lastAutoRefreshPulseRef.current.set(key, boundaryPulse);
+      shouldRefresh = true;
+    }
+
+    if (shouldRefresh) void doFetchMarkets("pulse");
+  }, [marketState.byId, marketState.ids, now.pulse]);
 
   // Apply market resolutions to positions + prophecies exactly once per (marketId,outcome,resolvedPulse).
   const appliedResolutionsRef = useRef<Set<AppliedResolutionKey>>(new Set());

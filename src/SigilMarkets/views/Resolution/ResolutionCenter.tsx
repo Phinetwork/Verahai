@@ -17,6 +17,7 @@ import { OutcomeReveal } from "./OutcomeReveal";
 import { EvidenceViewer } from "./EvidenceViewer";
 import { DisputeSheet } from "./DisputeSheet";
 import { ResolutionSigilCard } from "./ResolutionSigilCard";
+import { deriveMarketStatus } from "../../utils/marketTiming";
 
 export type ResolutionCenterProps = Readonly<{
   marketId: MarketId;
@@ -51,8 +52,9 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
   const subtitle = useMemo(() => {
     const market = m.market;
     if (!market) return "Missing market";
-    return `${market.def.category} • ${statusLabel(market.state.status)}`;
-  }, [m.market?.def.category, m.market?.state.status]);
+    const derived = deriveMarketStatus(market, props.now.pulse);
+    return `${market.def.category} • ${statusLabel(derived)}`;
+  }, [m.market, props.now.pulse]);
 
   if (!m.market) {
     return (
@@ -76,6 +78,7 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
 
   const market = m.market;
   const r = market.state.resolution;
+  const derivedStatus = deriveMarketStatus(market, props.now.pulse);
 
   return (
     <div className="sm-page" data-sm="resolution">
@@ -93,11 +96,7 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
         <ResolutionSigilCard market={market} />
 
         {r ? (
-          <OutcomeReveal
-            outcome={r.outcome}
-            resolvedPulse={r.resolvedPulse}
-            statusLabel={statusLabel(market.state.status)}
-          />
+          <OutcomeReveal outcome={r.outcome} resolvedPulse={r.resolvedPulse} statusLabel={statusLabel(derivedStatus)} />
         ) : (
           <Card variant="glass">
             <CardContent>

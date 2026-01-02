@@ -8,6 +8,7 @@ import { Chip, type ChipTone } from "../../ui/atoms/Chip";
 import { Icon } from "../../ui/atoms/Icon";
 import { MarketCountdown } from "./MarketCountdown";
 import { useSigilMarketsUi } from "../../state/uiStore";
+import { deriveMarketStatus } from "../../utils/marketTiming";
 
 export type MarketHeaderProps = Readonly<{
   market: Market;
@@ -27,7 +28,7 @@ export const MarketHeader = (props: MarketHeaderProps) => {
   const { actions } = useSigilMarketsUi();
   const m = props.market;
 
-  const status = m.state.status;
+  const status = deriveMarketStatus(m, props.now.pulse);
 
   const subtitle = useMemo(() => {
     const cat = m.def.category as unknown as string;

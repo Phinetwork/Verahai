@@ -1534,6 +1534,12 @@ body{
   line-height: 1.35;
 }
 
+.sm-order-status{
+  font-size: 12px;
+  color: rgba(255,215,128,0.9);
+  line-height: 1.35;
+}
+
 .sm-order-cta{
   margin-top: 12px;
   display: flex;

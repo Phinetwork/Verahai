@@ -2,15 +2,17 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import type { KaiPulse, Market, MarketId, MarketOutcome } from "../types/marketTypes";
+import type { KaiPulse, Market, MarketId, MarketOutcome, MarketStatus } from "../types/marketTypes";
 import { useMarketById, useSigilMarketsMarketStore } from "../state/marketStore";
 import { useSigilMarketsUi } from "../state/uiStore";
 import type { SigilMarketsRoute } from "../types/uiTypes";
+import { deriveMarketStatus, isResolvedLikeStatus } from "../utils/marketTiming";
 
 export type UseMarketResult = Readonly<{
   market: Market | null;
   marketId: MarketId;
   status: "missing" | "ready";
+  marketStatus: MarketStatus;
   isResolved: boolean;
   outcome: MarketOutcome | null;
 
@@ -30,8 +32,6 @@ const calcCloseInPulses = (closePulse: KaiPulse, nowPulse: KaiPulse): number => 
   return d <= 0 ? 0 : d;
 };
 
-const isResolvedLike = (status: string): boolean => status === "resolved" || status === "voided" || status === "canceled";
-
 export const useMarket = (marketId: MarketId, nowPulse: KaiPulse): UseMarketResult => {
   const market = useMarketById(marketId);
 
@@ -41,6 +41,7 @@ export const useMarket = (marketId: MarketId, nowPulse: KaiPulse): UseMarketResu
         market: null,
         marketId,
         status: "missing",
+        marketStatus: "open",
         isResolved: false,
         outcome: null,
         closePulse: 0,
@@ -54,14 +55,16 @@ export const useMarket = (marketId: MarketId, nowPulse: KaiPulse): UseMarketResu
     const closePulse = market.def.timing.closePulse;
     const closeInPulses = calcCloseInPulses(closePulse, nowPulse);
 
-    const isClosed = closeInPulses === 0 && market.state.status !== "open";
-    const isResolved = isResolvedLike(market.state.status);
+    const marketStatus = deriveMarketStatus(market, nowPulse);
+    const isClosed = marketStatus !== "open";
+    const isResolved = isResolvedLikeStatus(marketStatus);
     const outcome = market.state.resolution?.outcome ?? null;
 
     return {
       market,
       marketId,
       status: "ready",
+      marketStatus,
       isResolved,
       outcome,
       closePulse,
