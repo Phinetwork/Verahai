@@ -1,14 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
+
+    <!-- Core -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/verahai-icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f1115" />
-    <title>Verahai · SigilMarkets</title>
-  </head>
-  <body>
-    <div id="root"></div>
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#07080C" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Primary SEO -->
+    <title>Verahai ⧫ SigilMarkets — Prophecy Prediction Marketplace for Sigil Glyphs (Kairos-Aligned)</title>
+    <meta
+      name="description"
+      content="Verahai SigilMarkets is a Kairos-aligned prophecy prediction marketplace for Sigil Glyph outcomes—mint positions, trade conviction, resolve truth with transparent proofs, and sync global state without a database."
+    />
+    <meta
+      name="keywords"
+      content="Verahai, SigilMarkets, prophecy marketplace, prediction market, sigil glyphs, prophecy markets, oracle resolution, market positions, binary markets, Kairos, harmonic physics, proof of breath, sovereign identity, offline verification, memory crystals, Kai Signature, BJ Klock"
+    />
+    <meta name="author" content="BJ Klock" />
+
+    <!-- Indexing Controls -->
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="googlebot" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+
+    <!-- Canonical + Language -->
+    <link rel="canonical" href="https://verahai.com/" />
+    <link rel="alternate" href="https://verahai.com/" hreflang="en" />
+
+    <!-- Icons / PWA -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Verahai" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Verahai SigilMarkets — Prophecy Prediction Marketplace for Sigil Glyphs" />
+    <meta
+      property="og:description"
+      content="Mint positions. Trade prophecy. Resolve outcomes with transparent proofs—Kairos-aligned markets for Sigil Glyph truth, verifiable anywhere."
+    />
+    <meta property="og:url" content="https://verahai.com/" />
+    <meta property="og:image" content="https://verahai.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Verahai SigilMarkets — Kairos-aligned prophecy prediction marketplace for Sigil Glyphs" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Verahai SigilMarkets — Prophecy Prediction Marketplace for Sigil Glyphs" />
+    <meta
+      name="twitter:description"
+      content="Mint positions. Trade prophecy. Resolve outcomes with transparent proofs—Kairos-aligned markets for Sigil Glyph truth, verifiable anywhere."
+    />
+    <meta name="twitter:image" content="https://verahai.com/og-image.png" />
+    <meta name="twitter:site" content="@verahai" />
+
+    <!-- Fonts (optional, keep if used) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Apple Web App -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Verahai" />
+   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+
+    <!-- Structured Data (Schema.org) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://verahai.com/#org",
+            "name": "Verahai",
+            "alternateName": "SigilMarkets",
+            "url": "https://verahai.com/",
+            "logo": "https://verahai.com/logo.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://verahai.com/#website",
+            "url": "https://verahai.com/",
+            "name": "Verahai SigilMarkets",
+            "publisher": { "@id": "https://verahai.com/#org" },
+            "inLanguage": "en",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://verahai.com/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://verahai.com/#app",
+            "name": "Verahai SigilMarkets",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web",
+            "url": "https://verahai.com/",
+            "publisher": { "@id": "https://verahai.com/#org" },
+            "description": "Kairos-aligned prophecy prediction marketplace for Sigil Glyph outcomes—mint positions, trade conviction, and resolve truth with transparent proofs."
+          }
+        ]
+      }
+    </script>
+
+    <!-- Vite Entry -->
     <script type="module" src="/src/main.tsx"></script>
+  </head>
+
+  <body
+    style="
+      margin:0;
+      min-height:100vh;
+      background:#07080C;
+      color:#EEF2FF;
+      font: 500 15px/1.5 Inter, system-ui, -apple-system, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      text-rendering:optimizeLegibility;
+      letter-spacing:-0.01em;
+      overflow-x:hidden;
+    "
+  >
+    <noscript>Verahai SigilMarkets requires JavaScript enabled to run.</noscript>
+    <div id="root"></div>
   </body>
 </html>
