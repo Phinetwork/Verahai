@@ -1,7 +1,7 @@
 // SigilMarkets/SigilMarketsDock.tsx
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { KaiMoment } from "./types/marketTypes";
 import { useSigilMarketsUi } from "./state/uiStore";
 import { useActiveVault } from "./state/vaultStore";
@@ -16,14 +16,14 @@ export type SigilMarketsDockProps = Readonly<{
   now: KaiMoment;
 }>;
 
-const iconFor = (tab: DockTab): string => {
+const iconFor = (tab: DockTab): ReactNode => {
   switch (tab) {
     case "grid":
       return "⬡";
     case "positions":
       return "◎";
     case "vault":
-      return "Φ";
+      return <img src="/phi.svg" alt="" aria-hidden="true" />;
     case "prophecy":
       return "✶";
     default: {
