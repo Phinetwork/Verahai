@@ -1,0 +1,608 @@
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+  background: #0b0d12;
+  color: #f3f4f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, rgba(69, 102, 255, 0.15), transparent 40%),
+    #0b0d12;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.sm-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 24px 110px;
+  background: linear-gradient(145deg, rgba(20, 24, 35, 0.9), rgba(8, 10, 14, 0.95));
+  position: relative;
+  overflow-x: hidden;
+}
+
+.sm-shell--immersive {
+  background: radial-gradient(circle at 20% 20%, rgba(125, 97, 255, 0.25), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(70, 220, 190, 0.2), transparent 45%),
+    #090b10;
+}
+
+.sm-shell__main {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sm-shell__status {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 0.85rem;
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.sm-topbar__title {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.sm-topbar__subtitle {
+  font-size: 0.9rem;
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-topbar__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sm-button {
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #f5f5f7;
+  background: linear-gradient(120deg, #4961ff, #7e8bff);
+  box-shadow: 0 10px 30px rgba(78, 98, 255, 0.35);
+}
+
+.sm-button--ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
+.sm-button--glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+
+.sm-card {
+  background: rgba(15, 18, 28, 0.8);
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.sm-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sm-chip--success {
+  background: rgba(70, 220, 190, 0.2);
+  color: #7ff0d1;
+}
+
+.sm-chip--warning {
+  background: rgba(255, 202, 120, 0.2);
+  color: #ffc56a;
+}
+
+.sm-progress {
+  transform: rotate(-90deg);
+}
+
+.sm-progress__bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 6;
+}
+
+.sm-progress__value {
+  fill: none;
+  stroke: #7e8bff;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.sm-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sm-grid__cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.sm-market-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.sm-market-cell:hover {
+  transform: translateY(-4px);
+}
+
+.sm-market-cell__title {
+  font-weight: 600;
+}
+
+.sm-market-cell__subtitle {
+  font-size: 0.85rem;
+  color: rgba(216, 221, 255, 0.65);
+}
+
+.sm-market-cell__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sm-market-cell__volume {
+  font-size: 0.75rem;
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-market-cell__prices {
+  display: flex;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.sm-market-cell__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sm-market-cell__oracle {
+  font-size: 0.85rem;
+}
+
+.sm-market-cell__risk {
+  font-size: 0.75rem;
+  color: rgba(216, 221, 255, 0.55);
+}
+
+.sm-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sm-search input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  flex: 1;
+  outline: none;
+}
+
+.sm-filter-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.sm-segmented {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  border-radius: 999px;
+}
+
+.sm-segmented__item {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.sm-segmented__item.is-active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sm-empty {
+  padding: 24px;
+  text-align: center;
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-grid__skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.sm-skeleton {
+  min-height: 140px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  animation: shimmer 2s infinite;
+}
+
+.sm-room {
+  display: grid;
+  gap: 18px;
+}
+
+.sm-room__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.sm-room__title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.sm-room__subtitle {
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-room__countdown {
+  font-size: 0.9rem;
+  color: #7ff0d1;
+}
+
+.sm-room__chart {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+  border-radius: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.sm-room__chart-line {
+  height: 2px;
+  background: linear-gradient(90deg, #7e8bff, transparent);
+}
+
+.sm-room__panel {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 18px;
+  border-radius: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.sm-yesno {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.sm-yesno__option {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: inherit;
+}
+
+.sm-yesno__option.is-active {
+  background: rgba(126, 139, 255, 0.2);
+}
+
+.sm-stake {
+  display: grid;
+  gap: 8px;
+}
+
+.sm-stake__value {
+  font-weight: 600;
+}
+
+.sm-quote {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sm-quote__label {
+  font-size: 0.8rem;
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-quote__value {
+  font-weight: 600;
+}
+
+.sm-room__panel-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sm-room__split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.sm-oracle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sm-oracle__icon {
+  font-size: 1.8rem;
+}
+
+.sm-oracle__confidence {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.sm-vault {
+  display: grid;
+  gap: 16px;
+}
+
+.sm-vault__sigil {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sm-vault__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.sm-vault__balance {
+  text-align: center;
+}
+
+.sm-vault__value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.sm-vault__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.sm-vault__growth {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+}
+
+.sm-vault__spark {
+  height: 80px;
+  background: linear-gradient(120deg, rgba(126, 139, 255, 0.6), rgba(70, 220, 190, 0.3));
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.sm-vault__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sm-positions {
+  display: grid;
+  gap: 16px;
+}
+
+.sm-positions__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.sm-position-card {
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+
+.sm-position-detail {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.sm-position-detail__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sm-prophecy {
+  display: grid;
+  gap: 16px;
+}
+
+.sm-prophecy__composer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.sm-prophecy__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.sm-prophecy__row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.sm-prophecy-card__footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: rgba(216, 221, 255, 0.6);
+}
+
+.sm-resolution {
+  display: grid;
+  gap: 16px;
+}
+
+.sm-resolution__outcome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sm-link {
+  background: none;
+  border: none;
+  color: #7e8bff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sm-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(12, 14, 20, 0.9);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sm-bottom-nav {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.sm-bottom-nav__item {
+  color: rgba(216, 221, 255, 0.6);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.sm-bottom-nav__item.active {
+  color: #ffffff;
+}
+
+.sm-floating-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sm-sheet {
+  background: rgba(12, 14, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.sm-sheet--modal {
+  position: fixed;
+  bottom: 110px;
+  right: 24px;
+  max-width: 320px;
+}
+
+.sm-sheet__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.sm-breath-glow {
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(126, 139, 255, 0.5), transparent 65%);
+  filter: blur(10px);
+  z-index: 0;
+}
+
+.sm-pulse-spark {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #7ff0d1;
+  display: inline-block;
+}
+
+.sm-heat {
+  font-size: 0.85rem;
+  color: #7ff0d1;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+@media (max-width: 720px) {
+  .sm-shell {
+    padding: 20px 16px 130px;
+  }
+
+  .sm-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
