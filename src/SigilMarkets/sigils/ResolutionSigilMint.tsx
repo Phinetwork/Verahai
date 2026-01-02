@@ -17,7 +17,7 @@
  * - MVP does not persist these globally; callers can export immediately via SigilExport.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { KaiMoment, MarketId, MarketOutcome } from "../types/marketTypes";
 import type { ResolutionSigilArtifact, ResolutionSigilPayloadV1 } from "../types/oracleTypes";
 import { asSvgHash, type SvgHash } from "../types/vaultTypes";
@@ -34,7 +34,13 @@ const esc = (s: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
+/** Clamp to [0, 1] for safe SVG numeric fields (opacity, ratios, etc.). */
 const clamp01 = (n: number): number => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+/** Use MarketId type and normalize to string safely. */
+const marketIdToString = (id: MarketId): string => String(id);
+
+const shorten = (s: string, n: number): string => (s.length <= n ? s : `${s.slice(0, Math.max(0, n - 1))}…`);
 
 /** Tiny deterministic PRNG (xorshift32) from a string seed */
 const seed32 = (seed: string): number => {
@@ -106,10 +112,22 @@ const buildResolutionSvg = (payload: ResolutionSigilPayloadV1, seedStr: string):
   const wave = lissajousPath(seedStr);
   const tone = toneForOutcome(payload.outcome);
 
+  const marketIdStr = marketIdToString(payload.marketId);
+  const providerStr = String(payload.oracle.provider);
+
+  // ✅ clamp01 used exactly where it should be: normalized SVG opacities
+  const op = {
+    ringTone: clamp01(0.78),
+    waveGlow: clamp01(0.20),
+    waveInk: clamp01(0.70),
+    text: clamp01(0.72),
+    ringBase: clamp01(0.16),
+  } as const;
+
   const metaJson = JSON.stringify(payload);
 
   const title = `SigilMarkets Resolution — ${payload.outcome} — p${payload.finalPulse}`;
-  const desc = `Market ${payload.marketId}; Outcome ${payload.outcome}; FinalPulse ${payload.finalPulse}; Oracle ${payload.oracle.provider}`;
+  const desc = `Market ${marketIdStr}; Outcome ${payload.outcome}; FinalPulse ${payload.finalPulse}; Oracle ${providerStr}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
@@ -119,10 +137,10 @@ const buildResolutionSvg = (payload: ResolutionSigilPayloadV1, seedStr: string):
   aria-label="${esc(title)}"
   data-kind="sigilmarkets-resolution"
   data-v="SM-RES-1"
-  data-market-id="${esc(payload.marketId as unknown as string)}"
+  data-market-id="${esc(marketIdStr)}"
   data-outcome="${esc(payload.outcome)}"
   data-final-pulse="${esc(String(payload.finalPulse))}"
-  data-oracle-provider="${esc(payload.oracle.provider as unknown as string)}">
+  data-oracle-provider="${esc(providerStr)}">
   <title>${esc(title)}</title>
   <desc>${esc(desc)}</desc>
   <metadata>${esc(metaJson)}</metadata>
@@ -151,20 +169,20 @@ const buildResolutionSvg = (payload: ResolutionSigilPayloadV1, seedStr: string):
   <rect x="0" y="0" width="1000" height="1000" fill="rgba(8,10,18,1)"/>
   <rect x="0" y="0" width="1000" height="1000" fill="url(#bg)"/>
 
-  <path d="${ring}" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="10"/>
-  <path d="${ring}" fill="none" stroke="${tone}" stroke-width="3" opacity="0.78"/>
+  <path d="${ring}" fill="none" stroke="rgba(255,255,255,${op.ringBase})" stroke-width="10"/>
+  <path d="${ring}" fill="none" stroke="${tone}" stroke-width="3" opacity="${op.ringTone}"/>
 
-  <path d="${wave}" fill="none" stroke="${tone}" stroke-width="6" opacity="0.20" filter="url(#glow)"/>
-  <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="2.2" opacity="0.70"/>
+  <path d="${wave}" fill="none" stroke="${tone}" stroke-width="6" opacity="${op.waveGlow}" filter="url(#glow)"/>
+  <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="2.2" opacity="${op.waveInk}"/>
 
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-     fill="rgba(255,255,255,0.72)" font-size="22">
+     fill="rgba(255,255,255,${op.text})" font-size="22">
     <text x="70" y="90">SM-RES-1</text>
     <text x="70" y="125">OUTCOME: ${esc(payload.outcome)}</text>
     <text x="70" y="160">FINAL PULSE: ${esc(String(payload.finalPulse))}</text>
-    <text x="70" y="195">ORACLE: ${esc(payload.oracle.provider as unknown as string)}</text>
+    <text x="70" y="195">ORACLE: ${esc(providerStr)}</text>
 
-    <text x="70" y="930">${esc(String(payload.marketId)).slice(0, 22)}…</text>
+    <text x="70" y="930">${esc(shorten(marketIdStr, 22))}</text>
   </g>
 </svg>`;
 };
@@ -175,7 +193,7 @@ export type MintResolutionSigilResult =
 
 export const mintResolutionSigil = async (payload: ResolutionSigilPayloadV1): Promise<MintResolutionSigilResult> => {
   try {
-    const seedStr = `SM:RES:${payload.marketId}:${payload.outcome}:${payload.finalPulse}:${payload.oracle.provider}`;
+    const seedStr = `SM:RES:${marketIdToString(payload.marketId)}:${payload.outcome}:${payload.finalPulse}:${String(payload.oracle.provider)}`;
     const seed = await sha256Hex(seedStr);
 
     const svgText = buildResolutionSvg(payload, seed);
@@ -204,18 +222,24 @@ export const ResolutionSigilMintButton = (props: ResolutionSigilMintButtonProps)
   const { actions: ui } = useSigilMarketsUi();
   const [busy, setBusy] = useState(false);
 
+  // stable context object for toasts
+  const toastCtx = useMemo(() => ({ atPulse: props.now.pulse }), [props.now.pulse]);
+
   const run = useCallback(async () => {
     setBusy(true);
+
     const res = await mintResolutionSigil(props.payload);
     if (!res.ok) {
-      ui.toast("error", "Mint failed", res.error, { atPulse: props.now.pulse });
+      ui.toast("error", "Mint failed", res.error, toastCtx);
       setBusy(false);
       return;
     }
-    ui.toast("success", "Minted", "Resolution sigil ready", { atPulse: props.now.pulse });
+
+    ui.toast("success", "Minted", "Resolution sigil ready", toastCtx);
     if (props.onMinted) props.onMinted(res.sigil);
+
     setBusy(false);
-  }, [props, ui]);
+  }, [props.payload, props.onMinted, toastCtx, ui]);
 
   return (
     <Button
