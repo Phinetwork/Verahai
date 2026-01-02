@@ -124,7 +124,7 @@ const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<stri
     }
   }
 
-  const payloadForHash: Record<string, JSONLike | undefined> = {};
+  const payloadForHash: Record<string, JSONLike> = {};
   for (const [key, value] of Object.entries(payload)) {
     if (key === "zkProof" || key === "zkPublicInputs" || key === "zkPoseidonHash") continue;
     if (value === undefined) continue;
