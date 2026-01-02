@@ -7,7 +7,7 @@ export type ChipTone = "default" | "cyan" | "violet" | "gold" | "danger" | "succ
 export type ChipVariant = "soft" | "solid" | "outline";
 export type ChipSize = "sm" | "md";
 
-export type ChipProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+type ChipOwnProps = {
   tone?: ChipTone;
   variant?: ChipVariant;
   size?: ChipSize;
@@ -15,6 +15,10 @@ export type ChipProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   left?: React.ReactNode;
   right?: React.ReactNode;
 };
+
+export type ChipProps =
+  | (React.ButtonHTMLAttributes<HTMLButtonElement> & ChipOwnProps & { as?: "button" })
+  | (React.HTMLAttributes<HTMLSpanElement> & ChipOwnProps & { as: "span" });
 
 const cx = (...parts: Array<string | false | null | undefined>): string => parts.filter(Boolean).join(" ");
 
@@ -50,8 +54,19 @@ const variantClass = (variant: ChipVariant): string => {
 
 const sizeClass = (size: ChipSize): string => (size === "sm" ? "sm-chip-sm" : "sm-chip-md");
 
-export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
-  { tone = "default", variant = "soft", size = "md", selected = false, left, right, className, children, ...rest },
+export const Chip = forwardRef<HTMLButtonElement | HTMLSpanElement, ChipProps>(function Chip(
+  {
+    as = "button",
+    tone = "default",
+    variant = "soft",
+    size = "md",
+    selected = false,
+    left,
+    right,
+    className,
+    children,
+    ...rest
+  },
   ref,
 ) {
   const cls = useMemo(
@@ -67,8 +82,18 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
     [tone, variant, size, selected, className],
   );
 
+  if (as === "span") {
+    return (
+      <span ref={ref as React.Ref<HTMLSpanElement>} className={cls} {...rest}>
+        {left ? <span className="sm-chip-ico">{left}</span> : null}
+        <span className="sm-chip-label">{children}</span>
+        {right ? <span className="sm-chip-ico">{right}</span> : null}
+      </span>
+    );
+  }
+
   return (
-    <button ref={ref} type="button" className={cls} {...rest}>
+    <button ref={ref as React.Ref<HTMLButtonElement>} type="button" className={cls} {...rest}>
       {left ? <span className="sm-chip-ico">{left}</span> : null}
       <span className="sm-chip-label">{children}</span>
       {right ? <span className="sm-chip-ico">{right}</span> : null}
