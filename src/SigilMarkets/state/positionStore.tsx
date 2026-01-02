@@ -200,9 +200,13 @@ const deserializeLock = (v: unknown): PersistResult<PositionLockRef> => {
   if (!isString(lockId) || lockId.length === 0) return { ok: false, error: "lock.lockId: bad" };
   if (lockedStake === null) return { ok: false, error: "lock.lockedStakeMicro: bad" };
 
+  // ✅ Use the branded id types explicitly (VaultId / LockId) exactly as intended.
+  const vaultIdBranded: VaultId = asVaultId(vaultId);
+  const lockIdBranded: LockId = asLockId(lockId);
+
   const lock: PositionLockRef = {
-    vaultId: asVaultId(vaultId),
-    lockId: asLockId(lockId),
+    vaultId: vaultIdBranded,
+    lockId: lockIdBranded,
     lockedStakeMicro: normalizePhi(lockedStake),
   };
 
@@ -482,7 +486,10 @@ export const SigilMarketsPositionProvider = (props: Readonly<{ children: React.R
     }, 250);
   };
 
-  const setAndMaybePersist = (updater: (prev: SigilMarketsPositionState) => SigilMarketsPositionState, persist: boolean): void => {
+  const setAndMaybePersist = (
+    updater: (prev: SigilMarketsPositionState) => SigilMarketsPositionState,
+    persist: boolean,
+  ): void => {
     setState((prev) => {
       const next = updater(prev);
       if (persist) schedulePersist(next);
@@ -606,7 +613,11 @@ export const SigilMarketsPositionProvider = (props: Readonly<{ children: React.R
       );
     };
 
-    const attachSigil = (positionId: PositionId, sigil: PositionSigilArtifact, updatedPulse: KaiPulse): PersistResult<PositionRecord> => {
+    const attachSigil = (
+      positionId: PositionId,
+      sigil: PositionSigilArtifact,
+      updatedPulse: KaiPulse,
+    ): PersistResult<PositionRecord> => {
       const key = positionId as unknown as string;
       let out: PositionRecord | null = null;
       let err: string | null = null;

@@ -88,8 +88,11 @@ const toJSONLike = (
 
   if (value === null) return null;
 
-  const t = typeof value;
-  if (t === "string" || t === "number" || t === "boolean") return value;
+  // Narrow primitives explicitly so TypeScript can see the concrete return
+  // types and they match our JSONLike union.
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return value;
+  if (typeof value === "boolean") return value;
 
   // Some projects include Date in JSONLike for canonicalization purposes.
   if (value instanceof Date) return value;
@@ -98,7 +101,7 @@ const toJSONLike = (
     return value.map((v) => toJSONLike(v, seen, depth + 1));
   }
 
-  if (t === "object") {
+  if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     if (seen.has(obj)) throw new Error("Non-JSONLike: circular reference");
     seen.add(obj);

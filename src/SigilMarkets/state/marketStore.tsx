@@ -1,4 +1,4 @@
-// SigilMarkets/state/marketStore.ts
+// SigilMarkets/state/marketStore.tsx
 "use client";
 
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
@@ -16,7 +16,17 @@
  * - Oracle resolution authoring (oracleApi)
  */
 
-import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useContext,
+  type ReactNode,
+} from "react";
+
 import {
   SM_MARKETS_CACHE_KEY,
   decodeEnvelope,
@@ -36,7 +46,6 @@ import {
   asMarketSlug,
   asOracleId,
   isMarketOutcome,
-  isMarketSide,
   isMarketStatus,
   ONE_PHI_MICRO,
   type AmmCurve,
@@ -114,6 +123,17 @@ const parseOracleProvider = (v: unknown): OracleProvider | null => {
 const nowMs = (): number => {
   const t = Date.now();
   return Number.isFinite(t) ? t : 0;
+};
+
+/** Keep only string-valued metadata for strict serialization typing. */
+const sanitizeStringMeta = (meta: unknown): Readonly<Record<string, string>> | undefined => {
+  if (!isRecord(meta)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(meta)) {
+    if (!k) continue;
+    if (isString(v)) out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 };
 
 /** ------------------------------
@@ -319,16 +339,20 @@ const serializeVenue = (vs: MarketVenueState): SerializedVenueState => {
 const deserializeVenue = (v: unknown): PersistResult<MarketVenueState> => {
   if (!isRecord(v)) return { ok: false, error: "venueState: not object" };
   const venue = v["venue"];
+
   if (venue === "amm") {
     const amm = v["amm"];
     if (!isRecord(amm)) return { ok: false, error: "amm: not object" };
     const curve = amm["curve"];
     if (curve !== "cpmm" && curve !== "lmsr") return { ok: false, error: "amm.curve: bad" };
+
     const yesInv = parseBigIntDec(amm["yesInventoryMicro"]);
     const noInv = parseBigIntDec(amm["noInventoryMicro"]);
     const feeBps = parseBps(amm["feeBps"]);
     if (yesInv === null || noInv === null || feeBps === null) return { ok: false, error: "amm: bad micros/fee" };
+
     const param = amm["paramMicro"] !== undefined ? parseBigIntDec(amm["paramMicro"]) : null;
+
     const out: AmmState = {
       curve,
       yesInventoryMicro: yesInv as ShareMicro,
@@ -346,6 +370,7 @@ const deserializeVenue = (v: unknown): PersistResult<MarketVenueState> => {
     const noPool = parseBigIntDec(pool["noPoolMicro"]);
     const feeBps = parseBps(pool["feeBps"]);
     if (yesPool === null || noPool === null || feeBps === null) return { ok: false, error: "pool: bad micros/fee" };
+
     const out: ParimutuelState = {
       yesPoolMicro: yesPool as PhiMicro,
       noPoolMicro: noPool as PhiMicro,
@@ -406,6 +431,7 @@ const deserializeOraclePolicy = (v: unknown): PersistResult<MarketOraclePolicy> 
   if (!isRecord(v)) return { ok: false, error: "oracle: not object" };
   const provider = parseOracleProvider(v["provider"]);
   if (provider === null) return { ok: false, error: "oracle.provider: bad" };
+
   const oracleId = v["oracleId"];
   const disputeWindowPulses = v["disputeWindowPulses"];
   const evidenceRequired = v["evidenceRequired"];
@@ -514,7 +540,9 @@ const deserializeTiming = (v: unknown): PersistResult<MarketTiming> => {
   const createdPulse = parsePulse(v["createdPulse"]);
   const openPulse = parsePulse(v["openPulse"]);
   const closePulse = parsePulse(v["closePulse"]);
-  if (createdPulse === null || openPulse === null || closePulse === null) return { ok: false, error: "timing: bad pulses" };
+  if (createdPulse === null || openPulse === null || closePulse === null) {
+    return { ok: false, error: "timing: bad pulses" };
+  }
 
   const resolveEarliestPulse = v["resolveEarliestPulse"] !== undefined ? parsePulse(v["resolveEarliestPulse"]) : null;
   const resolveByPulse = v["resolveByPulse"] !== undefined ? parsePulse(v["resolveByPulse"]) : null;
@@ -554,7 +582,7 @@ const serializeResolution = (r: BinaryMarketState["resolution"]): SerializedMark
       ? {
           proposedPulse: r.dispute.proposedPulse,
           finalPulse: r.dispute.finalPulse,
-          meta: r.dispute.meta,
+          meta: sanitizeStringMeta(r.dispute.meta),
         }
       : undefined,
   };
@@ -573,15 +601,17 @@ const deserializeResolution = (v: unknown): PersistResult<BinaryMarketState["res
   const resolvedPulse = parsePulse(v["resolvedPulse"]);
   if (resolvedPulse === null) return { ok: false, error: "resolution.resolvedPulse: bad" };
 
-  const oracleRaw = v["oracle"];
-  const oracleRes = deserializeOraclePolicy(oracleRaw);
+  const oracleRes = deserializeOraclePolicy(v["oracle"]);
   if (!oracleRes.ok) return { ok: false, error: `resolution.oracle: ${oracleRes.error}` };
 
   const evidenceRaw = v["evidence"];
   const evidence =
-    isRecord(evidenceRaw) && (evidenceRaw["urls"] !== undefined || evidenceRaw["hashes"] !== undefined || evidenceRaw["summary"] !== undefined)
+    isRecord(evidenceRaw) &&
+    (evidenceRaw["urls"] !== undefined || evidenceRaw["hashes"] !== undefined || evidenceRaw["summary"] !== undefined)
       ? {
-          urls: isArray(evidenceRaw["urls"]) ? evidenceRaw["urls"].filter((x): x is string => isString(x) && x.length > 0) : undefined,
+          urls: isArray(evidenceRaw["urls"])
+            ? evidenceRaw["urls"].filter((x): x is string => isString(x) && x.length > 0)
+            : undefined,
           hashes: isArray(evidenceRaw["hashes"])
             ? evidenceRaw["hashes"].filter((x): x is string => isString(x) && x.length > 0)
             : undefined,
@@ -595,11 +625,7 @@ const deserializeResolution = (v: unknown): PersistResult<BinaryMarketState["res
       ? {
           proposedPulse: parsePulse(disputeRaw["proposedPulse"]) ?? resolvedPulse,
           finalPulse: parsePulse(disputeRaw["finalPulse"]) ?? resolvedPulse,
-          meta: isRecord(disputeRaw["meta"])
-            ? Object.fromEntries(
-                Object.entries(disputeRaw["meta"]).filter(([, vv]): vv is string => isString(vv)),
-              )
-            : undefined,
+          meta: sanitizeStringMeta(disputeRaw["meta"]),
         }
       : undefined;
 
@@ -788,7 +814,6 @@ const decodeSerializedCache: Decoder<SerializedMarketCache> = (v: unknown) => {
   }
 
   const ids = idsRaw.filter((x): x is string => isString(x) && x.length > 0);
-
   const lsp = lastSyncedPulse !== undefined ? parsePulse(lastSyncedPulse) : null;
 
   return {
@@ -842,10 +867,8 @@ const loadCache = (storage: StorageLike | null): PersistResult<Readonly<{ state:
 const persistCache = (storage: StorageLike | null, state: SigilMarketsMarketState): void => {
   if (!storage) return;
 
-  // serialize all markets
   const byId: Record<string, SerializedBinaryMarket> = {};
   for (const [id, m] of Object.entries(state.byId)) {
-    // currently only binary markets exist
     byId[id] = serializeMarket(m as BinaryMarket);
   }
 
@@ -855,33 +878,21 @@ const persistCache = (storage: StorageLike | null, state: SigilMarketsMarketStat
     lastSyncedPulse: state.lastSyncedPulse,
   };
 
-  const env: MarketCacheEnvelope = wrapEnvelope(data as unknown as never, CACHE_ENVELOPE_VERSION) as unknown as MarketCacheEnvelope;
+  const env: MarketCacheEnvelope = wrapEnvelope(
+    data as unknown as never,
+    CACHE_ENVELOPE_VERSION,
+  ) as unknown as MarketCacheEnvelope;
   saveToStorage(SM_MARKETS_CACHE_KEY, env, storage);
 };
 
 export type SigilMarketsMarketActions = Readonly<{
-  /** Hydrate from local cache (offline-first). */
   hydrateFromCache: () => void;
-
-  /** Replace entire catalog with new set (e.g., after fetch). */
   setMarkets: (markets: readonly Market[], opts?: Readonly<{ lastSyncedPulse?: KaiPulse }>) => void;
-
-  /** Merge/update a subset of markets. */
   upsertMarkets: (markets: readonly Market[], opts?: Readonly<{ lastSyncedPulse?: KaiPulse }>) => void;
-
-  /** Remove a market. */
   removeMarket: (marketId: MarketId) => void;
-
-  /** Mark loading/error state (fetch orchestration lives elsewhere). */
   setStatus: (status: MarketStoreStatus, error?: string) => void;
-
-  /** Clear local cache (and memory). */
   clearAll: () => void;
-
-  /** Clear only persisted cache (keep memory). */
   clearCache: () => void;
-
-  /** Force persist current memory state. */
   persistNow: () => void;
 }>;
 
@@ -892,7 +903,7 @@ export type SigilMarketsMarketStore = Readonly<{
 
 const SigilMarketsMarketContext = createContext<SigilMarketsMarketStore | null>(null);
 
-export const SigilMarketsMarketProvider = (props: Readonly<{ children: React.ReactNode }>) => {
+export const SigilMarketsMarketProvider = (props: Readonly<{ children: ReactNode }>) => {
   const storage = useMemo(() => getDefaultStorage(), []);
 
   const [state, setState] = useState<SigilMarketsMarketState>(() => {
@@ -904,13 +915,20 @@ export const SigilMarketsMarketProvider = (props: Readonly<{ children: React.Rea
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPersistMsRef = useRef<number>(0);
 
+  // cleanup any pending timers (and prevents “useEffect unused” too)
+  useEffect(() => {
+    return () => {
+      if (persistTimer.current) clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    };
+  }, []);
+
   const schedulePersist = useCallback(
     (next: SigilMarketsMarketState) => {
       if (!storage) return;
       if (persistTimer.current) clearTimeout(persistTimer.current);
 
       persistTimer.current = setTimeout(() => {
-        // throttle redundant writes
         const t = nowMs();
         if (t - lastPersistMsRef.current < 350) return;
         lastPersistMsRef.current = t;
@@ -945,9 +963,7 @@ export const SigilMarketsMarketProvider = (props: Readonly<{ children: React.Rea
       setAndMaybePersist(
         () => {
           const byId: Record<string, Market> = {};
-          for (const m of markets) {
-            byId[m.def.id as unknown as string] = m;
-          }
+          for (const m of markets) byId[m.def.id as unknown as string] = m;
           const ids = sortIdsDeterministic(byId);
           return {
             byId,
@@ -967,9 +983,7 @@ export const SigilMarketsMarketProvider = (props: Readonly<{ children: React.Rea
         (prev) => {
           if (markets.length === 0) return prev;
           const byId: Record<string, Market> = { ...prev.byId };
-          for (const m of markets) {
-            byId[m.def.id as unknown as string] = m;
-          }
+          for (const m of markets) byId[m.def.id as unknown as string] = m;
           const ids = sortIdsDeterministic(byId);
           return {
             ...prev,
@@ -1037,7 +1051,7 @@ export const SigilMarketsMarketProvider = (props: Readonly<{ children: React.Rea
 };
 
 export const useSigilMarketsMarketStore = (): SigilMarketsMarketStore => {
-  const ctx = React.useContext(SigilMarketsMarketContext);
+  const ctx = useContext(SigilMarketsMarketContext);
   if (!ctx) throw new Error("useSigilMarketsMarketStore must be used within <SigilMarketsMarketProvider>");
   return ctx;
 };
@@ -1115,3 +1129,9 @@ export const makeEmptyBinaryMarket = (args: Readonly<{ id: string; slug: string;
 
   return { def, state };
 };
+
+/**
+ * Re-export for callers that already import helpers from the store module.
+ * (Fixes: importing { asMarketId } from "../state/marketStore")
+ */
+export { asMarketId };

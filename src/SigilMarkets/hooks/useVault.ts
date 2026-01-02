@@ -29,7 +29,11 @@ const countLocked = (locks: readonly VaultLock[]): number => locks.reduce((n, l)
 
 export const useVault = (vaultId?: VaultId | null): UseVaultResult => {
   const active = useActiveVault();
-  const byId = vaultId ? useVaultById(vaultId) : null;
+
+  // React hooks must be called unconditionally.
+  // When no vaultId is provided, we still call useVaultById with a safe sentinel/fallback.
+  const lookupId: VaultId = (vaultId ?? active?.vaultId ?? ("__none__" as unknown as VaultId));
+  const byId = useVaultById(lookupId);
 
   const vault = vaultId ? byId : active;
 
@@ -101,9 +105,12 @@ export const useVaultActions = (): Readonly<{
 
   const activeVault = state.activeVaultId ? (state.byId[state.activeVaultId as unknown as string] ?? null) : null;
 
-  const setActiveVault = useCallback((vaultId: VaultId | null) => {
-    actions.setActiveVault(vaultId);
-  }, [actions]);
+  const setActiveVault = useCallback(
+    (vaultId: VaultId | null) => {
+      actions.setActiveVault(vaultId);
+    },
+    [actions],
+  );
 
   const deposit = useCallback(
     (vaultId: VaultId, amountMicro: PhiMicro, atPulse: KaiPulse) => {

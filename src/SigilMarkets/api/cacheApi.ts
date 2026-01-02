@@ -42,21 +42,21 @@ export type CacheFetchOptions<T> = Readonly<{
   signal?: AbortSignal;
 }>;
 
-export type CacheFetchResult<T> = Readonly<{
-  ok: true;
-  value: T;
-  fromCache: boolean;
-  isStale: boolean;
-  fetchedAtMs: number;
-}> | Readonly<{
-  ok: false;
-  error: string;
-  fromCache: boolean;
-}>;
+export type CacheFetchResult<T> =
+  | Readonly<{
+      ok: true;
+      value: T;
+      fromCache: boolean;
+      isStale: boolean;
+      fetchedAtMs: number;
+    }>
+  | Readonly<{
+      ok: false;
+      error: string;
+      fromCache: boolean;
+    }>;
 
-export type DecodeResult<T> =
-  | Readonly<{ ok: true; value: T }>
-  | Readonly<{ ok: false; error: string }>;
+export type DecodeResult<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: string }>;
 
 type StoredEnvelope = Readonly<{
   v: 1;
@@ -84,6 +84,22 @@ const isString = (v: unknown): v is string => typeof v === "string";
 const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n));
+
+/**
+ * Normalize user-provided ms windows:
+ * - Coerce non-finite to 0
+ * - Floor to integer
+ * - Clamp to a safe finite upper bound (prevents Infinity poisoning comparisons)
+ */
+const normalizeWindowMs = (v: number): number => {
+  const n = Number.isFinite(v) ? Math.floor(v) : 0;
+  return clamp(n, 0, Number.MAX_SAFE_INTEGER);
+};
+
+const normalizeMaxEntries = (v: number): number => {
+  const n = Number.isFinite(v) ? Math.floor(v) : 0;
+  return clamp(n, 0, Number.MAX_SAFE_INTEGER);
+};
 
 /**
  * FNV-1a 32-bit hash to keep localStorage keys short and safe.
@@ -185,11 +201,14 @@ class CacheCore {
   }
 
   prune(maxEntries: number, maxAgeMs: number): void {
+    const safeMaxEntries = normalizeMaxEntries(maxEntries);
+    const safeMaxAgeMs = normalizeWindowMs(maxAgeMs);
+
     // Memory prune
-    if (maxEntries > 0 && this.mem.size > maxEntries) {
+    if (safeMaxEntries > 0 && this.mem.size > safeMaxEntries) {
       const entries = Array.from(this.mem.entries()).map(([k, v]) => ({ k, t: v.savedAtMs }));
       entries.sort((a, b) => a.t - b.t); // oldest first
-      const toDrop = entries.slice(0, Math.max(0, entries.length - maxEntries));
+      const toDrop = entries.slice(0, Math.max(0, entries.length - safeMaxEntries));
       for (const d of toDrop) this.mem.delete(d.k);
     }
 
@@ -197,7 +216,7 @@ class CacheCore {
     const s = this.storage;
     if (!s) return;
 
-    const cutoff = nowMs() - Math.max(0, maxAgeMs);
+    const cutoff = nowMs() - safeMaxAgeMs;
     try {
       const candidates: Array<{ k: string; t: number }> = [];
       for (let i = 0; i < s.length; i += 1) {
@@ -218,14 +237,14 @@ class CacheCore {
       }
 
       // Enforce maxEntries best-effort by removing oldest
-      if (maxEntries > 0) {
+      if (safeMaxEntries > 0) {
         const remaining: Array<{ k: string; t: number }> = [];
         for (const c of candidates) {
           if (c.t >= cutoff) remaining.push(c);
         }
-        if (remaining.length > maxEntries) {
+        if (remaining.length > safeMaxEntries) {
           remaining.sort((a, b) => a.t - b.t);
-          const toDrop = remaining.slice(0, remaining.length - maxEntries);
+          const toDrop = remaining.slice(0, remaining.length - safeMaxEntries);
           for (const d of toDrop) s.removeItem(d.k);
         }
       }
@@ -296,8 +315,8 @@ export const cachedJsonFetch = async <T>(opts: CacheFetchOptions<T>): Promise<Ca
   const mode: CacheMode = opts.mode ?? "cache-first";
   const persist = opts.policy.persist ?? true;
 
-  const maxAgeMs = Math.max(0, Math.floor(opts.policy.maxAgeMs));
-  const swrMs = Math.max(0, Math.floor(opts.policy.staleWhileRevalidateMs));
+  const maxAgeMs = normalizeWindowMs(opts.policy.maxAgeMs);
+  const swrMs = normalizeWindowMs(opts.policy.staleWhileRevalidateMs);
   const now = nowMs();
 
   const decode = opts.decode;
@@ -390,7 +409,13 @@ export const cachedJsonFetch = async <T>(opts: CacheFetchOptions<T>): Promise<Ca
 
   if (entry) {
     const { isWithinSWR } = classifyAge(entry.savedAtMs);
-    return { ok: true, value: entry.value, fromCache: true, isStale: !isWithinSWR ? true : true, fetchedAtMs: entry.savedAtMs };
+    return {
+      ok: true,
+      value: entry.value,
+      fromCache: true,
+      isStale: !isWithinSWR ? true : true,
+      fetchedAtMs: entry.savedAtMs,
+    };
   }
 
   return net;

@@ -199,6 +199,27 @@ export const SigilScanner = (props: SigilScannerProps) => {
 
   const title = useMemo(() => (result ? `Scanned • ${result.kind}` : "Sigil Scanner"), [result]);
 
+  const chips = useMemo(() => {
+    const list: React.ReactNode[] = [];
+    if (!result) return list;
+
+    list.push(<Chip key="kind">{result.kind.toUpperCase()}</Chip>);
+
+    const v = result.fields["v"] ?? result.fields["payload.v"];
+    if (v) list.push(<Chip key="v">{v}</Chip>);
+
+    const marketId = result.fields["marketId"] ?? result.fields["payload.marketId"];
+    if (marketId) list.push(<Chip key="mid">{`market ${shortHash(marketId, 10, 6)}`}</Chip>);
+
+    const pulse = result.fields["pulse"];
+    if (pulse) list.push(<Chip key="pulse">{`pulse ${pulse}`}</Chip>);
+
+    list.push(<Chip key="payload">{result.payload ? "payload ✓" : "payload —"}</Chip>);
+    list.push(<Chip key="fields">{`fields ${Object.keys(result.fields).length}`}</Chip>);
+
+    return list;
+  }, [result]);
+
   return (
     <Card variant="glass" className="sm-scan">
       <CardContent>
@@ -229,6 +250,22 @@ export const SigilScanner = (props: SigilScannerProps) => {
             Scan SVG
           </Button>
         </div>
+
+        {chips.length > 0 ? (
+          <div
+            className="sm-scan-chips"
+            role="group"
+            aria-label="Scan status"
+            aria-live="polite"
+            style={{ marginTop: 10, overflowX: "auto", whiteSpace: "nowrap" }}
+          >
+            {chips.map((c, idx) => (
+              <span key={idx} style={{ display: "inline-block", marginRight: 8 }}>
+                {c}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         {err ? (
           <div className="sm-scan-err">

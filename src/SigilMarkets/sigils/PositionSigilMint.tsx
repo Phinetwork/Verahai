@@ -16,7 +16,7 @@
  * This file does NOT export PNG yet (that’s SigilExport.tsx next).
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { KaiMoment } from "../types/marketTypes";
 import type { PositionRecord, PositionSigilArtifact, PositionSigilPayloadV1 } from "../types/sigilPositionTypes";
 import { asPositionSigilId } from "../types/sigilPositionTypes";
@@ -43,6 +43,19 @@ const esc = (s: string): string =>
 const biDec = (v: bigint): MicroDecimalString => asMicroDecimalString(v < 0n ? "0" : v.toString(10));
 
 const clamp01 = (n: number): number => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+const coerceKaiMoment = (v: unknown): KaiMoment => {
+  if (!isRecord(v)) return { pulse: 0, beat: 0, stepIndex: 0 };
+  const p = v["pulse"];
+  const b = v["beat"];
+  const s = v["stepIndex"];
+
+  const pulse = typeof p === "number" && Number.isFinite(p) ? Math.floor(p) : 0;
+  const beat = typeof b === "number" && Number.isFinite(b) ? Math.floor(b) : 0;
+  const stepIndex = typeof s === "number" && Number.isFinite(s) ? Math.floor(s) : 0;
+
+  return { pulse: pulse < 0 ? 0 : pulse, beat: beat < 0 ? 0 : beat, stepIndex: stepIndex < 0 ? 0 : stepIndex };
+};
 
 /** Tiny deterministic PRNG (xorshift32) from hex seed */
 const seed32FromHex = (hex: string): number => {
@@ -130,7 +143,7 @@ const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayl
     vaultId: pos.lock.vaultId,
     lockId: pos.lock.lockId,
 
-    openedAt: pos.entry.openedAt,
+    openedAt: coerceKaiMoment(pos.entry.openedAt as unknown),
     venue: pos.entry.venue,
 
     marketDefinitionHash: pos.entry.marketDefinitionHash,
@@ -160,6 +173,14 @@ const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string): string 
 
   const stake = payload.lockedStakeMicro;
   const shares = payload.sharesMicro;
+
+  // Deterministic style accents (seeded by svgHashSeed + side)
+  const styleRnd = makeRng(seed32FromHex(`${svgHashSeed}:${payload.side}`));
+  const ringOuterOpacity = clamp01(0.12 + styleRnd() * 0.18);
+  const ringToneOpacity = clamp01(0.55 + styleRnd() * 0.35);
+  const waveGlowOpacity = clamp01(0.10 + styleRnd() * 0.20);
+  const waveCoreOpacity = clamp01(0.62 + styleRnd() * 0.30);
+  const labelOpacity = clamp01(0.62 + styleRnd() * 0.20);
 
   const metaJson = JSON.stringify(payload);
 
@@ -212,14 +233,14 @@ const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string): string 
   <rect x="0" y="0" width="1000" height="1000" fill="rgba(8,10,18,1)"/>
   <rect x="0" y="0" width="1000" height="1000" fill="url(#bg)"/>
 
-  <path d="${ring}" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="10"/>
-  <path d="${ring}" fill="none" stroke="${tone}" stroke-width="3" opacity="0.75"/>
+  <path d="${ring}" fill="none" stroke="rgba(255,255,255,${ringOuterOpacity.toFixed(3)})" stroke-width="10"/>
+  <path d="${ring}" fill="none" stroke="${tone}" stroke-width="3" opacity="${ringToneOpacity.toFixed(3)}"/>
 
-  <path d="${wave}" fill="none" stroke="${tone}" stroke-width="6" opacity="0.18" filter="url(#glow)"/>
-  <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="2.2" opacity="0.72"/>
+  <path d="${wave}" fill="none" stroke="${tone}" stroke-width="6" opacity="${waveGlowOpacity.toFixed(3)}" filter="url(#glow)"/>
+  <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="2.2" opacity="${waveCoreOpacity.toFixed(3)}"/>
 
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-     fill="rgba(255,255,255,0.72)" font-size="22">
+     fill="rgba(255,255,255,${labelOpacity.toFixed(3)})" font-size="22">
     <text x="70" y="90">SM-POS-1</text>
     <text x="70" y="125">SIDE: ${esc(payload.side)}</text>
     <text x="70" y="160">STAKE μΦ: ${esc(payload.lockedStakeMicro as unknown as string)}</text>
@@ -245,7 +266,8 @@ export const mintPositionSigil = async (pos: PositionRecord, vault: VaultRecord)
     const svgHashHex = await sha256Hex(svgText);
     const svgHash = asSvgHash(svgHashHex);
 
-    const sigilId = await derivePositionSigilId({ positionId: pos.id, ref: svgHashHex.slice(0, 24) });
+    const rawSigilId = await derivePositionSigilId({ positionId: pos.id, ref: svgHashHex.slice(0, 24) });
+    const sigilId = asPositionSigilId(String(rawSigilId));
 
     const blob = new Blob([svgText], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);

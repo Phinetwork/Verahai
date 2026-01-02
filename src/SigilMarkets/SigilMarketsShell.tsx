@@ -36,14 +36,17 @@ export type SigilMarketsShellProps = Readonly<{
 
 type AppliedResolutionKey = string;
 
-const isResolvedLike = (status: string): boolean =>
-  status === "resolved" || status === "voided" || status === "canceled";
+const isResolvedLike = (status: string): boolean => status === "resolved" || status === "voided" || status === "canceled";
 
 const resolutionKey = (m: Market): AppliedResolutionKey => {
   const rid = m.state.resolution;
   if (!rid) return `${m.def.id}:none`;
   return `${m.def.id}:${rid.outcome}:${rid.resolvedPulse}`;
 };
+
+// Toggle is a small app-level type; keep this predicate permissive and runtime-safe.
+const isToggleOn = (t: unknown): boolean =>
+  t === true || t === 1 || t === "on" || t === "true" || t === "enabled";
 
 const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiConfig; windowScroll: boolean }>) => {
   const { state: uiState, actions: ui } = useSigilMarketsUi();
@@ -59,7 +62,18 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
     pauseWhenHidden: false,
   });
 
+  // Use KaiMoment explicitly (typed UI + provenance).
+  const now: KaiMoment = moment as KaiMoment;
+
   const marketCfg = useMemo(() => props.marketApiConfig ?? defaultMarketApiConfig(), [props.marketApiConfig]);
+
+  // Use uiState intentionally: theme + user toggles (sfx/haptics).
+  const themeClass = useMemo(() => {
+    const t = (uiState.theme as unknown as string) || "default";
+    return `sm-theme-${t}`;
+  }, [uiState.theme]);
+
+  const sfxEnabled = useMemo(() => isToggleOn(uiState.sfxEnabled as unknown), [uiState.sfxEnabled]);
 
   // Audio unlock on first gesture (best-effort).
   const sfx = useSfx();
@@ -67,7 +81,7 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
     if (typeof window === "undefined") return;
 
     const onGesture = (): void => {
-      sfx.unlock();
+      if (sfxEnabled) sfx.unlock();
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("touchstart", onGesture);
       window.removeEventListener("keydown", onGesture);
@@ -82,7 +96,7 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
       window.removeEventListener("touchstart", onGesture);
       window.removeEventListener("keydown", onGesture);
     };
-  }, [sfx]);
+  }, [sfx, sfxEnabled]);
 
   // Market fetch orchestration (offline-first, event-driven).
   const inFlightRef = useRef<boolean>(false);
@@ -92,14 +106,14 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
     if (inFlightRef.current) return;
 
     // Avoid refetching multiple times inside the same pulse unless manual.
-    if (reason !== "manual" && lastFetchPulseRef.current === moment.pulse) return;
+    if (reason !== "manual" && lastFetchPulseRef.current === now.pulse) return;
 
     inFlightRef.current = true;
-    lastFetchPulseRef.current = moment.pulse;
+    lastFetchPulseRef.current = now.pulse;
 
     markets.setStatus("loading");
 
-    const res = await fetchMarkets(marketCfg, moment.pulse);
+    const res = await fetchMarkets(marketCfg, now.pulse);
 
     if (!res.ok) {
       markets.setStatus("error", res.error);
@@ -141,7 +155,7 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
       document.removeEventListener("visibilitychange", onVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketCfg, moment.pulse]);
+  }, [marketCfg, now.pulse]);
 
   // Apply market resolutions to positions + prophecies exactly once per (marketId,outcome,resolvedPulse).
   const appliedResolutionsRef = useRef<Set<AppliedResolutionKey>>(new Set());
@@ -180,24 +194,24 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
       });
 
       ui.toast("info", "Market resolved", `${m.def.question}`, { atPulse: r.resolvedPulse });
-      sfx.play("resolve");
+      if (sfxEnabled) sfx.play("resolve");
     }
-  }, [feed, marketState.byId, marketState.ids, positions, sfx, ui]);
+  }, [feed, marketState.byId, marketState.ids, positions, sfx, sfxEnabled, ui]);
 
-  const shellClass = `sm-shell${props.windowScroll ? " sm-window-scroll" : " sm-container-scroll"}`;
+  const shellClass = `sm-shell ${themeClass}${props.windowScroll ? " sm-window-scroll" : " sm-container-scroll"}`;
 
   if (props.windowScroll) {
     return (
-      <div className={shellClass} data-sm="shell">
-        <SigilMarketsRoutes now={moment} scrollMode="window" scrollRef={null} />
+      <div className={shellClass} data-sm="shell" data-sm-theme={String(uiState.theme)}>
+        <SigilMarketsRoutes now={now} scrollMode="window" scrollRef={null} />
       </div>
     );
   }
 
   return (
-    <div className={shellClass} data-sm="shell">
+    <div className={shellClass} data-sm="shell" data-sm-theme={String(uiState.theme)}>
       <div className="sm-scroll" ref={scrollRef}>
-        <SigilMarketsRoutes now={moment} scrollMode="container" scrollRef={scrollRef} />
+        <SigilMarketsRoutes now={now} scrollMode="container" scrollRef={scrollRef} />
       </div>
     </div>
   );

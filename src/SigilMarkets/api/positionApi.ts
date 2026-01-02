@@ -33,14 +33,16 @@ import type {
   VaultId,
 } from "../types/marketTypes";
 
-import {
-  ONE_PHI_MICRO,
-  type Bps,
-} from "../types/marketTypes";
+import { ONE_PHI_MICRO, type Bps } from "../types/marketTypes";
 
 import { quoteAmmTrade, quoteParimutuelStake, checkSlippage, type AmmQuote } from "../utils/math";
 import { deriveLockId, derivePositionId, makeRandomId } from "../utils/ids";
-import type { PositionEntrySnapshot, PositionLockRef, PositionPayoutModel, PositionRecord } from "../types/sigilPositionTypes";
+import type {
+  PositionEntrySnapshot,
+  PositionLockRef,
+  PositionPayoutModel,
+  PositionRecord,
+} from "../types/sigilPositionTypes";
 import { asPositionId, type PositionId } from "../types/sigilPositionTypes";
 import type { VaultRecord, VaultLockReason } from "../types/vaultTypes";
 
@@ -171,11 +173,14 @@ export const executeLocalTrade = async (input: ExecuteTradeInput): Promise<Execu
       nonce,
     });
 
-    const positionId = await derivePositionId({
-      vaultId: vault.vaultId,
-      marketId: market.def.id,
-      lockId,
-    });
+    // ✅ Explicitly brand the derived id as PositionId (uses asPositionId correctly)
+    const positionId = asPositionId(
+      (await derivePositionId({
+        vaultId: vault.vaultId,
+        marketId: market.def.id,
+        lockId,
+      })) as unknown as string,
+    );
 
     const lock: PositionLockRef = {
       vaultId: vault.vaultId,
@@ -264,11 +269,14 @@ export const executeLocalTrade = async (input: ExecuteTradeInput): Promise<Execu
       nonce,
     });
 
-    const positionId = await derivePositionId({
-      vaultId: vault.vaultId,
-      marketId: market.def.id,
-      lockId,
-    });
+    // ✅ Explicitly brand the derived id as PositionId (uses asPositionId correctly)
+    const positionId = asPositionId(
+      (await derivePositionId({
+        vaultId: vault.vaultId,
+        marketId: market.def.id,
+        lockId,
+      })) as unknown as string,
+    );
 
     const lock: PositionLockRef = {
       vaultId: vault.vaultId,

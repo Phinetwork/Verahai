@@ -47,10 +47,24 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
   const m = useMarket(props.marketId, props.now.pulse);
   const [disputeOpen, setDisputeOpen] = useState(false);
 
+  // ✅ Hooks must be unconditional: compute memoized subtitle using safe fallbacks.
+  const subtitle = useMemo(() => {
+    const market = m.market;
+    if (!market) return "Missing market";
+    return `${market.def.category} • ${statusLabel(market.state.status)}`;
+  }, [m.market?.def.category, m.market?.state.status]);
+
   if (!m.market) {
     return (
       <div className="sm-page" data-sm="resolution">
-        <TopBar title="Resolution" subtitle="Missing market" now={props.now} scrollMode={props.scrollMode} scrollRef={props.scrollRef} back />
+        <TopBar
+          title="Resolution"
+          subtitle={subtitle}
+          now={props.now}
+          scrollMode={props.scrollMode}
+          scrollRef={props.scrollRef}
+          back
+        />
         <Card variant="glass">
           <CardContent>
             <div className="sm-title">Market not found.</div>
@@ -62,8 +76,6 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
 
   const market = m.market;
   const r = market.state.resolution;
-
-  const subtitle = useMemo(() => `${market.def.category} • ${statusLabel(market.state.status)}`, [market.def.category, market.state.status]);
 
   return (
     <div className="sm-page" data-sm="resolution">
@@ -81,7 +93,11 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
         <ResolutionSigilCard market={market} />
 
         {r ? (
-          <OutcomeReveal outcome={r.outcome} resolvedPulse={r.resolvedPulse} statusLabel={statusLabel(market.state.status)} />
+          <OutcomeReveal
+            outcome={r.outcome}
+            resolvedPulse={r.resolvedPulse}
+            statusLabel={statusLabel(market.state.status)}
+          />
         ) : (
           <Card variant="glass">
             <CardContent>

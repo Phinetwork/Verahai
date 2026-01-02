@@ -16,7 +16,7 @@
  * - This component is designed to be rendered inside a Sheet by a future SheetHost.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { KaiMoment, MarketId, VaultId } from "../types/marketTypes";
 import { Sheet } from "../ui/atoms/Sheet";
 import { Button } from "../ui/atoms/Button";
@@ -140,11 +140,9 @@ const extractAttr = (el: Element, names: readonly string[]): string | null => {
   return null;
 };
 
-const parseIdentityFromSvg = async (rawSvg: string): Promise<ParsedIdentity> => {
-  // Compute svgHash from raw bytes (stable)
-  const buf = new TextEncoder().encode(rawSvg).buffer;
-  const h = await sha256HexBytes(buf);
-  const svgHash = asSvgHash(h);
+const parseIdentityFromSvg = async (rawSvg: string, precomputedSvgHash?: SvgHash): Promise<ParsedIdentity> => {
+  // Compute svgHash from raw bytes (stable). Prefer a precomputed hash from the *file bytes* when available.
+  const svgHash: SvgHash = precomputedSvgHash ?? asSvgHash(await sha256HexBytes(new TextEncoder().encode(rawSvg).buffer));
 
   // Parse DOM
   const parser = new DOMParser();
@@ -229,6 +227,8 @@ const parseIdentityFromSvg = async (rawSvg: string): Promise<ParsedIdentity> => 
 };
 
 export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
+  const { open, onClose, now, reason, initialSpendableMicro } = props;
+
   const { actions: ui } = useSigilMarketsUi();
   const { actions: vault } = useSigilMarketsVaultStore();
 
@@ -241,51 +241,58 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
 
-  const reset = (): void => {
+  const reset = useCallback((): void => {
     setFileName("");
     setParsed(null);
     setVaultId(null);
     setErr(null);
     setBusy(false);
     if (inputRef.current) inputRef.current.value = "";
-  };
+  }, []);
 
-  const close = (): void => {
+  const close = useCallback((): void => {
     reset();
-    props.onClose();
-  };
+    onClose();
+  }, [onClose, reset]);
 
-  const onPick = async (f: File): Promise<void> => {
-    setErr(null);
-    setBusy(true);
-    setParsed(null);
-    setVaultId(null);
-    setFileName(f.name);
+  const onPick = useCallback(
+    async (f: File): Promise<void> => {
+      setErr(null);
+      setBusy(true);
+      setParsed(null);
+      setVaultId(null);
+      setFileName(f.name);
 
-    try {
-      const type = (f.type || "").toLowerCase();
+      try {
+        const type = (f.type || "").toLowerCase();
 
-      if (type.includes("svg") || f.name.toLowerCase().endsWith(".svg")) {
-        const raw = await readFileText(f);
-        const p = await parseIdentityFromSvg(raw);
-        const vid = await deriveVaultId({ userPhiKey: p.userPhiKey, identitySvgHash: p.svgHash });
+        if (type.includes("svg") || f.name.toLowerCase().endsWith(".svg")) {
+          // Use raw file bytes for the canonical svgHash (more stable than re-encoding the string).
+          const buf = await readFileAsArrayBuffer(f);
+          const bytesHash = asSvgHash(await sha256HexBytes(buf));
 
-        setParsed(p);
-        setVaultId(vid);
+          const raw = await readFileText(f);
+          const p = await parseIdentityFromSvg(raw, bytesHash);
+          const vid = await deriveVaultId({ userPhiKey: p.userPhiKey, identitySvgHash: p.svgHash });
+
+          setParsed(p);
+          setVaultId(vid);
+          setBusy(false);
+          return;
+        }
+
+        // For now: PNG/JPG unsupported here (wired later via SigilScanner + embedded payload)
+        throw new Error("Please inhale an SVG glyph (PNG scanning wires next).");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Failed to parse glyph";
+        setErr(msg);
         setBusy(false);
-        return;
       }
+    },
+    [],
+  );
 
-      // For now: PNG/JPG unsupported here (wired later via SigilScanner + embedded payload)
-      throw new Error("Please inhale an SVG glyph (PNG scanning wires next).");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to parse glyph";
-      setErr(msg);
-      setBusy(false);
-    }
-  };
-
-  const onConfirm = (): void => {
+  const onConfirm = useCallback((): void => {
     if (!parsed || !vaultId) return;
 
     // Create or activate vault
@@ -296,25 +303,29 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
         kaiSignature: parsed.kaiSignature,
         identitySigil: { svgHash: parsed.svgHash, url: undefined },
       },
-      initialSpendableMicro: props.initialSpendableMicro ?? (0n as PhiMicro),
-      createdPulse: props.now.pulse,
+      initialSpendableMicro: initialSpendableMicro ?? (0n as PhiMicro),
+      createdPulse: now.pulse,
     });
 
     vault.setActiveVault(vaultId);
 
-    ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: props.now.pulse });
+    ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: now.pulse });
     close();
-  };
+  }, [close, initialSpendableMicro, now.pulse, parsed, ui, vault, vaultId]);
 
   const subtitle = useMemo(() => {
-    if (props.reason === "trade") return "Inhale your identity glyph to lock Φ into a position.";
-    if (props.reason === "vault") return "Inhale your identity glyph to activate your Vault.";
+    if (reason === "trade") return "Inhale your identity glyph to lock Φ into a position.";
+    if (reason === "vault") return "Inhale your identity glyph to activate your Vault.";
     return "Inhale your identity glyph to enter Sigil Markets.";
-  }, [props.reason]);
+  }, [reason]);
+
+  const onChooseClick = useCallback((): void => {
+    inputRef.current?.click();
+  }, []);
 
   return (
     <Sheet
-      open={props.open}
+      open={open}
       onClose={close}
       title="Inhale Glyph"
       subtitle={subtitle}
@@ -323,7 +334,12 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
           <Button variant="ghost" onClick={close} disabled={busy}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={onConfirm} disabled={!parsed || !vaultId || busy} leftIcon={<Icon name="check" size={14} tone="gold" />}>
+          <Button
+            variant="primary"
+            onClick={onConfirm}
+            disabled={!parsed || !vaultId || busy}
+            leftIcon={<Icon name="check" size={14} tone="gold" />}
+          >
             Activate
           </Button>
         </div>
@@ -342,12 +358,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
             style={{ display: "none" }}
           />
 
-          <Button
-            variant="primary"
-            onClick={() => inputRef.current?.click()}
-            loading={busy}
-            leftIcon={<Icon name="scan" size={14} tone="cyan" />}
-          >
+          <Button variant="primary" onClick={onChooseClick} loading={busy} leftIcon={<Icon name="scan" size={14} tone="cyan" />}>
             Choose glyph (SVG)
           </Button>
 
@@ -369,7 +380,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
                   <Icon name="vault" size={14} tone="gold" /> Identity found
                 </div>
                 <Chip size="sm" selected={false} variant="outline" tone="gold">
-                  pulse {props.now.pulse}
+                  pulse {now.pulse}
                 </Chip>
               </div>
 

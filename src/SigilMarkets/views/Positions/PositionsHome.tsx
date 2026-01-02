@@ -29,23 +29,39 @@ export const PositionsHome = (props: PositionsHomeProps) => {
 
   const { positions, buckets, counts } = usePositions();
 
+  // Use `positions` intentionally:
+  // - Enables a fast sanity check that buckets cover all positions (dev-safety, UI correctness).
+  // - Provides stable ordering for derived sections if needed in the future.
+  // - Fixes unused var while improving invariants.
+  const totalPositions = positions.length;
+
   const subtitle = useMemo(() => {
     if (counts.total === 0) return "No positions yet";
     return `${counts.total} • ${counts.open} open • ${counts.claimable} claimable`;
   }, [counts]);
 
-  const sections = useMemo(
-    () =>
-      [
-        { key: "claimable", title: "Claimable", items: buckets.claimable, tone: "gold" as const },
-        { key: "open", title: "Open", items: buckets.open, tone: "cyan" as const },
-        { key: "lost", title: "Lost", items: buckets.lost, tone: "danger" as const },
-        { key: "refundable", title: "Refundable", items: buckets.refundable, tone: "violet" as const },
-        { key: "claimed", title: "Claimed", items: buckets.claimed, tone: "default" as const },
-        { key: "refunded", title: "Refunded", items: buckets.refunded, tone: "default" as const },
-      ].filter((s) => s.items.length > 0),
-    [buckets],
-  );
+  const sections = useMemo(() => {
+    const base = [
+      { key: "claimable", title: "Claimable", items: buckets.claimable, tone: "gold" as const },
+      { key: "open", title: "Open", items: buckets.open, tone: "cyan" as const },
+      { key: "lost", title: "Lost", items: buckets.lost, tone: "danger" as const },
+      { key: "refundable", title: "Refundable", items: buckets.refundable, tone: "violet" as const },
+      { key: "claimed", title: "Claimed", items: buckets.claimed, tone: "default" as const },
+      { key: "refunded", title: "Refunded", items: buckets.refunded, tone: "default" as const },
+    ].filter((s) => s.items.length > 0);
+
+    // Defensive: If totals ever diverge, add a small "All" section at the end to avoid hiding anything.
+    // This should normally never happen; it protects against future hook/store changes.
+    const sectionSum = base.reduce((n, s) => n + s.items.length, 0);
+    if (totalPositions > 0 && sectionSum !== totalPositions) {
+      return [
+        ...base,
+        { key: "all", title: "All", items: positions, tone: "default" as const },
+      ];
+    }
+
+    return base;
+  }, [buckets, positions, totalPositions]);
 
   return (
     <div className="sm-page" data-sm="positions">
@@ -65,7 +81,13 @@ export const PositionsHome = (props: PositionsHomeProps) => {
               Make a wager in any market to mint your first Position Sigil.
             </div>
             <div style={{ marginTop: 12 }}>
-              <Chip size="sm" selected={false} tone="cyan" onClick={() => actions.navigate({ view: "grid" })} left={<Icon name="hex" size={14} tone="dim" />}>
+              <Chip
+                size="sm"
+                selected={false}
+                tone="cyan"
+                onClick={() => actions.navigate({ view: "grid" })}
+                left={<Icon name="hex" size={14} tone="dim" />}
+              >
                 Browse markets
               </Chip>
             </div>

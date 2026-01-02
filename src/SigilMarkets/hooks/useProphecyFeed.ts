@@ -114,7 +114,9 @@ const filterProphecies = (items: readonly ProphecyRecord[], q?: ProphecyFeedQuer
 
   const includeResolved = q.includeResolved ?? true;
   if (!includeResolved) {
-    out = out.filter((p) => !p.resolution || p.resolution.status === "sealed");
+    // ✅ Use the guard exactly as intended:
+    // "resolved" means fulfilled/missed/void — exclude those, keep sealed/unresolved.
+    out = out.filter((p) => !p.resolution || !isResolvedStatus(p.resolution.status));
   }
 
   return out;
@@ -210,7 +212,10 @@ export const useProphecyFeed = (query?: ProphecyFeedQuery): UseProphecyFeedResul
   const { actions: ui } = useSigilMarketsUi();
   const { actions: feed } = useSigilMarketsFeedStore();
 
-  const prophecies = useMemo(() => filterProphecies(list, query), [list, query?.marketId, query?.visibility, query?.includeResolved]);
+  const prophecies = useMemo(
+    () => filterProphecies(list, query),
+    [list, query?.marketId, query?.visibility, query?.includeResolved],
+  );
 
   const counts = useMemo(() => computeCounts(prophecies), [prophecies]);
 

@@ -44,10 +44,33 @@ export const VaultPanel = (props: VaultPanelProps) => {
   const [dwMode, setDwMode] = useState<"deposit" | "withdraw">("deposit");
 
   const title = "Vault";
+
+  // ✅ `lockedCount` is the canonical count of active locks.
+  // Use `locks` for timeline/meta (last activity), not for status comparisons.
+  const lastLockPulse = useMemo(() => {
+    let lastPulse = 0;
+    for (const l of locks) lastPulse = Math.max(lastPulse, l.updatedPulse ?? 0);
+    return lastPulse;
+  }, [locks]);
+
   const subtitle = useMemo(() => {
-    if (!vault) return "Inhale a glyph to activate";
-    return `spendable • ${vault.spendableMicro.toString()}μ`;
-  }, [vault]);
+    if (!vault) {
+      return status === "ready" ? "Inhale a glyph to activate" : "Loading vault…";
+    }
+
+    const spend = (spendableMicro as unknown as bigint).toString(10);
+    const locked = (lockedMicro as unknown as bigint).toString(10);
+    const tail = lastLockPulse > 0 ? ` • last lock p${lastLockPulse}` : "";
+
+    return `spendable ${spend}μ • locked ${locked}μ • locks ${lockedCount}${tail}`;
+  }, [vault, status, spendableMicro, lockedMicro, lockedCount, lastLockPulse]);
+
+  const isActiveVault = useMemo(() => {
+    if (!vault) return false;
+    const av = vaultActions.activeVault;
+    if (!av) return false;
+    return (av.vaultId as unknown as string) === (vault.vaultId as unknown as string);
+  }, [vault, vaultActions.activeVault]);
 
   const onBack = (): void => {
     ui.navigate({ view: "grid" });
@@ -58,7 +81,7 @@ export const VaultPanel = (props: VaultPanelProps) => {
       <div className="sm-page" data-sm="vault">
         <TopBar
           title={title}
-          subtitle="No active vault"
+          subtitle={subtitle}
           now={props.now}
           scrollMode={props.scrollMode}
           scrollRef={props.scrollRef}
@@ -96,7 +119,7 @@ export const VaultPanel = (props: VaultPanelProps) => {
     <div className="sm-page" data-sm="vault">
       <TopBar
         title={title}
-        subtitle={`locks • ${lockedCount} • pulse ${props.now.pulse}`}
+        subtitle={subtitle}
         now={props.now}
         scrollMode={props.scrollMode}
         scrollRef={props.scrollRef}
@@ -106,6 +129,38 @@ export const VaultPanel = (props: VaultPanelProps) => {
 
       <div className="sm-vault-stack">
         <VaultSigilCard vault={vault} now={props.now} />
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="sm-small">
+            locks active: {lockedCount} • total records: {locks.length}
+          </div>
+
+          {isActiveVault ? (
+            <div className="sm-small">active vault</div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => vaultActions.setActiveVault(vault.vaultId)}
+              leftIcon={<Icon name="check" size={14} tone="dim" />}
+            >
+              Set active
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              vaultActions.setActiveVault(null);
+              ui.toast("info", "Vault cleared", "Active vault disabled");
+              ui.navigate({ view: "grid" });
+            }}
+            leftIcon={<Icon name="warning" size={14} tone="gold" />}
+          >
+            Deactivate
+          </Button>
+        </div>
 
         <div className="sm-vault-row">
           <VaultBalance vault={vault} />
@@ -132,13 +187,7 @@ export const VaultPanel = (props: VaultPanelProps) => {
         />
       </div>
 
-      <DepositWithdrawSheet
-        open={dwOpen}
-        mode={dwMode}
-        onClose={() => setDwOpen(false)}
-        vault={vault}
-        now={props.now}
-      />
+      <DepositWithdrawSheet open={dwOpen} mode={dwMode} onClose={() => setDwOpen(false)} vault={vault} now={props.now} />
     </div>
   );
 };

@@ -43,7 +43,7 @@ import type {
   PhiMicro,
   PriceMicro,
   ShareMicro,
- MarketOutcome,
+  MarketOutcome,
 } from "../types/marketTypes";
 
 import {
@@ -101,6 +101,9 @@ const parseOracleProvider = (v: unknown): OracleProvider | null => {
   if (!isString(v) || v.length === 0) return null;
   return v as OracleProvider;
 };
+
+/** Price micros are probabilities for a binary market, expressed in Φ-micro (0 .. 1Φ). */
+const isPriceMicro = (bi: bigint): bi is PriceMicro => bi >= 0n && bi <= ONE_PHI_MICRO;
 
 /** ---------------------------------------
  * Remote JSON shapes (micro values = strings)
@@ -236,7 +239,8 @@ const decodePrices = (v: unknown): DecodeResult<BinaryPricesMicro> => {
   const yes = parseBigIntDec(v["yes"]);
   const no = parseBigIntDec(v["no"]);
   if (yes === null || no === null) return { ok: false, error: "pricesMicro: bad micros" };
-  return { ok: true, value: { yes: yes as PriceMicro, no: no as PriceMicro } };
+  if (!isPriceMicro(yes) || !isPriceMicro(no)) return { ok: false, error: "pricesMicro: out of range (0..1Φ)" };
+  return { ok: true, value: { yes, no } };
 };
 
 const decodeVenueState = (v: unknown): DecodeResult<MarketVenueState> => {
@@ -291,7 +295,7 @@ const decodeVenueState = (v: unknown): DecodeResult<MarketVenueState> => {
 
     const parseOptPrice = (x: unknown): PriceMicro | undefined => {
       const bi = parseBigIntDec(x);
-      return bi === null ? undefined : (bi as PriceMicro);
+      return bi !== null && isPriceMicro(bi) ? bi : undefined;
     };
 
     const parseDepth = (x: unknown): readonly ClobPriceLevel[] | undefined => {
@@ -302,7 +306,8 @@ const decodeVenueState = (v: unknown): DecodeResult<MarketVenueState> => {
         const price = parseBigIntDec(item["priceMicro"]);
         const size = parseBigIntDec(item["sizeMicro"]);
         if (price === null || size === null) continue;
-        out.push({ priceMicro: price as PriceMicro, sizeMicro: size as ShareMicro });
+        if (!isPriceMicro(price)) continue;
+        out.push({ priceMicro: price, sizeMicro: size as ShareMicro });
       }
       return out;
     };
@@ -600,7 +605,8 @@ const decodeMarketListResponse = (
       const dm = decodeBinaryMarket(item);
       if (dm.ok) markets.push(dm.value);
     }
-    const lastSyncedPulse = raw["lastSyncedPulse"] !== undefined ? parsePulse(raw["lastSyncedPulse"]) ?? undefined : undefined;
+    const lastSyncedPulse =
+      raw["lastSyncedPulse"] !== undefined ? parsePulse(raw["lastSyncedPulse"]) ?? undefined : undefined;
     return { ok: true, value: { markets, lastSyncedPulse } };
   }
 

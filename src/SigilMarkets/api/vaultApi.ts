@@ -51,17 +51,17 @@ const joinUrl = (base: string, path: string): string => {
 
 const replaceAll = (s: string, find: string, rep: string): string => s.split(find).join(rep);
 
-/** Remote JSON shape */
+/** Remote JSON shape (wire format) */
 type SerializedVaultSnapshot = Readonly<{
   vaultId: string;
   status: "active" | "frozen";
   owner: Readonly<{ userPhiKey: string; kaiSignature: string; identitySvgHash?: string }>;
   spendableMicro: string;
   lockedMicro: string;
-  updatedPulse: number;
+  updatedPulse: KaiPulse;
 }>;
 
-const decodeVaultSnapshot = (v: unknown): DecodeResult<VaultRecord> => {
+const decodeSerializedVaultSnapshot = (v: unknown): DecodeResult<SerializedVaultSnapshot> => {
   if (!isRecord(v)) return { ok: false, error: "vault: not object" };
 
   const vaultId = v["vaultId"];
@@ -74,31 +74,62 @@ const decodeVaultSnapshot = (v: unknown): DecodeResult<VaultRecord> => {
   if (!isString(vaultId) || vaultId.length === 0) return { ok: false, error: "vaultId: bad" };
   if (status !== "active" && status !== "frozen") return { ok: false, error: "status: bad" };
   if (!isRecord(owner)) return { ok: false, error: "owner: bad" };
-  if (!isString(owner["userPhiKey"]) || owner["userPhiKey"].length === 0) return { ok: false, error: "owner.userPhiKey: bad" };
-  if (!isString(owner["kaiSignature"]) || owner["kaiSignature"].length === 0) return { ok: false, error: "owner.kaiSignature: bad" };
+
+  const userPhiKey = owner["userPhiKey"];
+  const kaiSignature = owner["kaiSignature"];
+  const identitySvgHash = owner["identitySvgHash"];
+
+  if (!isString(userPhiKey) || userPhiKey.length === 0) return { ok: false, error: "owner.userPhiKey: bad" };
+  if (!isString(kaiSignature) || kaiSignature.length === 0) return { ok: false, error: "owner.kaiSignature: bad" };
+
   if (!isString(spendableMicro) || !isString(lockedMicro)) return { ok: false, error: "balances: bad" };
   if (!isNumber(updatedPulse)) return { ok: false, error: "updatedPulse: bad" };
 
-  const s = parseBigIntDec(spendableMicro);
-  const l = parseBigIntDec(lockedMicro);
+  return {
+    ok: true,
+    value: {
+      vaultId,
+      status,
+      owner: {
+        userPhiKey,
+        kaiSignature,
+        ...(isString(identitySvgHash) && identitySvgHash.length > 0 ? { identitySvgHash } : {}),
+      },
+      spendableMicro,
+      lockedMicro,
+      updatedPulse: updatedPulse as KaiPulse,
+    },
+  };
+};
+
+const decodeVaultSnapshot = (v: unknown): DecodeResult<VaultRecord> => {
+  const snap = decodeSerializedVaultSnapshot(v);
+  if (!snap.ok) return snap;
+
+  const s = parseBigIntDec(snap.value.spendableMicro);
+  const l = parseBigIntDec(snap.value.lockedMicro);
   if (s === null || l === null) return { ok: false, error: "balances: parse fail" };
 
-  const identitySvgHash = isString(owner["identitySvgHash"]) ? asSvgHash(owner["identitySvgHash"]) : undefined;
+  const pulse: KaiPulse = Math.max(0, Math.floor(snap.value.updatedPulse)) as KaiPulse;
+
+  const identitySvgHash: SvgHash | undefined = snap.value.owner.identitySvgHash
+    ? asSvgHash(snap.value.owner.identitySvgHash)
+    : undefined;
 
   const rec: VaultRecord = {
-    vaultId: asVaultId(vaultId),
+    vaultId: asVaultId(snap.value.vaultId),
     owner: {
-      userPhiKey: asUserPhiKey(owner["userPhiKey"]) as UserPhiKey,
-      kaiSignature: asKaiSignature(owner["kaiSignature"]) as KaiSignature,
+      userPhiKey: asUserPhiKey(snap.value.owner.userPhiKey) as UserPhiKey,
+      kaiSignature: asKaiSignature(snap.value.owner.kaiSignature) as KaiSignature,
       identitySigil: identitySvgHash ? { svgHash: identitySvgHash } : undefined,
     },
-    status,
+    status: snap.value.status,
     spendableMicro: s as PhiMicro,
     lockedMicro: l as PhiMicro,
     locks: [], // remote snapshot omits lock list; local store holds actual locks
     stats: undefined,
-    createdPulse: Math.max(0, Math.floor(updatedPulse)),
-    updatedPulse: Math.max(0, Math.floor(updatedPulse)),
+    createdPulse: pulse,
+    updatedPulse: pulse,
   };
 
   return { ok: true, value: rec };

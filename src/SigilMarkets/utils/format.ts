@@ -198,7 +198,7 @@ export const formatSharesMicro = (shares: ShareMicro, opts?: Readonly<{ maxDecim
 };
 
 /** Pulses -> human-ish duration string (bridge). */
-export const formatPulsesAsDuration = (pulses: number): string => {
+export const formatPulsesAsDuration = (pulses: KaiPulse): string => {
   const p = Number.isFinite(pulses) ? Math.max(0, Math.floor(pulses)) : 0;
   const seconds = p * PULSE_SECONDS;
 
@@ -215,12 +215,12 @@ export const formatPulsesAsDuration = (pulses: number): string => {
 };
 
 /** Close countdown label */
-export const formatCloseIn = (closeInPulses: number): string => {
+export const formatCloseIn = (closeInPulses: KaiPulse): string => {
   const p = Number.isFinite(closeInPulses) ? Math.max(0, Math.floor(closeInPulses)) : 0;
   if (p === 0) return "closed";
   if (p === 1) return "1 pulse";
   if (p < 20) return `${p} pulses`;
-  return `${p} pulses • ${formatPulsesAsDuration(p)}`;
+  return `${p} pulses • ${formatPulsesAsDuration(p as KaiPulse)}`;
 };
 
 export const shortHash = (h: string, left = 8, right = 4): string => {

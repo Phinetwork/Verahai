@@ -35,7 +35,7 @@ export const ToastHost = (props: ToastHostProps) => {
 
   return (
     <div className={cls} aria-live="polite" aria-relevant="additions">
-      {toasts.slice(-3).map((t) => (
+      {toasts.slice(-3).map((t: ToastModel) => (
         <div key={t.id} className={cx("sm-toast", toneClass(t.kind))} role="status">
           <div className="sm-toast-head">
             <div className="sm-toast-title">{t.title}</div>

@@ -32,12 +32,20 @@ export const MarketRoom = (props: MarketRoomProps) => {
     restoreDelayMs: 0,
   });
 
+  // Hooks must not be conditional. Compute a safe subtitle even when missing.
+  const subtitle = useMemo(() => {
+    const market = m.market;
+    if (!market) return "Missing";
+    const cat = market.def.category as unknown as string;
+    return `${cat} • close p${market.def.timing.closePulse}`;
+  }, [m.market]);
+
   if (m.status === "missing" || !m.market) {
     return (
       <div className="sm-page" data-sm="market-room">
         <TopBar
           title="Market"
-          subtitle="Missing"
+          subtitle={subtitle}
           now={props.now}
           scrollMode={props.scrollMode}
           scrollRef={props.scrollRef}
@@ -57,11 +65,6 @@ export const MarketRoom = (props: MarketRoomProps) => {
   }
 
   const market = m.market;
-
-  const subtitle = useMemo(() => {
-    const cat = market.def.category as unknown as string;
-    return `${cat} • close p${market.def.timing.closePulse}`;
-  }, [market.def.category, market.def.timing.closePulse]);
 
   return (
     <div className="sm-page" data-sm="market-room">

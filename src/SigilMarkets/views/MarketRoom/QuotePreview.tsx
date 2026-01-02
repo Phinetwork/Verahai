@@ -17,6 +17,43 @@ export type QuotePreviewProps = Readonly<{
 export const QuotePreview = (props: QuotePreviewProps) => {
   const q = props.quote;
 
+  // ✅ Hooks must be called unconditionally — compute memoized display values
+  // with safe null-guards and render conditionally afterward.
+
+  const stake = useMemo(
+    () => (q ? formatPhiMicro(q.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }) : ""),
+    [q?.stakeMicro],
+  );
+
+  const fee = useMemo(
+    () => (q ? formatPhiMicro(q.feeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }) : ""),
+    [q?.feeMicro],
+  );
+
+  const total = useMemo(
+    () => (q ? formatPhiMicro(q.totalCostMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }) : ""),
+    [q?.totalCostMicro],
+  );
+
+  const shares = useMemo(() => (q ? formatSharesMicro(q.expectedSharesMicro, { maxDecimals: 2 }) : ""), [
+    q?.expectedSharesMicro,
+  ]);
+
+  const avg = useMemo(() => (q ? formatPriceMicro(q.avgPriceMicro, { mode: "cents", decimals: 0 }) : ""), [
+    q?.avgPriceMicro,
+  ]);
+
+  const worst = useMemo(() => (q ? formatPriceMicro(q.worstPriceMicro, { mode: "cents", decimals: 0 }) : ""), [
+    q?.worstPriceMicro,
+  ]);
+
+  const stale = useMemo(() => {
+    if (!q) return false;
+    if (props.nowPulse === undefined) return false;
+    const d = props.nowPulse - q.quotedAtPulse;
+    return d > 2;
+  }, [props.nowPulse, q?.quotedAtPulse]);
+
   if (!q) {
     return (
       <Card variant="glass2">
@@ -26,20 +63,6 @@ export const QuotePreview = (props: QuotePreviewProps) => {
       </Card>
     );
   }
-
-  const stake = useMemo(() => formatPhiMicro(q.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }), [q.stakeMicro]);
-  const fee = useMemo(() => formatPhiMicro(q.feeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }), [q.feeMicro]);
-  const total = useMemo(() => formatPhiMicro(q.totalCostMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }), [q.totalCostMicro]);
-  const shares = useMemo(() => formatSharesMicro(q.expectedSharesMicro, { maxDecimals: 2 }), [q.expectedSharesMicro]);
-
-  const avg = useMemo(() => formatPriceMicro(q.avgPriceMicro, { mode: "cents", decimals: 0 }), [q.avgPriceMicro]);
-  const worst = useMemo(() => formatPriceMicro(q.worstPriceMicro, { mode: "cents", decimals: 0 }), [q.worstPriceMicro]);
-
-  const stale = useMemo(() => {
-    if (props.nowPulse === undefined) return false;
-    const d = props.nowPulse - q.quotedAtPulse;
-    return d > 2;
-  }, [props.nowPulse, q.quotedAtPulse]);
 
   return (
     <Card variant="glass2" className={stale ? "sm-loss-fade" : ""}>

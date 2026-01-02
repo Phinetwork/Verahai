@@ -1,7 +1,7 @@
 // SigilMarkets/views/Resolution/EvidenceViewer.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import type { Market } from "../../types/marketTypes";
 import { Card, CardContent } from "../../ui/atoms/Card";
 import { Divider } from "../../ui/atoms/Divider";
@@ -13,14 +13,30 @@ export type EvidenceViewerProps = Readonly<{
 }>;
 
 export const EvidenceViewer = (props: EvidenceViewerProps) => {
-  const ev = props.market.state.resolution?.evidence;
+  // ✅ useMemo used correctly: derive stable view-model from market snapshot,
+  // avoid recomputing/allocating arrays and booleans on every render.
+  const vm = useMemo(() => {
+    const ev = props.market.state.resolution?.evidence;
 
-  const urls = ev?.urls ?? [];
-  const hashes = ev?.hashes ?? [];
+    const urls = ev?.urls ?? [];
+    const hashes = ev?.hashes ?? [];
 
-  const has = urls.length > 0 || hashes.length > 0 || (ev?.summary && ev.summary.trim().length > 0);
+    const summary = (ev?.summary ?? "").trim();
 
-  if (!has) {
+    const has = urls.length > 0 || hashes.length > 0 || summary.length > 0;
+
+    return {
+      ev,
+      urls,
+      hashes,
+      summary,
+      has,
+      urlCount: urls.length,
+      hashCount: hashes.length,
+    };
+  }, [props.market.state.resolution?.evidence]);
+
+  if (!vm.has) {
     return (
       <Card variant="glass2">
         <CardContent>
@@ -38,24 +54,24 @@ export const EvidenceViewer = (props: EvidenceViewerProps) => {
             <Icon name="spark" size={14} tone="dim" /> Evidence
           </div>
           <div className="sm-small">
-            {urls.length} urls • {hashes.length} hashes
+            {vm.urlCount} urls • {vm.hashCount} hashes
           </div>
         </div>
 
-        {ev?.summary ? (
+        {vm.summary ? (
           <>
             <Divider />
-            <div className="sm-ev-summary">{ev.summary}</div>
+            <div className="sm-ev-summary">{vm.summary}</div>
           </>
         ) : null}
 
-        {urls.length > 0 ? (
+        {vm.urls.length > 0 ? (
           <>
             <Divider />
             <div className="sm-ev-block">
               <div className="sm-ev-k">URLs</div>
               <ul className="sm-ev-list">
-                {urls.slice(0, 12).map((u) => (
+                {vm.urls.slice(0, 12).map((u) => (
                   <li key={u}>
                     <a className="sm-ev-link" href={u} target="_blank" rel="noreferrer">
                       {u}
@@ -67,15 +83,16 @@ export const EvidenceViewer = (props: EvidenceViewerProps) => {
           </>
         ) : null}
 
-        {hashes.length > 0 ? (
+        {vm.hashes.length > 0 ? (
           <>
             <Divider />
             <div className="sm-ev-block">
               <div className="sm-ev-k">Hashes</div>
               <ul className="sm-ev-list mono">
-                {hashes.slice(0, 12).map((h) => (
-                  <li key={h as unknown as string}>{shortHash(h as unknown as string, 12, 10)}</li>
-                ))}
+                {vm.hashes.slice(0, 12).map((h) => {
+                  const hs = h as unknown as string;
+                  return <li key={hs}>{shortHash(hs, 12, 10)}</li>;
+                })}
               </ul>
             </div>
           </>

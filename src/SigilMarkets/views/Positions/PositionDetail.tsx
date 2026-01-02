@@ -5,13 +5,12 @@ import React, { useMemo, useState } from "react";
 import type { KaiMoment, MarketId } from "../../types/marketTypes";
 import type { PositionId } from "../../types/sigilPositionTypes";
 import { useSigilMarketsUi } from "../../state/uiStore";
-import { useMarketById } from "../../state/marketStore";
-import { usePosition } from "../../hooks/usePositions";
 import { useScrollRestoration } from "../../hooks/useScrollRestoration";
+import { usePosition } from "../../hooks/usePositions";
+import { useMarketById } from "../../state/marketStore";
 import { TopBar } from "../../ui/chrome/TopBar";
 import { Card, CardContent } from "../../ui/atoms/Card";
 import { Button } from "../../ui/atoms/Button";
-import { Chip } from "../../ui/atoms/Chip";
 import { Divider } from "../../ui/atoms/Divider";
 import { Icon } from "../../ui/atoms/Icon";
 import { formatPhiMicro, formatSharesMicro, shortHash } from "../../utils/format";
@@ -27,27 +26,8 @@ export type PositionDetailProps = Readonly<{
   scrollRef: React.RefObject<HTMLDivElement | null> | null;
 }>;
 
-type ChipTone = "default" | "gold" | "danger" | "violet" | "success";
-
-const toneForStatus = (st: string): ChipTone => {
-  if (st === "claimable") return "gold";
-  if (st === "lost") return "danger";
-  if (st === "refundable") return "violet";
-  if (st === "claimed") return "success";
-  return "default";
-};
-
-const statusLabel = (st: string): string => {
-  if (st === "claimable") return "claimable";
-  if (st === "refundable") return "refundable";
-  if (st === "lost") return "lost";
-  if (st === "claimed") return "claimed";
-  if (st === "refunded") return "refunded";
-  return "open";
-};
-
 export const PositionDetail = (props: PositionDetailProps) => {
-  const { state: uiState, actions: ui } = useSigilMarketsUi();
+  const { state: uiState, actions } = useSigilMarketsUi();
 
   useScrollRestoration(uiState.route, {
     mode: props.scrollMode,
@@ -55,64 +35,78 @@ export const PositionDetail = (props: PositionDetailProps) => {
     restoreDelayMs: 0,
   });
 
-  const position = usePosition(props.positionId);
-  const market = useMarketById(position?.marketId ?? ("" as MarketId));
-  const question = market?.def.question ?? "Market";
+  const p = usePosition(props.positionId);
+
+  // Hooks must be called unconditionally. Use a safe sentinel id when position is missing.
+  const lookupMarketId: MarketId = (p?.marketId ?? ("__none__" as unknown as MarketId)) as MarketId;
+  const market = useMarketById(lookupMarketId);
 
   const [claimOpen, setClaimOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
 
-  const onBack = (): void => ui.navigate({ view: "positions" });
+  const view = useMemo(() => {
+    if (!p) {
+      return {
+        missing: true as const,
+        question: "Market",
+        subtitle: "Missing",
+        stake: "",
+        shares: "",
+        lockIdShort: "",
+        lockIdRaw: "",
+      };
+    }
 
-  if (!position) {
+    const q = market?.def.question ?? "Market";
+    const stake = formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true });
+    const shares = formatSharesMicro(p.entry.sharesMicro, { maxDecimals: 2 });
+    const lockIdRaw = p.lock.lockId as unknown as string;
+
+    return {
+      missing: false as const,
+      question: q,
+      subtitle: `${p.status} • p${p.entry.openedAt.pulse}`,
+      stake,
+      shares,
+      lockIdShort: shortHash(lockIdRaw, 10, 6),
+      lockIdRaw,
+    };
+  }, [market, p]);
+
+  const onBack = (): void => {
+    actions.backToGrid();
+  };
+
+  // IMPORTANT: Narrow on `p` directly so TS knows position is non-null below.
+  if (!p) {
     return (
-      <div className="sm-page" data-sm="position">
+      <div className="sm-page" data-sm="position-detail">
         <TopBar
           title="Position"
-          subtitle="Position not found"
+          subtitle={view.subtitle}
           now={props.now}
           scrollMode={props.scrollMode}
           scrollRef={props.scrollRef}
           back
           onBack={onBack}
         />
-
         <Card variant="glass">
           <CardContent>
-            <div className="sm-title">Position unavailable</div>
-            <div className="sm-subtitle" style={{ marginTop: 8 }}>
-              This position is no longer available locally. Try returning to your positions list.
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <Button variant="primary" onClick={onBack} leftIcon={<Icon name="back" size={14} tone="dim" />}>
-                Back to positions
-              </Button>
-            </div>
+            <div className="sm-title">Position not found.</div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const stakeLabel = useMemo(
-    () => formatPhiMicro(position.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }),
-    [position.entry.stakeMicro],
-  );
-
-  const sharesLabel = useMemo(
-    () => formatSharesMicro(position.entry.sharesMicro, { maxDecimals: 2 }),
-    [position.entry.sharesMicro],
-  );
-
-  const isClaimable = position.status === "claimable" || position.status === "refundable";
-  const claimLabel = position.status === "refundable" ? "Refund" : "Claim";
+  const position = p;
 
   return (
-    <div className="sm-page" data-sm="position">
+    <div className="sm-page" data-sm="position-detail">
       <TopBar
         title="Position"
-        subtitle={`${statusLabel(position.status)} • p${position.entry.openedAt.pulse}`}
+        subtitle={view.subtitle}
         now={props.now}
         scrollMode={props.scrollMode}
         scrollRef={props.scrollRef}
@@ -120,78 +114,59 @@ export const PositionDetail = (props: PositionDetailProps) => {
         onBack={onBack}
       />
 
-      <div className="sm-pos-detail">
-        <Card variant="glass">
-          <CardContent>
-            <div className="sm-pos-detail-q">{question}</div>
+      <Card variant="glass" className="sm-pos-detail">
+        <CardContent>
+          <div className="sm-pos-detail-q">{view.question}</div>
 
-            <div className="sm-pos-detail-row">
-              <Chip size="sm" selected={false} variant="outline" tone={toneForStatus(position.status)}>
-                {statusLabel(position.status)}
-              </Chip>
-              <Chip size="sm" selected={false} variant="outline" tone={position.entry.side === "YES" ? "cyan" : "violet"}>
-                {position.entry.side}
-              </Chip>
+          <div className="sm-pos-detail-row">
+            <span className={`sm-pos-side ${position.entry.side === "YES" ? "is-yes" : "is-no"}`}>{position.entry.side}</span>
+            <span className="sm-pill">{position.status}</span>
+          </div>
+
+          <Divider />
+
+          <div className="sm-pos-detail-grid">
+            <div className="row">
+              <span className="k">Stake</span>
+              <span className="v">{view.stake}</span>
             </div>
-
-            <div className="sm-pos-detail-grid">
-              <div className="row">
-                <span className="k">Position</span>
-                <span className="v mono">{shortHash(position.id as unknown as string, 14, 10)}</span>
-              </div>
-              <div className="row">
-                <span className="k">Market</span>
-                <span className="v mono">{shortHash(position.marketId as unknown as string, 14, 10)}</span>
-              </div>
-              <div className="row">
-                <span className="k">Stake</span>
-                <span className="v">{stakeLabel}</span>
-              </div>
-              <div className="row">
-                <span className="k">Shares</span>
-                <span className="v">{sharesLabel}</span>
-              </div>
-              <div className="row">
-                <span className="k">Opened</span>
-                <span className="v">p {position.entry.openedAt.pulse}</span>
-              </div>
-              <div className="row">
-                <span className="k">Outcome</span>
-                <span className="v">{position.resolution?.outcome ?? "—"}</span>
-              </div>
+            <div className="row">
+              <span className="k">Shares</span>
+              <span className="v">{view.shares}</span>
             </div>
+            <div className="row">
+              <span className="k">Lock</span>
+              <span className="v mono">{view.lockIdShort}</span>
+            </div>
+          </div>
 
-            <Divider />
+          <Divider />
 
-            <div className="sm-pos-detail-actions">
+          <div className="sm-pos-detail-actions">
+            {position.status === "claimable" || position.status === "refundable" ? (
               <Button
                 variant="primary"
                 onClick={() => setClaimOpen(true)}
-                disabled={!isClaimable}
-                leftIcon={<Icon name="check" size={14} tone={isClaimable ? "gold" : "dim"} />}
+                leftIcon={<Icon name="check" size={14} tone="gold" />}
               >
-                {claimLabel}
+                {position.status === "claimable" ? "Claim" : "Refund"}
               </Button>
+            ) : null}
 
-              <Button variant="ghost" onClick={() => setExportOpen(true)} leftIcon={<Icon name="share" size={14} tone="dim" />}>
-                Export
-              </Button>
+            <Button variant="ghost" onClick={() => setExportOpen(true)} leftIcon={<Icon name="export" size={14} tone="dim" />}>
+              Export
+            </Button>
 
-              <Button variant="ghost" onClick={() => setTransferOpen(true)} leftIcon={<Icon name="share" size={14} tone="dim" />}>
-                Transfer
-              </Button>
+            <Button variant="ghost" onClick={() => setTransferOpen(true)} leftIcon={<Icon name="share" size={14} tone="dim" />}>
+              Transfer
+            </Button>
+          </div>
 
-              {market ? (
-                <Button variant="ghost" onClick={() => ui.navigate({ view: "market", marketId: market.def.id })}>
-                  Open market
-                </Button>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
+          <Divider />
 
-        <PositionTimeline position={position} />
-      </div>
+          <PositionTimeline position={position} />
+        </CardContent>
+      </Card>
 
       <ClaimSheet open={claimOpen} onClose={() => setClaimOpen(false)} position={position} now={props.now} />
       <ExportPositionSheet open={exportOpen} onClose={() => setExportOpen(false)} position={position} />

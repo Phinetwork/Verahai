@@ -63,6 +63,54 @@ export const defaultOracleApiConfig = (): SigilMarketsOracleApiConfig => {
   return { baseUrl: base, proposePath: "/oracle/propose", finalizePath: "/oracle/finalize" };
 };
 
+const normalizeOracleCfg = (cfg: SigilMarketsOracleApiConfig): Required<Pick<SigilMarketsOracleApiConfig, "proposePath" | "finalizePath">> &
+  Pick<SigilMarketsOracleApiConfig, "baseUrl"> => {
+  return {
+    baseUrl: cfg.baseUrl,
+    proposePath: cfg.proposePath ?? "/oracle/propose",
+    finalizePath: cfg.finalizePath ?? "/oracle/finalize",
+  };
+};
+
+const joinUrl = (baseUrl: string, path: string): string => {
+  const base = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${p}`;
+};
+
+const safeReadText = async (r: Response): Promise<string> => {
+  try {
+    return await r.text();
+  } catch {
+    return "";
+  }
+};
+
+const postJson = async (url: string, body: unknown): Promise<OracleActionResult<true>> => {
+  if (typeof fetch !== "function") {
+    return { ok: false, error: "fetch is not available in this environment" };
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const t = await safeReadText(res);
+      return { ok: false, error: `oracle remote error ${res.status}: ${t || res.statusText}` };
+    }
+
+    // Allow either empty 204 or JSON/text bodies.
+    return { ok: true, value: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown error";
+    return { ok: false, error: `oracle remote request failed: ${msg}` };
+  }
+};
+
 /**
  * Canonicalize minimal evidence bundle and optionally compute a bundle hash.
  *
@@ -228,19 +276,39 @@ export const makeResolutionSigilPayload = async (args: Readonly<{
 };
 
 /**
- * Placeholder remote calls (optional).
- * For now, these return a clear error (MVP local-only).
+ * Remote calls (optional):
+ * - If cfg.baseUrl is present, POST the proposal/finalization to the configured endpoints.
+ * - If absent, return a clear offline/local-only error (still MVP-safe).
+ *
+ * NOTE: We intentionally keep the response contract minimal (true/false) so
+ * stores can stay deterministic/offline-first while still enabling "remote-ready".
  */
 export const postProposal = async (
-  _cfg: SigilMarketsOracleApiConfig,
-  _proposal: OracleResolutionProposal,
+  cfg: SigilMarketsOracleApiConfig,
+  proposal: OracleResolutionProposal,
 ): Promise<OracleActionResult<true>> => {
-  return { ok: false, error: "remote oracle propose not implemented in MVP" };
+  const c = normalizeOracleCfg(cfg);
+  if (!c.baseUrl) return { ok: false, error: "oracleApi is local-only (no baseUrl configured)" };
+
+  const url = joinUrl(c.baseUrl, c.proposePath);
+
+  // Send both shapes for compatibility:
+  // - direct object (proposal)
+  // - wrapped payload ({ proposal })
+  return await postJson(url, { proposal });
 };
 
 export const postFinalization = async (
-  _cfg: SigilMarketsOracleApiConfig,
-  _final: OracleResolutionFinal,
+  cfg: SigilMarketsOracleApiConfig,
+  finalization: OracleResolutionFinal,
 ): Promise<OracleActionResult<true>> => {
-  return { ok: false, error: "remote oracle finalize not implemented in MVP" };
+  const c = normalizeOracleCfg(cfg);
+  if (!c.baseUrl) return { ok: false, error: "oracleApi is local-only (no baseUrl configured)" };
+
+  const url = joinUrl(c.baseUrl, c.finalizePath);
+
+  // Send both shapes for compatibility:
+  // - direct object (finalization)
+  // - wrapped payload ({ finalization })
+  return await postJson(url, { finalization });
 };

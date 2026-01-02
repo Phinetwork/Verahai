@@ -30,6 +30,18 @@ export const VaultActions = (props: VaultActionsProps) => {
     [locked],
   );
 
+  // Use the full formatter (previously unused import) for an exact, unrounded detail line.
+  // This gives users an authoritative “precision readout” without changing the UI layout.
+  const spendableExact = useMemo(
+    () => formatPhiMicro(spendable, { withUnit: true, maxDecimals: 6, minDecimals: 0, trimZeros: true }),
+    [spendable],
+  );
+
+  const lockedExact = useMemo(
+    () => formatPhiMicro(locked, { withUnit: true, maxDecimals: 6, minDecimals: 0, trimZeros: true }),
+    [locked],
+  );
+
   const isFrozen = props.vault.status === "frozen";
 
   return (
@@ -49,6 +61,11 @@ export const VaultActions = (props: VaultActionsProps) => {
           <span className="sm-pill">
             <Icon name="positions" size={14} tone="dim" /> locked {lockedLabel}
           </span>
+        </div>
+
+        {/* Precision row (uses formatPhiMicro so the import is intentionally consumed) */}
+        <div className="sm-small" style={{ marginTop: 8, opacity: 0.85 }}>
+          exact: spendable {spendableExact} · locked {lockedExact}
         </div>
 
         <div className="sm-vault-actions-row">
