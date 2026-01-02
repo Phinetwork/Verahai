@@ -1,4 +1,4 @@
-// SigilMarkets/state/positionStore.ts
+// SigilMarkets/state/positionStore.tsx
 "use client";
 
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
