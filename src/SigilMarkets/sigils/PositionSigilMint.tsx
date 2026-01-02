@@ -20,8 +20,8 @@ import React, { useCallback, useMemo, useState } from "react";
 import type { KaiMoment } from "../types/marketTypes";
 import type { PositionRecord, PositionSigilArtifact, PositionSigilPayloadV1 } from "../types/sigilPositionTypes";
 import { asPositionSigilId } from "../types/sigilPositionTypes";
-import type { VaultRecord } from "../types/vaultTypes";
-import { asSvgHash } from "../types/vaultTypes";
+import type { MicroDecimalString, VaultRecord } from "../types/vaultTypes";
+import { asMicroDecimalString, asSvgHash } from "../types/vaultTypes";
 
 import { sha256Hex, derivePositionSigilId } from "../utils/ids";
 import { Button } from "../ui/atoms/Button";
@@ -40,7 +40,7 @@ const esc = (s: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-const biDec = (v: bigint): string => (v < 0n ? "0" : v.toString(10));
+const biDec = (v: bigint): MicroDecimalString => asMicroDecimalString(v < 0n ? "0" : v.toString(10));
 
 const clamp01 = (n: number): number => (n < 0 ? 0 : n > 1 ? 1 : n);
 
@@ -118,14 +118,14 @@ const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayl
 
     side: pos.entry.side,
 
-    lockedStakeMicro: biDec(pos.lock.lockedStakeMicro) as any,
-    sharesMicro: biDec(pos.entry.sharesMicro) as any,
+    lockedStakeMicro: biDec(pos.lock.lockedStakeMicro),
+    sharesMicro: biDec(pos.entry.sharesMicro),
 
-    avgPriceMicro: biDec(pos.entry.avgPriceMicro) as any,
-    worstPriceMicro: biDec(pos.entry.worstPriceMicro) as any,
+    avgPriceMicro: biDec(pos.entry.avgPriceMicro),
+    worstPriceMicro: biDec(pos.entry.worstPriceMicro),
 
-    feeMicro: biDec(pos.entry.feeMicro) as any,
-    totalCostMicro: biDec(pos.entry.totalCostMicro) as any,
+    feeMicro: biDec(pos.entry.feeMicro),
+    totalCostMicro: biDec(pos.entry.totalCostMicro),
 
     vaultId: pos.lock.vaultId,
     lockId: pos.lock.lockId,
@@ -140,14 +140,14 @@ const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayl
           outcome: pos.resolution.outcome,
           resolvedPulse: pos.resolution.resolvedPulse,
           status: pos.status,
-          creditedMicro: pos.settlement ? (biDec(pos.settlement.creditedMicro) as any) : undefined,
-          debitedMicro: pos.settlement ? (biDec(pos.settlement.debitedMicro) as any) : undefined,
+          creditedMicro: pos.settlement ? biDec(pos.settlement.creditedMicro) : undefined,
+          debitedMicro: pos.settlement ? biDec(pos.settlement.debitedMicro) : undefined,
         }
       : undefined,
 
     label: `Position ${pos.entry.side}`,
     note: undefined,
-  } as unknown as PositionSigilPayloadV1;
+  };
 };
 
 const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string): string => {

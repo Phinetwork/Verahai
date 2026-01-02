@@ -20,6 +20,7 @@
 import type { KaiMoment, KaiPulse, MarketId, MarketOutcome } from "../types/marketTypes";
 import type {
   EvidenceBundle,
+  EvidenceItem,
   OracleResolutionFinal,
   OracleResolutionProposal,
   OracleSig,
@@ -37,6 +38,9 @@ type UnknownRecord = Record<string, unknown>;
 const isRecord = (v: unknown): v is UnknownRecord => typeof v === "object" && v !== null;
 const isString = (v: unknown): v is string => typeof v === "string";
 const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+const isEvidenceUrl = (item: EvidenceItem): item is EvidenceItem & { kind: "url" } => item.kind === "url";
+const isEvidenceHash = (item: EvidenceItem): item is EvidenceItem & { kind: "hash" } => item.kind === "hash";
 
 export type SigilMarketsOracleApiConfig = Readonly<{
   /** Optional remote base for oracle actions. If absent, oracleApi is local-only. */
@@ -173,8 +177,8 @@ export const makeResolutionSigilPayload = async (args: Readonly<{
     evidence: ev
       ? {
           bundleHash: ev.bundleHash,
-          urls: ev.items.filter((i) => i.kind === "url").map((i) => (i as { kind: "url"; url: any }).url as unknown as string),
-          hashes: ev.items.filter((i) => i.kind === "hash").map((i) => (i as { kind: "hash"; hash: any }).hash as unknown as string),
+          urls: ev.items.filter(isEvidenceUrl).map((i) => i.url),
+          hashes: ev.items.filter(isEvidenceHash).map((i) => i.hash),
           summary: ev.summary,
         }
       : undefined,

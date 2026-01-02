@@ -81,10 +81,12 @@ export const confettiBurst = (opts?: ConfettiOpts): void => {
   }
 
   const t0 = performance.now();
+  let lastT = t0;
 
   const step = (t: number): void => {
-    const dt = Math.min(33, t - (step as any).lastT || 16);
-    (step as any).lastT = t;
+    const dtRaw = t - lastT;
+    const dt = Math.min(33, dtRaw > 0 ? dtRaw : 16);
+    lastT = t;
 
     const age = t - t0;
     const alpha = 1 - clamp(age / durationMs, 0, 1);

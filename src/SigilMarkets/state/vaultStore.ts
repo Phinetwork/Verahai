@@ -35,7 +35,9 @@ import {
   asMicroDecimalString,
   asSvgHash,
   asUserPhiKey,
+  isVaultLockReason,
   type KaiSignature,
+  type IdentitySigilRef,
   type MicroDecimalString,
   type SerializedVaultRecord,
   type SvgHash,
@@ -148,7 +150,7 @@ const decodeSerializedVaultRecord: Decoder<SerializedVaultRecord> = (v: unknown)
 
       if (!isString(lockId) || lockId.length === 0) continue;
       if (lStatus !== "locked" && lStatus !== "released" && lStatus !== "burned" && lStatus !== "paid" && lStatus !== "refunded") continue;
-      if (!isString(reason) || reason.length === 0) continue;
+      if (!isVaultLockReason(reason)) continue;
       if (amount === null) continue;
       if (!isRecord(createdAt)) continue;
       const pulse = createdAt["pulse"];
@@ -175,7 +177,7 @@ const decodeSerializedVaultRecord: Decoder<SerializedVaultRecord> = (v: unknown)
   const identitySigil =
     isRecord(identitySigilRaw) && isString(identitySigilRaw["svgHash"])
       ? {
-          sigilId: isString(identitySigilRaw["sigilId"]) ? (identitySigilRaw["sigilId"] as unknown as any) : undefined,
+          sigilId: isString(identitySigilRaw["sigilId"]) ? identitySigilRaw["sigilId"] : undefined,
           svgHash: asSvgHash(identitySigilRaw["svgHash"]),
           url: isString(identitySigilRaw["url"]) ? identitySigilRaw["url"] : undefined,
         }
@@ -393,7 +395,7 @@ export type CreateOrActivateVaultInput = Readonly<{
     userPhiKey: UserPhiKey;
     kaiSignature: KaiSignature;
     zkProofRef?: ZkProofRef;
-    identitySigil?: Readonly<{ svgHash: SvgHash; url?: string }>;
+    identitySigil?: IdentitySigilRef;
   }>;
 
   /** If absent, vault starts at 0. */

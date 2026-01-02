@@ -39,7 +39,7 @@ import type {
   VaultId,
 } from "../types/marketTypes";
 
-import { asMarketId } from "../types/marketTypes";
+import { asLockId, asMarketId } from "../types/marketTypes";
 
 import type {
   PositionId,
@@ -206,7 +206,7 @@ const deserializeLock = (v: unknown): PersistResult<PositionLockRef> => {
     ok: true,
     value: {
       vaultId: vaultId as unknown as VaultId,
-      lockId: lockId as unknown as any,
+      lockId: asLockId(lockId),
       lockedStakeMicro: normalizePhi(lockedStake),
     },
   };

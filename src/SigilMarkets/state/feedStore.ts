@@ -39,9 +39,14 @@ import type {
   MarketId,
   MarketOutcome,
   MarketSide,
+  PhiMicro,
+  PriceMicro,
+  ShareMicro,
+  LockId,
+  VaultId,
 } from "../types/marketTypes";
 
-import { asMarketId } from "../types/marketTypes";
+import { asLockId, asMarketId, asVaultId } from "../types/marketTypes";
 
 import type { PositionId } from "../types/sigilPositionTypes";
 import { asPositionId } from "../types/sigilPositionTypes";
@@ -498,19 +503,19 @@ const loadCache = (storage: StorageLike | null): PersistResult<Readonly<{ state:
         const stake = BigInt(stakeMicro);
         const shares = BigInt(sharesMicro);
         const avg = BigInt(avgPriceMicro);
-        const vaultId = isString(v["vaultId"]) ? (v["vaultId"] as unknown as any) : undefined;
-        const lockId = isString(v["lockId"]) ? (v["lockId"] as unknown as any) : undefined;
+        const vaultId = isString(v["vaultId"]) ? asVaultId(v["vaultId"]) : undefined;
+        const lockId = isString(v["lockId"]) ? asLockId(v["lockId"]) : undefined;
 
         return {
           type,
           marketId: asMarketId(marketId),
           side,
-          stakeMicro: stake as unknown as any,
-          sharesMicro: shares as unknown as any,
-          avgPriceMicro: avg as unknown as any,
+          stakeMicro: stake as PhiMicro,
+          sharesMicro: shares as ShareMicro,
+          avgPriceMicro: avg as PriceMicro,
           atPulse: p,
-          vaultId,
-          lockId,
+          vaultId: vaultId as VaultId | undefined,
+          lockId: lockId as LockId | undefined,
         };
       } catch {
         return null;

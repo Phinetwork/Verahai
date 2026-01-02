@@ -30,7 +30,9 @@ import type {
   VaultId,
 } from "./marketTypes";
 
-import type { KaiSignature, SvgHash, UserPhiKey } from "./vaultTypes";
+import type { KaiSignature, MicroDecimalString, SvgHash, UserPhiKey } from "./vaultTypes";
+export type { MicroDecimalString } from "./vaultTypes";
+export { asMicroDecimalString } from "./vaultTypes";
 
 /** Position id (unique within the user's local store; may also be globally referenced). */
 export type PositionId = Brand<string, "PositionId">;
@@ -43,13 +45,6 @@ export const asPositionSigilId = (v: string): PositionSigilId => v as PositionSi
 /** A deterministic event id for position lifecycle events (optional). */
 export type PositionEventId = Brand<string, "PositionEventId">;
 export const asPositionEventId = (v: string): PositionEventId => v as PositionEventId;
-
-/**
- * Decimal string representing a bigint micro value in base-10.
- * Used for JSON serialization (since JSON can't encode bigint).
- */
-export type MicroDecimalString = Brand<string, "MicroDecimalString">;
-export const asMicroDecimalString = (v: string): MicroDecimalString => v as MicroDecimalString;
 
 export type PositionVenueKind = "amm" | "parimutuel" | "clob";
 

@@ -519,7 +519,7 @@ const decodeBinaryMarket = (v: unknown): DecodeResult<BinaryMarket> => {
   const def: BinaryMarketDefinition = {
     id: asMarketId(id),
     kind: "binary",
-    slug: defRaw["slug"] ? (defRaw["slug"] as unknown as any) : asMarketSlug(slug),
+    slug: asMarketSlug(isString(defRaw["slug"]) ? defRaw["slug"] : slug),
     question,
     description: isString(defRaw["description"]) ? defRaw["description"] : undefined,
     category: cat,
