@@ -1,0 +1,278 @@
+/* ============================================
+   Φ Send Amount Field — Kairos Console
+   Matches SendPhiAmountField.tsx v2
+   ============================================ */
+
+/* Make this a container so we can use container queries */
+.phi-send-field {
+  width: 100%;
+  container-type: inline-size;
+}
+
+/* ────────────────────────────────────────────
+   1) Top row: toggle + input + actions
+   ─────────────────────────────────────────── */
+.phi-send-mainRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;            /* NEVER wrap; keep in one line */
+  width: 100%;
+  min-width: 0;                 /* allow input to shrink instead of overflow */
+}
+
+/* Segmented toggle group */
+.phi-mode-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+/* Buttons inside segment */
+.phi-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #333);
+  background: var(--card, rgba(255,255,255,0.04));
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s, opacity .2s;
+  opacity: .6;
+}
+.phi-mode-btn.is-active {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent) 60%, #333 40%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 16px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Input capsule (owns the flexible space) */
+.phi-send-inputShell {
+  flex: 1 1 auto;       /* grow + shrink; main flexible element */
+  min-width: 0;         /* allow shrinking on narrow screens */
+  box-sizing: border-box;
+
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    radial-gradient(120% 180% at 20% 0%, rgba(255,255,255,0.045), transparent 60%),
+    rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  transition: box-shadow .2s, border-color .2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.phi-send-inputShell::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255,255,255,0.06), transparent 35%) 0 0/24px 24px,
+    radial-gradient(circle at 60% 80%, rgba(255,255,255,0.03), transparent 40%) 0 0/28px 28px;
+  opacity: .08;
+  pointer-events: none;
+}
+
+.phi-send-inputShell:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 65%, white 10%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 26px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* Prefix + input text */
+.phi-prefix {
+  font-size: .9rem;
+  font-weight: 700;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 70%, transparent));
+}
+
+.phi-send-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums lining-nums;
+  caret-color: color-mix(in srgb, var(--accent) 90%, white 10%);
+  text-shadow:
+    0 0 8px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 1px rgba(255,255,255,0.95);
+}
+.phi-send-input::placeholder {
+  opacity: .55;
+}
+
+/* inner glow element */
+.phi-input-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: .0;
+  background:
+    radial-gradient(120% 200% at 15% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%);
+  transition: opacity .3s ease;
+}
+.phi-send-inputShell:focus-within .phi-input-glow {
+  opacity: .95;
+}
+
+/* ────────────────────────────────────────────
+   2) Actions (send + attach) — stay on same line
+   ─────────────────────────────────────────── */
+.phi-send-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;          /* fixed-width; don’t wrap */
+}
+
+.phi-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(120% 160% at 20% 0%, rgba(255,255,255,0.18), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.7));
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow:
+    0 10px 18px rgba(0,0,0,0.55),
+    0 0 16px color-mix(in srgb, var(--accent) 28%, transparent);
+  transition: transform .08s ease, box-shadow .15s ease, opacity .18s ease;
+}
+.phi-action-btn:hover {
+  opacity: 1;
+  box-shadow:
+    0 14px 26px rgba(0,0,0,0.7),
+    0 0 22px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.phi-action-btn:active {
+  transform: translateY(0.5px) scale(.97);
+}
+.phi-action-btn:disabled {
+  opacity: .45;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* you can style send vs attach differently if you like */
+.phi-action-send { }
+.phi-action-attach { }
+
+/* ────────────────────────────────────────────
+   3) Second row: conversion + remaining
+   ─────────────────────────────────────────── */
+.phi-send-metaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;           /* these MAY wrap; that’s fine */
+}
+
+/* Conversion readout */
+.phi-conv-right {
+  flex: 0 0 auto;
+  min-width: 120px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    0 8px 20px rgba(0,0,0,0.35);
+}
+
+/* Remaining telemetry */
+.phi-remaining {
+  position: relative;
+  margin-left: auto;
+  min-width: 160px;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ink);
+  padding-bottom: 4px;
+}
+
+/* Progress underline (set --remaining-ratio inline 0..1) */
+.phi-remaining::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--accent) 70%, white 10%) 0%,
+      color-mix(in srgb, var(--accent) 35%, transparent) 100%);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--remaining-ratio, .5));
+  transition: transform .25s ease;
+  opacity: .9;
+}
+
+/* ────────────────────────────────────────────
+   4) Responsive tuning
+   ─────────────────────────────────────────── */
+
+/* For narrow containers, keep TOP ROW locked but soften fonts */
+@container (inline-size < 420px) {
+  .phi-mode-toggle { transform: scale(.95); }
+  .phi-send-input { font-size: .95rem; }
+}
+
+/* Meta row: let conversion + remaining stack nicely under input on small widths */
+@container (inline-size < 600px) {
+  .phi-send-metaRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .phi-conv-right {
+    min-width: 0;
+    width: 100%;
+    text-align: left;
+  }
+  .phi-remaining {
+    margin-left: 0;
+    min-width: 0;
+    width: 100%;
+    text-align: left;
+  }
+}
+
+/* Motion safety */
+@media (prefers-reduced-motion: reduce) {
+  .phi-input-glow,
+  .phi-remaining::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,831 @@
+/* src/components/FeedCard.css
+   ─────────────────────────────────────────────────────────────
+   FeedCard — Atlantean Krystal Glass (v1.0)
+   • Production-grade, accessible, overflow-safe, mobile-first
+   • Breath-aligned (defaults to Kai 5.236s), motion-safe
+   • Works with BOTH:
+       - New markup: .fc--crystal / .fc-shell / .fc-chip / .fc-btn / .fc-metaRow
+       - Legacy markup: .pill / .btn / .sig / .fc-meta
+   • FORCED DARK THEME:
+       - No prefers-color-scheme light overrides
+       - Cards render dark even when OS/browser is in Light Mode
+   ───────────────────────────────────────────────────────────── */
+
+/* ========== 0) ROOT TOKENS (fallbacks) ========================= */
+:root{
+  --phi: 1.61803398875;
+
+  /* palette */
+  --bg: 10, 14, 22;                 /* deep night */
+  --ink: 236, 241, 251;             /* foreground */
+  --muted: 180, 192, 210;           /* muted */
+  --glass: 255, 255, 255;           /* white for glass */
+  --ring: 255, 255, 255;
+
+  /* accents (page may override) */
+  --gold-r: 42;
+  --gold-g: 197;
+  --gold-b: 255;
+  --gold: var(--gold-r), var(--gold-g), var(--gold-b);  /* luminous-cyan (packed) */
+
+  --gold-ink: 255, 215, 128;        /* warm gold */
+  --danger: 255, 88, 88;
+  --ok: 88, 255, 174;
+
+  /* alpha system */
+  --a-card: 0.065;
+  --a-border: 0.13;
+  --a-border-strong: 0.20;
+  --a-pill: 0.11;
+  --a-pill-border: 0.18;
+
+  /* radii */
+  --r-card: 18px;
+  --r-stage: 16px;
+  --r-pill: 999px;
+  --r-btn: 12px;
+
+  /* shadows */
+  --shadow-1: 0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
+  --shadow-2: 0 16px 54px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.05);
+  --inset-1: inset 0 0 0 1px rgba(255,255,255,.035);
+  --inset-2: inset 0 0 0 1px rgba(255,255,255,.055);
+
+  /* motion */
+  --dur-breath: 5.236s;             /* Kai pulse period */
+  --ease-flow: cubic-bezier(.22,.61,.36,1);
+  --ease-snap: cubic-bezier(.2,.9,.2,1);
+
+  /* micro-noise (CSS-only) */
+  --noise-a: 0.028;
+}
+
+/* ========== 1) MOTION SAFETY ================================= */
+@media (prefers-reduced-motion: reduce){
+  :root{ --dur-breath: 0s; }
+  *{ scroll-behavior:auto !important; }
+}
+
+/* ========== 2) KEYFRAMES (breath / shimmer / rim) ============= */
+@keyframes fc-breath{
+  0%,100%{ transform: translateY(0); filter: brightness(1); }
+  50%{ transform: translateY(-0.5px); filter: brightness(1.03); }
+}
+@keyframes fc-aura{
+  0%,100%{ opacity:.45; filter: blur(.2px) saturate(1); }
+  50%{ opacity:.95; filter: blur(1.05px) saturate(1.12); }
+}
+@keyframes fc-rim-spin{
+  to{ transform: rotate(360deg); }
+}
+@keyframes fc-shimmer{
+  0%{ transform: translateX(-42%); opacity:.22; }
+  35%{ opacity:.55; }
+  50%{ transform: translateX(42%); opacity:.70; }
+  75%{ opacity:.55; }
+  100%{ transform: translateX(-42%); opacity:.22; }
+}
+@keyframes fc-sheen{
+  0%{ transform: translateX(-30%) translateY(-2%); opacity:.18; }
+  50%{ transform: translateX(30%) translateY(2%); opacity:.36; }
+  100%{ transform: translateX(-30%) translateY(-2%); opacity:.18; }
+}
+@keyframes fc-copied-pulse{
+  0%{ transform: scale(1); filter: brightness(1); }
+  35%{ transform: scale(1.01); filter: brightness(1.12); }
+  100%{ transform: scale(1); filter: brightness(1); }
+}
+
+/* ========== 3) BASE / OVERFLOW HARDENING ====================== */
+.fc,
+.fc *{
+  box-sizing:border-box;
+  max-width:100%;
+}
+.fc :where(h1,h2,h3,h4,p){ min-width:0; }
+.fc :where(a,button){ -webkit-tap-highlight-color: transparent; }
+
+.fc :where(.mono, .fc-kai, .fc-stamp){
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.fc :where(.fc-title,.fc-body,.fc-link,.fc-kai,.fc-stamp,.fc-url){
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  line-break:anywhere;
+}
+
+/* media stay in-bounds */
+.fc :where(img,video,iframe,svg,canvas){
+  display:block;
+  max-width:100%;
+  height:auto;
+}
+
+/* ========== 4) CARD ROOT (NEW + LEGACY) ======================= */
+/* New: .fc.fc--crystal  |  Legacy: .fc */
+.fc{
+  /* FORCE DARK UI EVEN IN LIGHT MODE */
+  color-scheme: dark;
+
+  /* Freeze critical palette/tokens at the card level so global light-mode vars
+     (or other files) can’t wash this card out. */
+  --bg: 10, 14, 22;
+  --ink: 236, 241, 251;
+  --muted: 180, 192, 210;
+  --glass: 255, 255, 255;
+  --ring: 255, 255, 255;
+
+  /* ensure gold packed + components exist locally too */
+  --gold-r: 42;
+  --gold-g: 197;
+  --gold-b: 255;
+  --gold: var(--gold-r), var(--gold-g), var(--gold-b);
+
+  --gold-ink: 255, 215, 128;
+  --danger: 255, 88, 88;
+  --ok: 88, 255, 174;
+
+  --a-card: 0.065;
+  --a-border: 0.13;
+  --a-border-strong: 0.20;
+  --a-pill: 0.11;
+  --a-pill-border: 0.18;
+
+  --shadow-1: 0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
+  --shadow-2: 0 16px 54px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.05);
+  --noise-a: 0.028;
+
+  /* Accent is per-card if provided by component style vars */
+  --accent-r: var(--fc-accent-r, var(--gold-r));
+  --accent-g: var(--fc-accent-g, var(--gold-g));
+  --accent-b: var(--fc-accent-b, var(--gold-b));
+
+  /* Breath timings */
+  --pulse-dur: var(--fc-pulse-dur, var(--dur-breath));
+  --pulse-offset: var(--fc-pulse-offset, 0ms);
+
+  position:relative;
+  isolation:isolate;
+
+  border-radius: var(--r-card);
+  border: 1px solid rgba(var(--ring), var(--a-border));
+  background:
+    radial-gradient(900px 420px at 18% 0%,
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .14),
+      transparent 62%),
+    radial-gradient(760px 420px at 90% 10%,
+      rgba(var(--gold-ink), .10),
+      transparent 64%),
+    linear-gradient(180deg,
+      rgba(12,16,24,.72),
+      rgba(10,14,22,.56));
+
+  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  overflow:hidden;
+
+  transition: transform .22s var(--ease-flow), border-color .22s var(--ease-flow), box-shadow .22s var(--ease-flow), filter .22s var(--ease-flow);
+  will-change: transform, filter;
+  animation: fc-breath var(--pulse-dur) var(--ease-flow) infinite;
+  animation-delay: var(--pulse-offset);
+}
+
+.fc:hover{
+  transform: translateY(-1px);
+  border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), .32);
+  box-shadow: var(--shadow-2);
+  filter: saturate(1.05);
+}
+
+.fc:focus-within{
+  outline: 2px solid rgba(var(--gold-ink), .45);
+  outline-offset: 2px;
+}
+
+/* ========== 5) VISUAL LAYERS (new markup) ====================== */
+.fc-crystal,
+.fc-rim,
+.fc-veil{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+/* Subtle “krystal micro-noise” (CSS-only, no assets) */
+.fc-crystal{
+  background:
+    /* micro speckle */
+    repeating-linear-gradient(
+      145deg,
+      rgba(255,255,255,var(--noise-a)) 0px,
+      rgba(255,255,255,0) 2px,
+      rgba(255,255,255,0) 6px
+    ),
+    /* inner fog */
+    radial-gradient(1200px 520px at 30% -10%,
+      rgba(255,255,255,.06),
+      transparent 52%),
+    radial-gradient(980px 520px at 82% 0%,
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .06),
+      transparent 58%),
+    radial-gradient(880px 520px at 60% 110%,
+      rgba(180,140,255,.05),
+      transparent 60%);
+  mix-blend-mode: overlay;
+  opacity:.9;
+}
+
+/* Rim as masked conic gradient ring */
+.fc-rim{
+  opacity:.72;
+  filter: blur(.15px);
+}
+.fc-rim::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius: calc(var(--r-card) + 1px);
+
+  background:
+    conic-gradient(from 180deg,
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .00),
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .26),
+      rgba(var(--gold-ink), .20),
+      rgba(140,220,255,.14),
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .24),
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .00));
+
+  /* ring mask */
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  padding: 1px;
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+
+  animation: fc-rim-spin calc(var(--pulse-dur) * 6) linear infinite;
+  animation-delay: var(--pulse-offset);
+}
+
+/* Moving shimmer veil */
+.fc-veil{
+  opacity:.58;
+  mix-blend-mode: screen;
+}
+.fc-veil::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(120deg,
+      transparent 0%,
+      rgba(255,255,255,0.10) 22%,
+      rgba(255,255,255,0.06) 50%,
+      transparent 78%);
+  transform: translateX(-42%);
+  animation: fc-shimmer var(--pulse-dur) var(--ease-flow) infinite;
+  animation-delay: var(--pulse-offset);
+}
+
+/* “Prev” stripe button variant */
+.fc-btn--prev{
+  position: relative;
+  padding-left: 14px;
+}
+
+.fc-btn--prev::before{
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 3px;
+  height: 60%;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.55);
+  box-shadow: 0 0 10px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.35);
+  opacity: 0.9;
+}
+
+/* ========== 6) LAYOUT (new markup) ============================= */
+.fc-shell{
+  position:relative;
+  z-index: 2;
+  display:grid;
+  grid-template-columns: 168px 1fr;
+  gap: 14px;
+  padding: 14px;
+  min-width:0;
+}
+
+/* Legacy layout fallback: old markup uses flex (.fc-left + .fc-right directly) */
+.fc-left{ min-width:0; }
+.fc-right{ min-width:0; }
+
+/* If legacy markup is used, keep it nice */
+.fc:not(:has(.fc-shell)){
+  display:flex;
+  gap: 14px;
+  padding: 14px;
+  align-items: stretch;
+}
+
+/* ========== 7) SIGIL STAGE (new) + legacy (.fc-sigil) ========== */
+.fc-left{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.fc-sigilStage{
+  width: 100%;
+  min-width:0;
+  border-radius: var(--r-stage);
+  border: 1px solid rgba(var(--ring), .12);
+  background:
+    radial-gradient(520px 240px at 35% 10%,
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .12),
+      transparent 65%),
+    linear-gradient(180deg,
+      rgba(255,255,255,.06),
+      rgba(255,255,255,.025));
+  box-shadow: 0 16px 46px rgba(0,0,0,.30), var(--inset-1);
+  overflow:hidden;
+  position:relative;
+  isolation:isolate;
+  padding: 12px;
+}
+
+.fc-sigilGlass{
+  position:absolute;
+  inset:-2px;
+  pointer-events:none;
+  border-radius: calc(var(--r-stage) + 2px);
+  background:
+    radial-gradient(900px 260px at 20% -10%,
+      rgba(var(--gold-ink),0.18),
+      transparent 55%),
+    radial-gradient(760px 220px at 92% 0%,
+      rgba(140,220,255,0.16),
+      transparent 60%),
+    radial-gradient(700px 240px at 60% 110%,
+      rgba(180,140,255,0.14),
+      transparent 60%);
+  opacity:.62;
+  animation: fc-aura var(--pulse-dur) var(--ease-flow) infinite;
+  animation-delay: var(--pulse-offset);
+  will-change: opacity, filter;
+}
+
+.fc-sigil{
+  position:relative;
+  z-index:1;
+  display:grid;
+  place-items:center;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 40px rgba(0,0,0,.30);
+  overflow:hidden;
+  min-width:0;
+}
+
+/* KaiSigil SVG inside stage */
+.fc-sigil :where(svg){
+  width: min(520px, 100%);
+  height:auto;
+  display:block;
+  margin: 0 auto;
+  filter: drop-shadow(0 16px 36px rgba(0,0,0,.40));
+}
+
+/* Don't blow up button icons (if any) */
+.fc :where(button svg, a svg){
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  filter: none;
+}
+
+/* Stamp */
+.fc-stamp{
+  position:relative;
+  z-index:2;
+  margin-top: 10px;
+  display:flex;
+  justify-content:center;
+  gap: 10px;
+  opacity:.90;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(var(--ink), .78);
+}
+.fc-stamp__pulse{ color: rgba(var(--gold-ink), .95); }
+.fc-stamp__bbss{ color: rgba(var(--ink), .88); }
+.fc-stamp__sep{ opacity:.55; }
+
+/* Legacy sigil holder (old markup) still looks great */
+.fc-sigil{ min-width:0; }
+
+.fc:not(:has(.fc-sigilStage)) .fc-sigil{
+  width: 120px;
+  height: 120px;
+  padding: 10px;
+  border-radius: 14px;
+  background:
+    radial-gradient(120px 120px at 50% 50%, rgba(var(--gold), .10), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid rgba(var(--ring), .12);
+}
+
+/* ========== 8) META HEADER (new + legacy) ====================== */
+.fc-head{ min-width:0; }
+
+/* New */
+.fc-metaRow{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap: 8px;
+  min-width:0;
+  color: rgba(var(--ink), .92);
+}
+
+.fc-kaiRow{
+  margin-top: 8px;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 10px;
+  align-items:center;
+  min-width:0;
+}
+
+.fc-kai{
+  font-size: 12.5px;
+  opacity:.92;
+  letter-spacing: .02em;
+  color: rgba(var(--muted), .98);
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--ring), .10);
+  background: linear-gradient(180deg, rgba(0,0,0,.16), rgba(0,0,0,.10));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.fc-arc{
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity:.92;
+  color: rgba(var(--gold-ink), .95);
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--gold-ink), .20);
+  background:
+    radial-gradient(240px 120px at 30% 0%,
+      rgba(var(--gold-ink), .16),
+      transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+}
+
+/* Legacy meta (.fc-meta) */
+.fc-meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: rgba(var(--ink), .90);
+}
+
+/* ========== 9) CHIPS / PILLS (new + legacy) ==================== */
+.fc-chip,
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap: .45rem;
+  padding: .18rem .58rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(var(--ring), var(--a-pill-border));
+  background:
+    linear-gradient(180deg, rgba(255,255,255, var(--a-pill)), rgba(255,255,255, calc(var(--a-pill) * .72))),
+    radial-gradient(120% 200% at 50% -60%, rgba(var(--gold-ink), .14), transparent 60%);
+  color: rgba(var(--ink), .92);
+  font-size: .78rem;
+  letter-spacing: .02em;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* Chip variants (new) */
+.fc-chip--kind{ border-color: rgba(var(--gold-ink), .45); color: rgba(var(--gold-ink), .97); font-weight: 800; }
+.fc-chip--sigil{ border-color: rgba(142, 122, 255, .35); color: rgba(198, 188, 255, .98); }
+.fc-chip--phikey{ border-color: rgba(120, 255, 210, .35); color: rgba(120, 255, 210, .98); }
+.fc-chip--author{ border-color: rgba(255, 160, 160, .35); color: rgba(255, 210, 210, .98); }
+.fc-chip--source{ border-color: rgba(180, 220, 255, .35); color: rgba(210, 236, 255, .98); }
+.fc-chip--chakra{
+  border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), .35);
+  color: rgba(var(--ink), .96);
+}
+.fc-chip--danger{ border-color: rgba(var(--danger), .45); color: rgba(var(--danger), .98); font-weight: 800; }
+
+/* Legacy pill variants kept */
+.pill.kind{ border-color: rgba(var(--gold-ink), .45); color: rgba(var(--gold-ink), .95); font-weight: 800; }
+.pill.sigil{ border-color: rgba(142, 122, 255, .35); color: rgba(178, 168, 255, .95); }
+.pill.phikey{ border-color: rgba(120, 255, 210, .35); color: rgba(120, 255, 210, .95); }
+.pill.author{ border-color: rgba(255, 160, 160, .35); color: rgba(255, 200, 200, .95); }
+.pill.source{ border-color: rgba(180, 220, 255, .35); color: rgba(200, 230, 255, .95); }
+.pill.chakra{ border-color: rgba(var(--gold-ink), .30); color: rgba(255, 235, 170, .98); }
+
+/* ========== 10) SIGNATURE BADGE (new + legacy) ================= */
+.fc-sig,
+.sig{
+  margin-left:auto;
+  padding: .18rem .58rem;
+  border-radius: var(--r-pill);
+  font-size: .78rem;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.fc-sig--ok,
+.sig.ok{
+  color: rgba(var(--ok), .98);
+  border-color: rgba(var(--ok), .45);
+  background:
+    linear-gradient(180deg, rgba(0,255,180,.12), rgba(0,255,180,.04)),
+    radial-gradient(220px 140px at 30% 0%, rgba(var(--ok), .10), transparent 70%);
+}
+.fc-sig--warn,
+.sig.warn{
+  color: rgba(255, 210, 120, .98);
+  border-color: rgba(255, 210, 120, .45);
+  background:
+    linear-gradient(180deg, rgba(255, 210, 120, .12), rgba(255, 210, 120, .04)),
+    radial-gradient(220px 140px at 30% 0%, rgba(255, 210, 120, .10), transparent 70%);
+}
+
+/* ========== 11) BODY SURFACE ================================== */
+.fc-bodywrap{
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(var(--ring), .12);
+  min-width:0;
+}
+
+.fc-title{
+  margin: 6px 0 6px;
+  font-weight: 900;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  color: rgba(var(--ink), .98);
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+.fc-body{
+  margin: 6px 0 10px;
+  line-height: 1.58;
+  color: rgba(var(--ink), .92);
+  opacity: .98;
+}
+
+/* Tags */
+.fc-tags{
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+  margin: 10px 0;
+}
+.fc-tag,
+.fc-tags .tag{
+  font-size: .78rem;
+  padding: .18rem .58rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(var(--ring), .16);
+  color: rgba(var(--ink), .92);
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* Media links */
+.fc-media{
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top: 6px;
+}
+
+/* Links */
+.fc-link{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  max-width: 100%;
+  color: rgba(var(--gold-ink), .96);
+  padding: .15rem 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(var(--gold-ink), .45);
+  transition: color .2s var(--ease-flow), text-decoration-color .2s var(--ease-flow);
+}
+.fc-link:hover{
+  color: rgba(var(--gold-ink), 1);
+  text-decoration-color: rgba(var(--gold-ink), .80);
+}
+
+/* ========== 12) BUTTONS (new + legacy) ========================= */
+.fc-btn,
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+
+  padding: .50rem .86rem;
+  border-radius: var(--r-btn);
+  border: 1px solid rgba(var(--ring), .18);
+
+  color: rgba(var(--ink), .96);
+  text-decoration:none;
+  cursor:pointer;
+
+  background:
+    radial-gradient(80% 220% at 50% -60%,
+      rgba(var(--accent-r), var(--accent-g), var(--accent-b), .18),
+      transparent 60%),
+    linear-gradient(180deg,
+      rgba(255,255,255,.10),
+      rgba(255,255,255,.06));
+
+  box-shadow: 0 2px 10px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+  transition: transform .18s var(--ease-flow), border-color .18s var(--ease-flow), box-shadow .18s var(--ease-flow), filter .18s var(--ease-flow);
+  touch-action: manipulation;
+}
+
+.fc-btn:hover,
+.btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), .40);
+  box-shadow: 0 10px 22px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08);
+  filter: brightness(1.03);
+}
+
+.fc-btn:active,
+.btn:active{
+  transform: translateY(0);
+  filter: brightness(.99);
+}
+
+.fc-btn:focus-visible,
+.btn:focus-visible{
+  outline: 2px solid rgba(var(--gold-ink), .55);
+  outline-offset: 2px;
+}
+
+.fc-btn--ghost,
+.btn.ghost{
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border-color: rgba(var(--ring), .14);
+  box-shadow: 0 2px 10px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* Copied state hook (new markup uses data-state; legacy can adopt too) */
+.fc-btn[data-state="copied"],
+.btn[data-state="copied"]{
+  border-color: rgba(var(--ok), .55);
+  background:
+    radial-gradient(80% 220% at 50% -60%,
+      rgba(var(--ok), .18),
+      transparent 60%),
+    linear-gradient(180deg, rgba(var(--ok), .18), rgba(var(--ok), .08));
+  animation: fc-copied-pulse 520ms var(--ease-snap) 1;
+}
+
+/* ========== 13) ACTIONS ROW =================================== */
+.fc-actions{
+  margin-top: 12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 10px;
+  align-items:center;
+}
+
+/* Live region (new) */
+.fc-live{
+  margin-left:auto;
+  font-size: 12px;
+  color: rgba(var(--muted), .95);
+  opacity:.9;
+}
+
+.fc-memoryMark{
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.95;
+  user-select: none;
+}
+/* Arc pill (Ignite / Dream / etc) uses the exact chakra RGB for this card */
+.fc-arc{
+  color: rgb(var(--fc-arc-r) var(--fc-arc-g) var(--fc-arc-b));
+  background: rgb(var(--fc-arc-r) var(--fc-arc-g) var(--fc-arc-b) / 0.14);
+  border-color: rgb(var(--fc-arc-r) var(--fc-arc-g) var(--fc-arc-b) / 0.35);
+}
+
+/* ARC badge ONLY — force it to use arc vars, not the card/day accent */
+.arcPill,
+.kaiArcPill,
+.feedArcPill,
+[data-role="kai-arc"] {
+  color: rgb(var(--fc-arc-r), var(--fc-arc-g), var(--fc-arc-b)) !important;
+  border-color: rgba(var(--fc-arc-r), var(--fc-arc-g), var(--fc-arc-b), 0.55) !important;
+
+  /* optional: keep your glass look but tinted by arc */
+  box-shadow:
+    0 0 0 1px rgba(var(--fc-arc-r), var(--fc-arc-g), var(--fc-arc-b), 0.18),
+    0 10px 26px rgba(var(--fc-arc-r), var(--fc-arc-g), var(--fc-arc-b), 0.10) !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--fc-arc-r), var(--fc-arc-g), var(--fc-arc-b), 0.10),
+      rgba(0, 0, 0, 0.10)
+    ) !important;
+}
+
+/* ========== 14) ERROR STATE (new + legacy) ===================== */
+.fc--error,
+.fc.err{
+  border-color: rgba(var(--danger), .45);
+  box-shadow: 0 16px 44px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.05);
+  animation: none;
+}
+
+.fc-error,
+.fc-err{
+  margin-top: 10px;
+  color: rgba(var(--danger), .95);
+  font-weight: 700;
+}
+
+.fc-url{
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: rgba(var(--ink), .90);
+  opacity:.95;
+}
+
+/* ========== 15) RESPONSIVE ==================================== */
+@media (max-width: 780px){
+  .fc-shell{
+    grid-template-columns: 140px 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+  .fc-sigilStage{ padding: 10px; }
+  .fc-title{ font-size: 1.0rem; }
+  .fc-chip, .pill{ font-size: .75rem; }
+  .fc-sig, .sig{ font-size: .74rem; }
+  .fc-kai, .fc-arc{ font-size: 12px; }
+}
+
+@media (max-width: 560px){
+  .fc-shell{
+    grid-template-columns: 110px 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+  .fc-sigilStage{ padding: 10px; border-radius: 14px; }
+  .fc-stamp{ font-size: 11px; }
+  .fc-metaRow, .fc-meta{ gap: 6px; }
+  .fc-btn, .btn{ padding: .46rem .78rem; }
+}
+
+/* ========== 16) PRINT ========================================= */
+@media print{
+  .fc{
+    color-scheme: light !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    box-shadow:none !important;
+    animation:none !important;
+    background:#fff !important;
+    border-color:#ddd !important;
+    color:#111 !important;
+  }
+  .fc-crystal, .fc-rim, .fc-veil, .fc-live{ display:none !important; }
+  .fc-actions{ display:none !important; }
+  .fc-sigilStage{ border-color:#eee !important; background:#fafafa !important; }
+}

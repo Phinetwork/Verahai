@@ -1,0 +1,520 @@
+/* src/components/KaiVoh/BreathSealer.css */
+/* ─────────────────────────────────────────────────────────────
+   BreathSealer — Atlantean Φ-Breath Orb (v3)
+   - Breath-synced, φ-timed glow (5.236s)
+   - Phase-based color shifts (idle → inhale → exhale → sealed)
+   - Motion-respectful: honors prefers-reduced-motion
+   - No harsh edges, no jitter — pure nervous-system coherence
+   ───────────────────────────────────────────────────────────── */
+
+/* Local token space */
+.kv-breath-root {
+  --kv-breath-pulse: 5236ms;
+  --kv-breath-radius: 7.5rem;
+
+  /* Core palette — Atlantean Holographic Frost */
+  --kv-breath-bg: radial-gradient(circle at 10% 0%, #061322 0, #02060a 46%, #020309 100%);
+  --kv-breath-ink: #ecf1fb;
+  --kv-breath-ink-soft: #a8b6ce;
+  --kv-breath-muted: #8090a8;
+
+  --kv-breath-accent: #5ce1ff;       /* primary aqua */
+  --kv-breath-accent-soft: #2bd4ff;  /* softer aqua */
+  --kv-breath-accent-2: #a78bfa;     /* crown violet */
+  --kv-breath-accent-3: #ffd27f;     /* golden exhale */
+
+  /* Surfaces */
+  --kv-breath-card-bg: rgba(8, 16, 32, 0.86);
+  --kv-breath-border: rgba(163, 218, 255, 0.22);
+  --kv-breath-border-soft: rgba(120, 160, 210, 0.45);
+
+  /* Shadows / glow */
+  --kv-breath-orb-shadow: 0 0 30px rgba(92, 225, 255, 0.55),
+    0 0 80px rgba(167, 139, 250, 0.3);
+
+  /* Buttons */
+  --kv-breath-btn-primary-bg: linear-gradient(135deg, #2bd4ff, #ffd27f);
+  --kv-breath-btn-primary-border: rgba(200, 240, 255, 0.5);
+  --kv-breath-btn-warning-bg: linear-gradient(135deg, #f97373, #fb923c);
+  --kv-breath-btn-ghost-bg: rgba(11, 18, 36, 0.9);
+  --kv-breath-btn-ghost-border: rgba(130, 150, 185, 0.6);
+
+  /* Bars */
+  --kv-breath-bar-bg: rgba(5, 10, 18, 0.9);
+  --kv-breath-bar-inhale: linear-gradient(90deg, #5ce1ff, #a78bfa);
+  --kv-breath-bar-exhale: linear-gradient(90deg, #ffd27f, #ff8c9b);
+
+  /* Ring */
+  --kv-breath-ring-track: rgba(32, 54, 82, 0.6);
+  --kv-breath-ring-glow: rgba(92, 225, 255, 0.7);
+
+  color: var(--kv-breath-ink);
+  background: unset; /* container inherits page bg */
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Root layout
+   ───────────────────────────────────────────────────────────── */
+
+.kv-breath-root {
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 1.75rem;
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(92, 225, 255, 0.19) 0, transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(167, 139, 250, 0.16) 0, transparent 45%),
+    var(--kv-breath-card-bg);
+  border: 1px solid var(--kv-breath-border);
+  box-shadow:
+    0 28px 90px rgba(2, 6, 23, 0.9),
+    0 0 0 1px rgba(120, 180, 255, 0.15);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Meta row
+   ───────────────────────────────────────────────────────────── */
+
+.kv-breath-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.kv-breath-meta-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.kv-breath-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kv-breath-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(166, 230, 255, 0.4);
+  background: radial-gradient(circle at 0 0, rgba(92, 225, 255, 0.25), transparent 55%);
+  color: var(--kv-breath-ink-soft);
+  font-weight: 500;
+  letter-spacing: 0.015em;
+}
+
+.kv-breath-file {
+  display: inline-block;
+  max-width: 100%;
+  color: var(--kv-breath-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-breath-tag {
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(82, 212, 255, 0.6);
+  background: radial-gradient(circle at 0 50%, rgba(47, 212, 255, 0.3), transparent 70%);
+  color: rgba(202, 235, 255, 0.9);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Orb row
+   ───────────────────────────────────────────────────────────── */
+
+.kv-breath-orb-row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.75rem;
+}
+
+@media (max-width: 640px) {
+  .kv-breath-orb-row {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+/* Orb container */
+.kv-breath-orb {
+  position: relative;
+  width: var(--kv-breath-radius);
+  height: var(--kv-breath-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Core orb */
+.kv-breath-orb-inner {
+  position: relative;
+  width: 74%;
+  height: 74%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9) 0, transparent 55%),
+    radial-gradient(circle at 80% 90%, rgba(92, 225, 255, 0.75) 0, transparent 60%),
+    radial-gradient(circle at 0 100%, rgba(167, 139, 250, 0.65) 0, transparent 60%),
+    radial-gradient(circle, rgba(5, 12, 28, 0.85) 0, #030712 80%);
+  box-shadow: var(--kv-breath-orb-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.kv-breath-orb-emoji {
+  font-size: 1.95rem;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.2));
+}
+
+/* Pulsing / breathing scale */
+.kv-breath-root[data-phase="inhale"] .kv-breath-orb-inner {
+  animation: kv-breath-inhale var(--kv-breath-pulse) ease-in-out infinite;
+}
+
+.kv-breath-root[data-phase="exhale"] .kv-breath-orb-inner {
+  animation: kv-breath-exhale var(--kv-breath-pulse) ease-in-out infinite;
+}
+
+.kv-breath-root[data-phase="idle"] .kv-breath-orb-inner,
+.kv-breath-root[data-phase="sealed"] .kv-breath-orb-inner {
+  animation: kv-breath-rest 6000ms ease-in-out infinite;
+}
+
+/* Ring that fills with progress (using --kv-breath-progress from inline style) */
+.kv-breath-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  padding: 3px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(92, 225, 255, 0.28), transparent 60%),
+    radial-gradient(circle at 0 100%, rgba(167, 139, 250, 0.22), transparent 65%);
+  -webkit-mask:
+    radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 1px)),
+    radial-gradient(farthest-side, #000 0, #000 100%);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Progress glow overlay */
+.kv-breath-orb-ring::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 999px;
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--kv-breath-ring-glow) 0,
+      var(--kv-breath-ring-glow) calc(var(--kv-breath-progress, 0) * 1turn),
+      transparent calc(var(--kv-breath-progress, 0) * 1turn),
+      transparent 1turn
+    );
+  opacity: 0.9;
+  mix-blend-mode: screen;
+  transition: opacity 220ms ease-out;
+}
+
+/* Subtle idle ring */
+.kv-breath-root[data-phase="idle"] .kv-breath-orb-ring::after {
+  opacity: 0.45;
+}
+
+/* Sealed: full ring */
+.kv-breath-root[data-phase="sealed"] .kv-breath-orb-ring::after {
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--kv-breath-ring-glow) 0,
+      rgba(255, 210, 127, 0.95) 0.9turn,
+      rgba(255, 239, 191, 0.98) 1turn
+    );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Status block
+   ───────────────────────────────────────────────────────────── */
+
+.kv-breath-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kv-breath-status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.kv-breath-status-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--kv-breath-ink-soft);
+}
+
+.kv-breath-status-percent {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(193, 226, 255, 0.88);
+}
+
+.kv-breath-status-text {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--kv-breath-muted);
+}
+
+/* Bars: inhale / exhale */
+.kv-breath-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+}
+
+.kv-breath-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.kv-breath-bar-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(169, 192, 218, 0.9);
+}
+
+.kv-breath-bar-track {
+  position: relative;
+  width: 100%;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--kv-breath-bar-bg);
+  overflow: hidden;
+}
+
+.kv-breath-bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: inherit;
+  transition: width 180ms ease-out;
+}
+
+.kv-breath-bar-fill--inhale {
+  background: var(--kv-breath-bar-inhale);
+  box-shadow: 0 0 12px rgba(92, 225, 255, 0.5);
+}
+
+.kv-breath-bar-fill--exhale {
+  background: var(--kv-breath-bar-exhale);
+  box-shadow: 0 0 12px rgba(255, 199, 132, 0.6);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Actions
+   ───────────────────────────────────────────────────────────── */
+
+.kv-breath-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.kv-breath-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    transform 130ms ease-out,
+    box-shadow 130ms ease-out,
+    background 180ms ease-out,
+    border-color 180ms ease-out,
+    color 180ms ease-out;
+  border-width: 1px;
+  border-style: solid;
+  white-space: nowrap;
+}
+
+.kv-breath-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.kv-breath-btn-primary {
+  background: var(--kv-breath-btn-primary-bg);
+  border-color: var(--kv-breath-btn-primary-border);
+  color: #050914;
+  box-shadow: 0 12px 40px rgba(4, 191, 255, 0.4);
+}
+
+.kv-breath-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 16px 44px rgba(4, 191, 255, 0.5);
+}
+
+.kv-breath-btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 8px 26px rgba(4, 191, 255, 0.45);
+}
+
+.kv-breath-btn-warning {
+  background: var(--kv-breath-btn-warning-bg);
+  border-color: rgba(254, 202, 202, 0.7);
+  color: #1b0505;
+  box-shadow: 0 12px 40px rgba(248, 113, 113, 0.45);
+}
+
+.kv-breath-btn-warning:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+}
+
+.kv-breath-btn-ghost {
+  background: var(--kv-breath-btn-ghost-bg);
+  border-color: var(--kv-breath-btn-ghost-border);
+  color: rgba(212, 224, 246, 0.9);
+}
+
+.kv-breath-btn-ghost:disabled {
+  opacity: 0.65;
+}
+
+/* Sealed note */
+.kv-breath-sealed-note {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: rgba(233, 250, 255, 0.9);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 237, 213, 0.55);
+  background: radial-gradient(circle at 0 50%, rgba(255, 210, 127, 0.18), transparent 65%);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Phase-based ring & orb styling tweaks
+   ───────────────────────────────────────────────────────────── */
+
+.kv-breath-root[data-phase="inhale"] .kv-breath-orb-inner {
+  box-shadow:
+    0 0 30px rgba(92, 225, 255, 0.7),
+    0 0 80px rgba(92, 225, 255, 0.45);
+}
+
+.kv-breath-root[data-phase="exhale"] .kv-breath-orb-inner {
+  box-shadow:
+    0 0 26px rgba(255, 210, 127, 0.72),
+    0 0 70px rgba(255, 210, 127, 0.5);
+}
+
+.kv-breath-root[data-phase="sealed"] .kv-breath-orb-inner {
+  box-shadow:
+    0 0 20px rgba(167, 243, 208, 0.9),
+    0 0 90px rgba(45, 212, 191, 0.7);
+}
+
+/* Simplify colors on error */
+.kv-breath-root[data-phase="idle"] .kv-breath-status-label,
+.kv-breath-root[data-phase="idle"] .kv-breath-status-text {
+  transition: color 180ms ease-out;
+}
+
+.kv-breath-root[data-phase="idle"][data-error="true"] .kv-breath-status-label,
+.kv-breath-root[data-phase="idle"][data-error="true"] .kv-breath-status-text {
+  color: #fecaca;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Motion safety
+   ───────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-breath-orb-inner,
+  .kv-breath-orb-ring::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .kv-breath-bar-fill {
+    transition: none !important;
+  }
+
+  .kv-breath-btn {
+    transition: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Keyframes
+   ───────────────────────────────────────────────────────────── */
+
+@keyframes kv-breath-inhale {
+  0% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes kv-breath-exhale {
+  0% {
+    transform: scale(1.02);
+  }
+  50% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes kv-breath-rest {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+}

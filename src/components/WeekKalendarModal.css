@@ -1,0 +1,669 @@
+/* ──────────────────────────────────────────────────────────────────────
+   WeekKalendarModal.css · Atlantean Lumitech
+   v6.1.0 · Matches WeekKalendarModal.tsx v10.1.1 EXACTLY
+   - Zero inline styles: ALL visuals driven by CSS
+   - Backdrop + container parity with new data-attrs
+   - Ring index classes wk-i0..wk-i5 drive animation-delay
+   - Month-open dim/lock hooks now on .wk-backdrop[data-month-open="1"]
+   - Overlay stacking: Day > Note > Dock > Backdrop
+   - Keyboard focus + reduced motion supported
+────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* deep-space palette */
+  --nebula-base: #04060c;
+  --nebula-deep: #01050e;
+
+  /* live hue injected by TSX (applySpiralHue) */
+  --aqua-core: #00eaff;
+  --aqua-soft: rgba(0, 234, 255, 0.14);
+
+  /* glow strata */
+  --seal-glow-inset: rgba(0, 234, 255, 0.36);
+  --seal-glow-mid: rgba(0, 234, 255, 0.42);
+  --seal-glow-outer: rgba(0, 234, 255, 0.24);
+
+  /* portal layers */
+  --portal-1: rgba(0, 12, 26, 0.78);
+  --portal-2: rgba(1, 20, 40, 0.52);
+  --portal-3: rgba(0, 34, 60, 0.34);
+
+  /* etherik grid ink (tuned DARK) */
+  --grid-ink: rgba(6, 48, 70, 0.22);
+  --grid-ink-2: rgba(10, 36, 54, 0.18);
+
+  /* depth wash */
+  --void-wash: rgba(0, 0, 0, 0.42);
+  --void-edge: rgba(0, 0, 0, 0.82);
+  --core-halo: rgba(0, 234, 255, 0.06);
+
+  /* timing */
+  --pulse: 5.236s;
+  --double: calc(var(--pulse) * 2);
+
+  /* safe‐area insets */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* z stack (single source of truth) */
+  --wk-z-backdrop: 10000;
+  --wk-z-dock: 10008;
+  --wk-z-add: 10012;
+  --wk-z-note: 10020;
+  --wk-z-day: 10030;
+  --wk-z-header: 10035;
+  --wk-z-close: 10040;
+}
+
+/* ───────── SMOOTH FONTS & BACKFACE ───────── */
+*:where(.wk-backdrop, .wk-backdrop *) {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* ───────── BACKDROP – EVOLVING PORTAL (DARK, DEEP, ETHERIK) ───────── */
+.wk-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--wk-z-backdrop);
+  isolation: isolate;
+  background: var(--nebula-base);
+
+  background-image:
+    radial-gradient(ellipse at 50% 42%, var(--portal-1) 0%, var(--nebula-deep) 78%),
+    radial-gradient(circle at 30% 30%, var(--portal-2) 0%, transparent 72%),
+    radial-gradient(circle at 70% 60%, var(--portal-3) 0%, transparent 66%),
+    repeating-radial-gradient(circle at 48% 50%, var(--grid-ink) 0 2px, transparent 2px 6px),
+    repeating-radial-gradient(circle at 52% 54%, var(--grid-ink-2) 0 1px, transparent 1px 8px);
+
+  background-blend-mode: overlay, screen, soft-light, normal, normal;
+
+  animation:
+    nebulaFlow var(--double) linear infinite,
+    portalShift1 200s linear infinite,
+    portalShift2 137s linear infinite,
+    portalShift3 89s linear infinite;
+
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+
+  overscroll-behavior: none;
+  contain: layout paint style;
+
+  /* Zero-fade guarantee (TSX removed inline style; CSS enforces) */
+  opacity: 1;
+  transition: none;
+}
+
+/* Depth + vignette */
+.wk-backdrop::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background-image:
+    radial-gradient(ellipse at 50% 42%, rgba(0, 0, 0, 0) 0%, var(--void-wash) 58%, var(--void-edge) 100%),
+    radial-gradient(circle at 50% 42%, var(--core-halo) 0%, transparent 62%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.00) 0px,
+      rgba(0, 0, 0, 0.00) 2px,
+      rgba(0, 0, 0, 0.10) 3px
+    );
+
+  opacity: 1;
+  mix-blend-mode: normal;
+  transform: translateZ(0);
+}
+
+/* Star twinkle tuned dark */
+.wk-backdrop::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background-image:
+    radial-gradient(circle, rgba(190, 250, 255, 0.55) 1px, transparent 2px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.28) 1px, transparent 2px);
+
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 2px;
+
+  mix-blend-mode: screen;
+  opacity: 0.028;
+  animation: twinkle 9s linear infinite;
+  transform: translateZ(0);
+}
+
+@keyframes nebulaFlow {
+  0%,
+  100% { background-position: 50% 40%, 50% 50%; }
+  50% { background-position: 52% 44%, 48% 48%; }
+}
+@keyframes portalShift1 { 0% { background-position: 50% 42%; } 100% { background-position: 55% 38%; } }
+@keyframes portalShift2 { 0% { background-position: 30% 30%; } 100% { background-position: 25% 35%; } }
+@keyframes portalShift3 { 0% { background-position: 70% 60%; } 100% { background-position: 65% 55%; } }
+@keyframes twinkle {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-0.5rem, 0.75rem, 0) scale(1.03); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* ───────── CONTAINER BLOCK ───────── */
+.wk-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: 1;
+
+  /* move prior inline bg here */
+  background-color: rgba(8, 10, 14, 0.92);
+
+  /* no transitions (instant open) */
+  transition: none;
+
+  contain: layout paint style;
+}
+
+/* Ambient stage glow (deep, not bleaching) */
+.wk-container::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 52%, rgba(0, 234, 255, 0.07) 0%, transparent 62%);
+  opacity: 0.85;
+  filter: blur(2px);
+  animation: stagePulse var(--double) ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes stagePulse {
+  0%,
+  100% { transform: scale(0.94); opacity: 0.48; }
+  50% { transform: scale(1.05); opacity: 0.88; }
+}
+
+/* Month-open lock (TSX now sets data-month-open on BACKDROP) */
+.wk-backdrop[data-month-open="1"] .wk-stage,
+.wk-backdrop[data-month-open="1"] .wk-add-note-btn {
+  pointer-events: none;
+  opacity: 0.35;
+  filter: saturate(0.85);
+}
+
+/* ───────── GOD-MODE CLOSE ───────── */
+.wk-close.god-x {
+  all: unset;
+  position: absolute;
+  top: calc(var(--safe-top) + 0.75rem);
+  right: calc(var(--safe-right) + 0.75rem);
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  z-index: var(--wk-z-close);
+  transition: transform 0.25s ease;
+  touch-action: manipulation;
+}
+.wk-close.god-x:hover { transform: scale(1.1); }
+.wk-close.god-x:focus-visible {
+  outline: 2px solid rgba(160, 240, 255, 0.55);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.wk-close.god-x svg,
+.wk-close.god-x .wk-xsvg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 8px rgba(0, 234, 255, 0.7)) drop-shadow(0 0 12px rgba(255, 21, 89, 0.7));
+  animation: xGradient var(--pulse) linear infinite;
+}
+@keyframes xGradient {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+  100% { transform: rotate(180deg); }
+}
+
+/* ───────── HEADER & TOGGLE ───────── */
+.wk-header {
+  position: absolute;
+  top: calc(var(--safe-top) + 0.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--wk-z-header);
+  padding: 0.25rem 0.5rem;
+  background: var(--aqua-soft);
+  border-radius: 9999px;
+  border: 2px solid var(--aqua-core);
+  box-shadow: 0 0 12px var(--seal-glow-mid);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.wk-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--aqua-core);
+  border-radius: 9999px;
+  animation: neonPulse var(--pulse) ease-in-out infinite;
+  pointer-events: none;
+}
+.wk-toggle { display: flex; gap: 0.5rem; position: relative; z-index: 1; }
+.wk-toggle button {
+  all: unset;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background: rgba(0,0,0,0.18);
+  color: #e6faff;
+  font-weight: 700;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+  touch-action: manipulation;
+  position: relative;
+}
+.wk-toggle button.active,
+.wk-toggle button:hover {
+  background: var(--aqua-core);
+  color: var(--nebula-base);
+}
+.wk-toggle button:focus-visible {
+  outline: 2px solid rgba(160, 240, 255, 0.55);
+  outline-offset: 3px;
+}
+@keyframes neonPulse {
+  0% { box-shadow: 0 0 8px var(--aqua-core); }
+  50% { box-shadow: 0 0 16px var(--aqua-core); }
+  100% { box-shadow: 0 0 8px var(--aqua-core); }
+}
+
+/* ───────── SEAL CHIP (top-center) ───────── */
+.wk-seal {
+  position: absolute;
+  top: calc(var(--safe-top) + 3.8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.2rem;
+  border-radius: 1rem;
+  background: var(--aqua-soft);
+  color: #e6faff;
+  font: 600 1rem/1.1 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: inset 0 0 1px var(--seal-glow-inset), 0 0 12px var(--seal-glow-mid);
+  animation: sealPulse var(--pulse) ease-in-out infinite, sealFloat var(--double) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+.wk-sealcode { white-space: nowrap; }
+@keyframes sealPulse {
+  50% { box-shadow: inset 0 0 1px var(--seal-glow-inset), 0 0 16px var(--seal-glow-mid); }
+}
+@keyframes sealFloat {
+  50% { transform: translateX(-50%) translateY(-0.45rem); }
+}
+
+/* ───────── SVG STAGE ───────── */
+.wk-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 98vmin;
+  height: 98vmin;
+  transform: translate(-50%, -50%) rotateX(40deg);
+  overflow: visible;
+  z-index: 1;
+
+  animation:
+    stageDrift var(--double) ease-in-out infinite alternate,
+    stageNeon var(--double) ease-in-out infinite;
+
+  contain: layout paint style;
+}
+@keyframes stageDrift {
+  0% { transform: translate(-50%, -50%) rotateX(40deg) rotateZ(0); }
+  50% { transform: translate(-50%, -50%) rotateX(42deg) rotateZ(5deg); }
+  100% { transform: translate(-50%, -50%) rotateX(40deg) rotateZ(0); }
+}
+@keyframes stageNeon {
+  0%,
+  100% { filter: drop-shadow(0 0 10px rgba(0, 234, 255, 0.18)) drop-shadow(0 0 20px rgba(0, 234, 255, 0.12)); }
+  50% { filter: drop-shadow(0 0 16px rgba(0, 234, 255, 0.26)) drop-shadow(0 0 30px rgba(0, 234, 255, 0.16)); }
+}
+
+.wk-day { cursor: pointer; }
+.wk-day:focus { outline: none; }
+.wk-day:focus-visible {
+  filter: drop-shadow(0 0 10px rgba(160, 240, 255, 0.55));
+}
+
+/* Ring + label base classes introduced in v10.1.1 */
+.wk-ring {
+  /* breath cadence lives here; per-index delays below */
+  animation: ringBreath var(--double) ease-in-out infinite;
+  will-change: opacity, filter, stroke-width;
+}
+@keyframes ringBreath {
+  0%,
+  100% { opacity: 0.82; filter: saturate(1.08); }
+  50% { opacity: 1; filter: saturate(1.18); }
+}
+
+.wk-day-label {
+  font-size: 4px;
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: 0.2px;
+  animation: labelBreath var(--double) ease-in-out infinite;
+}
+@keyframes labelBreath {
+  0%,
+  100% { opacity: 0.78; }
+  50% { opacity: 1; }
+}
+
+/* Index delay (TSX: wk-i0..wk-i5) */
+.wk-i0 .wk-ring, .wk-i0 .wk-day-label { animation-delay: 0s; }
+.wk-i1 .wk-ring, .wk-i1 .wk-day-label { animation-delay: calc(var(--pulse) * 0.13); }
+.wk-i2 .wk-ring, .wk-i2 .wk-day-label { animation-delay: calc(var(--pulse) * 0.26); }
+.wk-i3 .wk-ring, .wk-i3 .wk-day-label { animation-delay: calc(var(--pulse) * 0.39); }
+.wk-i4 .wk-ring, .wk-i4 .wk-day-label { animation-delay: calc(var(--pulse) * 0.52); }
+.wk-i5 .wk-ring, .wk-i5 .wk-day-label { animation-delay: calc(var(--pulse) * 0.65); }
+
+/* Today ring/label hooks (used by TSX) */
+.is-today-ring {
+  filter: drop-shadow(0 0 10px rgba(0, 234, 255, 0.35)) drop-shadow(0 0 16px rgba(0, 234, 255, 0.22));
+}
+.is-today-label {
+  filter: drop-shadow(0 0 8px rgba(0, 234, 255, 0.45));
+}
+
+/* ───────── ADD MEMORY BUTTON (fixed bottom-center) ───────── */
+.wk-add-note-btn {
+  all: unset;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(clamp(14px, 2.2vh, 22px) + var(--safe-bottom));
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 999px;
+  background: var(--aqua-core);
+  color: var(--nebula-base);
+  font-size: 2rem;
+  display: grid;
+  place-content: center;
+  box-shadow: 0 0 12px var(--seal-glow-mid);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  touch-action: manipulation;
+  z-index: var(--wk-z-add);
+}
+.wk-add-note-btn:hover {
+  transform: translateX(-50%) scale(1.12);
+  box-shadow: 0 0 18px var(--seal-glow-mid);
+}
+.wk-add-note-btn:active {
+  transform: translateX(-50%) scale(1.05);
+}
+.wk-add-note-btn:focus-visible {
+  outline: 2px solid rgba(160, 240, 255, 0.55);
+  outline-offset: 4px;
+}
+
+/* micron-glint */
+.wk-add-note-btn::before,
+.wk-toggle button::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 8px;
+  height: 8px;
+  background: var(--aqua-core);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--aqua-core), 0 0 24px var(--aqua-core);
+  opacity: 0;
+  animation: glint var(--pulse) linear infinite;
+}
+@keyframes glint {
+  0%,
+  95% { opacity: 0; transform: scale(0.3) translate(0, 0); }
+  10% { opacity: 0.9; transform: scale(1) translate(-2px, 2px); }
+  20% { opacity: 0; }
+}
+
+/* ───────── OVERLAYS (TSX classnames) ───────── */
+.wk-notemodal-overlay,
+.wk-daydetail-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.wk-notemodal-overlay { z-index: var(--wk-z-note); }
+.wk-daydetail-overlay { z-index: var(--wk-z-day); }
+
+/* ───────── NOTES DOCK ───────── */
+.wk-notes-dock {
+  position: fixed;
+  right: clamp(8px, 2vw, 16px);
+  bottom: clamp(8px, 2vh, 16px);
+  width: min(440px, 86vw);
+  max-height: 48vh;
+  z-index: var(--wk-z-dock);
+  pointer-events: auto;
+}
+
+.wk-notes-list {
+  background: rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.10);
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.wk-notes-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wk-notes-header h3 {
+  margin: 0;
+  font: 700 14px/1.2 Inter, system-ui, sans-serif;
+  color: #cfeaff;
+}
+.wk-notes-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wk-export-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wk-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+}
+
+/* chips/buttons */
+.wk-chip {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cfeaff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: 700 11px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  opacity: 0.88;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s, transform 0.15s;
+  backdrop-filter: saturate(140%) blur(4px);
+}
+.wk-chip:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.wk-chip:active { transform: translateY(1px); }
+.wk-chip:focus-visible {
+  outline: 2px solid rgba(160, 240, 255, 0.55);
+  outline-offset: 2px;
+}
+.wk-export-btn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e7fbff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: 700 11px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  opacity: 0.86;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.04);
+  backdrop-filter: saturate(140%) blur(6px);
+  transition: opacity 0.15s, border-color 0.15s, box-shadow 0.2s, transform 0.15s;
+}
+.wk-export-btn:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 3px 16px rgba(0,0,0,0.36), inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+.wk-export-btn:active { transform: translateY(1px); }
+.wk-export-btn:focus-visible {
+  outline: 2px solid rgba(160, 240, 255, 0.55);
+  outline-offset: 2px;
+}
+
+/* list */
+.wk-mem-ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(40vh, 240px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.wk-mem-li {
+  padding: 6px 4px;
+  color: #e6faff;
+  line-height: 1.25;
+  font: 12px/1.35 Inter, system-ui, sans-serif;
+  display: grid;
+  gap: 4px;
+}
+.wk-mem-kai {
+  color: #e7fbff;
+  font-weight: 800;
+}
+.wk-mem-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wk-mem-pin {
+  font: 700 10px/1 Inter, system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(139,234,255,0.12);
+  border: 1px solid rgba(139,234,255,0.3);
+  color: #d9f6ff;
+}
+.wk-mem-title {
+  font: 700 12.5px/1.3 Inter, system-ui, sans-serif;
+  color: #f0fbff;
+}
+.wk-mem-text {
+  color: rgba(231, 251, 255, 0.88);
+}
+.wk-mem-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.wk-mem-intent {
+  font: 700 10px/1 Inter, system-ui, sans-serif;
+  color: #9fdcff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.wk-mem-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.wk-mem-tag {
+  font: 600 10px/1 Inter, system-ui, sans-serif;
+  color: #dff8ff;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+.wk-notes-empty {
+  margin: 10px 0 0;
+  color: #9db4c1;
+  font: 12px/1.4 Inter, system-ui, sans-serif;
+}
+
+/* Mobile snap: dock becomes bottom-center */
+@media (max-width: 680px) {
+  .wk-stage { width: 92vmin; height: 92vmin; }
+
+  .wk-notes-dock {
+    right: 50%;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 4.8rem);
+    transform: translateX(-50%);
+    width: min(92vw, 22rem);
+    max-height: 36vh;
+  }
+  .wk-seal { top: calc(var(--safe-top) + 3.6rem); }
+}
+
+/* Ultra-small */
+@media (max-width: 420px) {
+  .wk-stage { width: 90vmin; height: 90vmin; }
+  .wk-toggle button { padding: 0.45rem 0.8rem; }
+}
+
+/* HDR hue drift on core elements (NOT on backdrop) */
+@media (dynamic-range: high) {
+  .wk-header,
+  .wk-seal,
+  .wk-add-note-btn {
+    animation: hueDrift calc(var(--double) * 6) linear infinite;
+  }
+  @keyframes hueDrift {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+  }
+}
+
+/* ───────── REDUCED MOTION ───────── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

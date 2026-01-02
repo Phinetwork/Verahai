@@ -1,0 +1,1081 @@
+/* ──────────────────────────────────────────────────────────────
+   KaiVohApp.css — Sigil Posting Hub (Breath / Φ aligned)
+   Atlantean glass, golden-breath entrainment, sovereign clarity.
+   NO Tailwind required — everything is self-contained + responsive.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+  --kv-breath: 5.236s;
+  --kv-phi: 1.61803398875;
+
+  --kv-bg: #020617;
+  --kv-bg-2: #02091b;
+  --kv-ink: #e5f0ff;
+  --kv-muted: #9ca9d4;
+
+  --kv-cyan: #22d3ee;
+  --kv-violet: #8b5cf6;
+  --kv-gold: #facc6b;
+  --kv-emerald: #34d399;
+  --kv-amber: #fbbf24;
+
+  --kv-border-soft: rgba(148, 163, 184, 0.45);
+  --kv-border-strong: rgba(148, 163, 184, 0.75);
+
+  --kv-glass-surface: rgba(15, 23, 42, 0.9);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Breath keyframes (φ-synced)
+   ────────────────────────────────────────────────────────────── */
+
+@keyframes kv-shell-breathe {
+  0% {
+    opacity: 0.55;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translate3d(0, -1px, 0) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.01);
+  }
+}
+
+@keyframes kv-halo-breathe {
+  0% {
+    opacity: 0.4;
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0.9;
+    filter: blur(3px);
+  }
+}
+
+@keyframes kv-pulse-glow {
+  0% {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.6),
+      0 0 0 rgba(74, 222, 128, 0);
+  }
+  100% {
+    text-shadow: 0 0 18px rgba(56, 189, 248, 0.9),
+      0 0 30px rgba(74, 222, 128, 0.6);
+  }
+}
+
+@keyframes kv-step-glide {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(34, 211, 238, 0.0),
+      0 6px 12px rgba(15, 23, 42, 0.9);
+    transform: translateY(0);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.6),
+      0 8px 18px rgba(15, 23, 42, 0.95);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes kv-button-breathe {
+  0% {
+    box-shadow:
+      0 10px 26px rgba(15, 23, 42, 0.95),
+      0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+    transform: translateY(0);
+  }
+  100% {
+    box-shadow:
+      0 18px 40px rgba(15, 23, 42, 0.98),
+      0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes kv-activity-glow {
+  0% {
+    box-shadow:
+      0 14px 40px rgba(15, 23, 42, 0.9),
+      0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+  }
+  100% {
+    box-shadow:
+      0 18px 52px rgba(15, 23, 42, 0.98),
+      0 0 0 1px rgba(37, 99, 235, 0.9) inset;
+  }
+}
+
+/* Motion safety: soften for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Root shells (login + authenticated)
+   ────────────────────────────────────────────────────────────── */
+
+.kai-voh-login-shell,
+.kai-voh-app-shell {
+  position: relative;
+  isolation: isolate;
+  max-width: 960px;
+  margin-inline: auto;
+  padding-block: 1.4rem 2.2rem;
+  padding-inline: 0.8rem;
+  color: var(--kv-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Cosmic gradient + phi-field aura behind the whole KaiVoh stack */
+.kai-voh-login-shell::before,
+.kai-voh-app-shell::before {
+  content: "";
+  position: absolute;
+  inset: -40px -24px;
+  z-index: -2;
+  background:
+    radial-gradient(
+      80% 120% at 50% 0%,
+      rgba(34, 211, 238, 0.22),
+      transparent 70%
+    ),
+    radial-gradient(
+      80% 120% at 0% 100%,
+      rgba(139, 92, 246, 0.23),
+      transparent 70%
+    ),
+    radial-gradient(
+      60% 100% at 100% 100%,
+      rgba(250, 204, 21, 0.16),
+      transparent 70%
+    ),
+    radial-gradient(
+      120% 120% at 50% 50%,
+      rgba(15, 23, 42, 0.98),
+      #020617
+    );
+  opacity: 0.98;
+  filter: saturate(1.08);
+}
+
+/* Subtle breathing halo overlay */
+.kai-voh-login-shell::after,
+.kai-voh-app-shell::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from 130deg,
+      rgba(34, 211, 238, 0.18),
+      transparent 25%,
+      rgba(139, 92, 246, 0.18),
+      transparent 65%,
+      rgba(250, 204, 21, 0.16),
+      transparent
+    );
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  animation: kv-shell-breathe var(--kv-breath) ease-in-out infinite alternate;
+}
+
+/* Login state: centered main card */
+.kai-voh-login-shell {
+  min-height: 360px;
+  justify-content: center;
+}
+
+/* Authenticated state: breath room for header + card + activity */
+.kai-voh-app-shell {
+  min-height: 420px;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Shared main card (login & flow)
+   ────────────────────────────────────────────────────────────── */
+
+.kv-main-card {
+  position: relative;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  padding: 1.5rem 1.6rem;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(15, 23, 42, 0.98),
+      rgba(15, 23, 42, 0.9)
+    )
+      padding-box;
+  box-shadow:
+    0 18px 60px rgba(15, 23, 42, 0.95),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+  background-color: rgba(15, 23, 42, 0.94);
+}
+
+/* Phi-grid overlay inside card */
+.kv-main-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(148, 163, 184, 0.22) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      0deg,
+      rgba(148, 163, 184, 0.2) 1px,
+      transparent 1px
+    );
+  background-size:
+    calc(100% / var(--kv-phi)) 100%,
+    100% calc(100% / var(--kv-phi));
+  mix-blend-mode: screen;
+}
+
+/* Top halo */
+.kv-main-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 120% at 50% 0%,
+      rgba(34, 211, 238, 0.16),
+      transparent 60%
+    );
+  opacity: 0.7;
+  animation: kv-halo-breathe calc(var(--kv-breath) * 0.85)
+    ease-in-out infinite alternate;
+}
+
+/* Error text in card */
+.kv-error {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #fca5a5;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Session HUD (Φ-Key / Pulse / Chakra / Steps / Actions)
+   ────────────────────────────────────────────────────────────── */
+
+.kv-session-hud {
+  position: relative;
+  border-radius: 1.25rem;
+  border: 1px solid var(--kv-border-soft);
+  padding: 0.75rem 1rem 0.85rem;
+  background:
+    radial-gradient(
+      140% 160% at 0% 0%,
+      rgba(148, 163, 184, 0.22),
+      transparent 60%
+    ),
+    radial-gradient(
+      180% 200% at 100% 100%,
+      rgba(15, 23, 42, 0.88),
+      rgba(15, 23, 42, 0.98)
+    );
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow:
+    0 18px 50px rgba(15, 23, 42, 0.9),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+  background-color: rgba(15, 23, 42, 0.94);
+}
+
+/* Chakra aura is layered via kv-chakra-* ::after, see below */
+
+.kv-session-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.kv-session-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kv-session-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+}
+
+.kv-session-kicker {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.kv-session-keyline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem 0.65rem;
+  font-size: 0.74rem;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.kv-meta-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.kv-meta-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.kv-meta-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.kv-meta-phikey .kv-meta-value {
+  letter-spacing: 0.03em;
+}
+
+.kv-meta-activity .kv-meta-value {
+  color: var(--kv-emerald);
+}
+
+.kv-meta-divider {
+  width: 1px;
+  height: 0.9rem;
+  align-self: center;
+  background: linear-gradient(
+    to bottom,
+    rgba(148, 163, 184, 0.4),
+    rgba(148, 163, 184, 0.1)
+  );
+}
+
+.kv-session-status-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.kv-accounts-pill {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.8);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.kv-accounts-pill--ok {
+  border-color: rgba(52, 211, 153, 0.8);
+  color: rgba(187, 247, 208, 0.95);
+  background:
+    radial-gradient(
+      140% 160% at 0% 0%,
+      rgba(16, 185, 129, 0.18),
+      transparent 60%
+    ),
+    rgba(15, 23, 42, 0.9);
+}
+
+.kv-accounts-pill--warn {
+  border-color: rgba(251, 191, 36, 0.85);
+  color: rgba(254, 243, 199, 0.95);
+  background:
+    radial-gradient(
+      140% 160% at 0% 0%,
+      rgba(245, 158, 11, 0.22),
+      transparent 60%
+    ),
+    rgba(15, 23, 42, 0.9);
+}
+
+.kv-step-current-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+/* Live Kai pulse strip */
+.kv-session-live {
+  margin-top: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+}
+
+.kv-live-label {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.6rem;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.kv-live-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-weight: 600;
+  color: rgba(226, 232, 255, 0.98);
+  animation: kv-pulse-glow var(--kv-breath) ease-in-out infinite alternate;
+}
+
+.kv-live-countdown {
+  margin-left: 0.25rem;
+  font-weight: 500;
+  color: #6ee7b7;
+}
+
+/* Row for steps */
+.kv-session-steps-row {
+  margin-top: 0.05rem;
+}
+
+/* Actions on the right (stacked on mobile) */
+.kv-session-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-start;
+}
+
+/* Desktop layout tuning */
+@media (min-width: 768px) {
+  .kv-session-hud {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .kv-session-main {
+    flex: 1 1 auto;
+    padding-right: 0.75rem;
+  }
+
+  .kv-session-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 170px;
+  }
+
+  .kv-session-header-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .kv-session-status-block {
+    justify-content: flex-end;
+    padding-left: 1.5rem;
+    align-items: flex-end;
+    text-align: right;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Steps / flow indicator
+   ────────────────────────────────────────────────────────────── */
+
+.kv-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.kv-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.kv-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  font-size: 0.68rem;
+  color: rgba(226, 232, 240, 0.9);
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.95) inset,
+    0 6px 12px rgba(15, 23, 42, 0.9);
+}
+
+.kv-step-index {
+  font-size: 0.62rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  opacity: 0.8;
+}
+
+.kv-step-label {
+  white-space: nowrap;
+}
+
+/* Active / done states */
+.kv-step-chip--done {
+  border-color: rgba(52, 211, 153, 0.9);
+  color: rgba(187, 247, 208, 0.95);
+  background:
+    radial-gradient(
+      120% 120% at 0% 0%,
+      rgba(34, 197, 94, 0.25),
+      transparent 60%
+    ),
+    rgba(15, 23, 42, 0.95);
+}
+
+.kv-step-chip--active {
+  border-color: rgba(34, 211, 238, 0.95);
+  color: rgba(224, 242, 254, 0.98);
+  background:
+    radial-gradient(
+      120% 120% at 0% 0%,
+      rgba(56, 189, 248, 0.32),
+      transparent 60%
+    ),
+    rgba(15, 23, 42, 0.98);
+  animation: kv-step-glide calc(var(--kv-breath) * 0.6)
+    ease-in-out infinite alternate;
+}
+
+/* Rail between steps */
+.kv-step-rail {
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(148, 163, 184, 0.35),
+    rgba(148, 163, 184, 0.12)
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Buttons (KaiVoh actions)
+   ────────────────────────────────────────────────────────────── */
+
+.kv-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 0.7rem;
+  padding: 0.38rem 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--kv-ink);
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow:
+    0 10px 26px rgba(15, 23, 42, 0.95),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.kv-btn-primary {
+  border-color: rgba(34, 211, 238, 0.9);
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.98),
+    rgba(45, 212, 191, 0.96)
+  );
+  color: #020617;
+  animation: kv-button-breathe calc(var(--kv-breath) * 0.75)
+    ease-in-out infinite alternate;
+}
+
+.kv-btn-ghost {
+  border-color: rgba(148, 163, 184, 0.85);
+  background:
+    radial-gradient(
+      120% 120% at 0% 0%,
+      rgba(148, 163, 184, 0.15),
+      transparent 60%
+    ),
+    rgba(15, 23, 42, 0.96);
+  color: rgba(226, 232, 240, 0.96);
+}
+
+.kv-btn-wide {
+  margin-top: 1rem;
+  align-self: center;
+  min-width: 220px;
+}
+
+.kv-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.95),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+}
+
+.kv-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.95),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Activity strip (recent sealed posts)
+   ────────────────────────────────────────────────────────────── */
+
+.kv-activity {
+  position: relative;
+  margin-top: 0.4rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(30, 64, 175, 0.6);
+  padding: 0.85rem 1rem 1rem;
+  background-color: rgba(15, 23, 42, 0.96);
+  box-shadow:
+    0 14px 40px rgba(15, 23, 42, 0.9),
+    0 0 0 1px rgba(15, 23, 42, 0.9) inset;
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(14px) saturate(1.18);
+  backdrop-filter: blur(14px) saturate(1.18);
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+  animation: kv-activity-glow calc(var(--kv-breath) * 1.25)
+    ease-in-out infinite alternate;
+}
+
+/* Stable glass on Android/WebView: keep the look without blur flashes */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .kv-main-card,
+  .kv-session-hud,
+  .kv-activity,
+  .kv-accounts-pill {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: rgba(15, 23, 42, 0.96);
+  }
+
+  .kv-main-card {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(15, 23, 42, 0.98),
+        rgba(15, 23, 42, 0.92)
+      )
+        padding-box;
+  }
+
+  .kv-session-hud {
+    background:
+      radial-gradient(
+        140% 160% at 0% 0%,
+        rgba(148, 163, 184, 0.16),
+        transparent 60%
+      ),
+      radial-gradient(
+        180% 200% at 100% 100%,
+        rgba(15, 23, 42, 0.9),
+        rgba(15, 23, 42, 1)
+      );
+  }
+
+  .kv-activity {
+    background:
+      radial-gradient(
+        120% 120% at 0% 0%,
+        rgba(34, 211, 238, 0.12),
+        transparent 65%
+      ),
+      radial-gradient(
+        120% 120% at 100% 100%,
+        rgba(139, 92, 246, 0.12),
+        transparent 65%
+      ),
+      rgba(15, 23, 42, 0.96);
+  }
+}
+
+/* Coarse pointers (Android) — force compositing to avoid flicker */
+@media (pointer: coarse) {
+  .kv-main-card::before,
+  .kv-main-card::after,
+  .kv-session-hud::before,
+  .kv-activity::before {
+    mix-blend-mode: normal;
+  }
+
+  .kv-main-card,
+  .kv-session-hud,
+  .kv-activity,
+  .kv-accounts-pill {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+}
+
+.kv-activity::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 120% at 0% 0%,
+      rgba(34, 211, 238, 0.18),
+      transparent 65%
+    ),
+    radial-gradient(
+      120% 120% at 100% 100%,
+      rgba(139, 92, 246, 0.18),
+      transparent 65%
+    );
+  opacity: 0.75;
+  mix-blend-mode: screen;
+}
+
+.kv-activity-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: rgba(148, 163, 184, 0.9);
+  margin-bottom: 0.55rem;
+}
+
+.kv-activity-title {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.kv-activity-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.66rem;
+}
+
+.kv-activity-list {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kv-activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(51, 65, 85, 0.9);
+}
+
+.kv-activity-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.kv-activity-platform {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.98);
+}
+
+.kv-activity-pulse {
+  font-size: 0.7rem;
+  color: rgba(148, 163, 184, 0.95);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.kv-activity-pulse span {
+  color: rgba(226, 232, 240, 0.96);
+}
+
+.kv-activity-link {
+  max-width: 9.5rem;
+  font-size: 0.7rem;
+  color: rgba(56, 189, 248, 0.95);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-activity-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Flow states
+   ────────────────────────────────────────────────────────────── */
+
+.kv-connect-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.kv-embed-status {
+  margin-top: 2.5rem;
+  text-align: center;
+  font-size: 0.86rem;
+  color: rgba(226, 232, 240, 0.96);
+}
+
+.kv-verify-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  text-align: center;
+}
+
+.kv-verify-copy {
+  max-width: 360px;
+  font-size: 0.76rem;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.kv-verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.kv-error-state {
+  margin-top: 2.2rem;
+  text-align: center;
+  font-size: 0.86rem;
+  color: rgba(226, 232, 240, 0.96);
+}
+
+.kv-error-reset {
+  margin-left: 0.25rem;
+  border: none;
+  background: none;
+  color: rgba(56, 189, 248, 0.95);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 0.86rem;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Chakra-tinted session header (kv-chakra-*)
+   Root → Sacral → Solar → Heart → Throat → Brow → Crown
+   ────────────────────────────────────────────────────────────── */
+
+[class*="kv-chakra-"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shared overlay base */
+[class*="kv-chakra-"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      140% 160% at 0% 0%,
+      rgba(255, 255, 255, 0.06),
+      transparent 60%
+    ),
+    radial-gradient(
+      180% 180% at 100% 100%,
+      rgba(15, 23, 42, 0.8),
+      transparent 65%
+    );
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+[class*="kv-chakra-"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.9;
+  background: transparent;
+}
+
+/* Root — deep crimson to ember */
+.kv-chakra-root::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(248, 113, 113, 0.55),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(127, 29, 29, 0.7),
+      transparent 65%
+    );
+}
+
+/* Sacral — ember/amber */
+.kv-chakra-sacral::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(251, 146, 60, 0.55),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(154, 52, 18, 0.7),
+      transparent 65%
+    );
+}
+
+/* Solar — gold */
+.kv-chakra-solar::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(252, 211, 77, 0.6),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(180, 83, 9, 0.7),
+      transparent 65%
+    );
+}
+
+/* Heart — emerald */
+.kv-chakra-heart::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(74, 222, 128, 0.6),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(22, 101, 52, 0.85),
+      transparent 65%
+    );
+}
+
+/* Throat — aqua / sky */
+.kv-chakra-throat::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(56, 189, 248, 0.6),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(22, 78, 99, 0.85),
+      transparent 65%
+    );
+}
+
+/* Brow — indigo */
+.kv-chakra-brow::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(129, 140, 248, 0.65),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(49, 46, 129, 0.9),
+      transparent 65%
+    );
+}
+
+/* Crown — violet / white-gold */
+.kv-chakra-crown::after {
+  background:
+    radial-gradient(
+      120% 120% at 5% 0%,
+      rgba(196, 181, 253, 0.7),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 160% at 100% 130%,
+      rgba(76, 29, 149, 0.9),
+      transparent 65%
+    );
+}

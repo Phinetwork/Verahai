@@ -1,0 +1,877 @@
+/* ================================================================
+   EternalKlock.css — Atlantean Lumitech UI (No-Drift / Clean Edition)
+   ----------------------------------------------------------------
+   ✅ No “open” animations (no fade/pop delays)
+   ✅ No drifting toolbar overlay (pseudo-layer is element-anchored)
+   ✅ No horizontal overflow on small screens (wrap + clamp guards)
+   ✅ Coherent tokens: Ark/Chakra + Month palette (attribute-driven)
+   ✅ Reduced unnecessary transitions / duplicate rules
+================================================================ */
+
+/* --------------------------------------------------
+   Root Tokens
+-------------------------------------------------- */
+:root{
+  --primary-color:#aefbff;
+  --secondary-color:#8cfbff;
+  --accent-color:#00ffff;
+
+  /* Kai breath (used for subtle rhythm only) */
+  --breath:5.236s;
+
+  /* Canon arcs (0-based): 0 Ignition, 1 Integration, 2 Harmonization,
+     3 Reflection, 4 Purification, 5 Dream */
+  --ark0:#ff3b3b;
+  --ark1:#ff9226;
+  --ark2:#ffc600;
+  --ark3:#32cc32;
+  --ark4:#3aa1ff;
+  --ark5:#9b52ff;
+
+  --ark0-grad:linear-gradient(90deg,#ffd1d1,#ff7a7a 45%,#ff3b3b,#c81414);
+  --ark1-grad:linear-gradient(90deg,#ffe5c6,#ffbd66 45%,#ff9226,#cc6b00);
+  --ark2-grad:linear-gradient(90deg,#fff7c2,#ffe25c 45%,#ffc600,#e3a800);
+  --ark3-grad:linear-gradient(90deg,#d6ffd6,#86ff86 45%,#32cc32,#0e990e);
+  --ark4-grad:linear-gradient(90deg,#cfe8ff,#79c2ff 45%,#3aa1ff,#0f6fd3);
+  --ark5-grad:linear-gradient(90deg,#ebd6ff,#c99aff 45%,#9b52ff,#6c1fd3);
+
+  /* Defaults (overridden by [data-ark]) */
+  --chakra:var(--ark3);
+  --chakra-grad:var(--ark3-grad);
+
+  /* Month palette (1–8): Red → Orange → Yellow → Green → Blue → Purple → Violet → White */
+  --month-1:var(--ark0-grad);
+  --month-2:var(--ark1-grad);
+  --month-3:var(--ark2-grad);
+  --month-4:var(--ark3-grad);
+  --month-5:var(--ark4-grad);
+  --month-6:var(--ark5-grad);
+  --month-7:linear-gradient(90deg,#f3d6ff,#e29aff 45%,#c452ff,#8e1fd3);
+  --month-8:linear-gradient(90deg,#ffffff,#f2f2f2 45%,#e5e5e5,#d9d9d9);
+
+  /* Default lock (Month 3 = Yellow) */
+  --month-current:var(--month-3);
+  --month-glow:rgba(255,226,92,.65);
+  --month-inner:rgba(255,226,92,.45);
+}
+
+/* Ark → Chakra mapping */
+[data-ark="0"]{--chakra:var(--ark0);--chakra-grad:var(--ark0-grad);}
+[data-ark="1"]{--chakra:var(--ark1);--chakra-grad:var(--ark1-grad);}
+[data-ark="2"]{--chakra:var(--ark2);--chakra-grad:var(--ark2-grad);}
+[data-ark="3"]{--chakra:var(--ark3);--chakra-grad:var(--ark3-grad);}
+[data-ark="4"]{--chakra:var(--ark4);--chakra-grad:var(--ark4-grad);}
+[data-ark="5"]{--chakra:var(--ark5);--chakra-grad:var(--ark5-grad);}
+
+/* Month switching (optional) */
+[data-month="1"]{--month-current:var(--month-1);--month-glow:rgba(255,122,122,.65);--month-inner:rgba(255,122,122,.45);}
+[data-month="2"]{--month-current:var(--month-2);--month-glow:rgba(255,189,102,.65);--month-inner:rgba(255,189,102,.45);}
+[data-month="3"]{--month-current:var(--month-3);--month-glow:rgba(255,226,92,.65); --month-inner:rgba(255,226,92,.45);}
+[data-month="4"]{--month-current:var(--month-4);--month-glow:rgba(134,255,134,.60);--month-inner:rgba(134,255,134,.42);}
+[data-month="5"]{--month-current:var(--month-5);--month-glow:rgba(121,194,255,.65);--month-inner:rgba(121,194,255,.42);}
+[data-month="6"]{--month-current:var(--month-6);--month-glow:rgba(201,154,255,.65);--month-inner:rgba(201,154,255,.42);}
+[data-month="7"]{--month-current:var(--month-7);--month-glow:rgba(226,154,255,.65);--month-inner:rgba(226,154,255,.42);}
+[data-month="8"]{--month-current:var(--month-8);--month-glow:rgba(230,230,230,.70);--month-inner:rgba(240,240,240,.48);}
+
+/* --------------------------------------------------
+   Base / Safety
+-------------------------------------------------- */
+*,
+*::before,
+*::after{ box-sizing:border-box; }
+
+html,body{
+  min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+.eternal-klock-container{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+  z-index:10;
+  max-width:100%;
+  color:var(--primary-color);
+  font-family:"Courier New", monospace;
+  margin-bottom:1.25rem;
+
+  /* hard guard: no horizontal bleed */
+  overflow-x:clip;
+}
+
+.eternal-klock-container *{
+  max-inline-size:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+/* --------------------------------------------------
+   Header
+-------------------------------------------------- */
+.eternal-klock-header{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:1rem;
+  flex-wrap:wrap;
+}
+
+/* --------------------------------------------------
+   Mini Harmonic Strip
+-------------------------------------------------- */
+.eternal-klock-mini{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:.85rem;
+
+  padding:.65rem 1.5rem;
+  border-radius:9999px;
+  cursor:pointer;
+
+  background:rgba(0,255,255,.08);
+  border:1px solid rgba(0,255,255,.18);
+  box-shadow:
+    0 0 6px rgba(0,255,255,.10),
+    0 0 12px rgba(0,255,255,.08) inset;
+
+  backdrop-filter:blur(18px) saturate(1.25);
+
+  white-space:nowrap;
+  max-width:calc(100vw - 24px);
+  overflow:hidden;
+  text-overflow:ellipsis;
+
+  /* no “slow feel” */
+  transition:background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+@media (hover:hover) and (pointer:fine){
+  .eternal-klock-mini:hover{
+    background:rgba(0,255,255,.12);
+    box-shadow:
+      0 0 12px rgba(0,255,255,.28),
+      0 0 20px rgba(0,255,255,.12) inset;
+    transform:translateY(-1px);
+  }
+
+  .eternal-klock-mini[title]:hover::after{
+    content:attr(title);
+    position:absolute;
+    left:50%;
+    bottom:-2.2rem;
+    translate:-50% 0;
+
+    background:rgba(0,0,0,.78);
+    color:var(--accent-color);
+    font-size:.8rem;
+    padding:.4rem .75rem;
+    border-radius:8px;
+    white-space:nowrap;
+    box-shadow:0 0 8px rgba(0,255,255,.35);
+    z-index:50;
+  }
+}
+
+.klock-divider{ color:rgba(0,255,255,.45); }
+
+/* Pulse glow (chakra-colored, not teal-forced) */
+.klock-pulse.glow,
+.glow-pulse .klock-pulse{
+  color:var(--chakra);
+  font-weight:700;
+  text-shadow:0 0 6px rgba(0,0,0,.1), 0 0 10px rgba(0,255,255,.0);
+}
+
+/* --------------------------------------------------
+   Spiral & Geometry (no forced rotation)
+-------------------------------------------------- */
+.eternal-spiral-wrapper{
+  position:relative;
+  width:64px;
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.eternal-spiral-svg{
+  width:64px;
+  height:64px;
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.spiral-track{
+  stroke:rgba(0,255,255,.12);
+  stroke-width:2;
+  filter:drop-shadow(0 0 4px rgba(0,255,255,.05));
+}
+
+.spiral-tip{
+  r:4;
+  fill:var(--chakra);
+  filter:drop-shadow(0 0 3px rgba(0,0,0,.15)) drop-shadow(0 0 8px rgba(0,0,0,.0));
+}
+
+.eternal-sacred-geometry{
+  position:absolute;
+  top:50%;
+  left:50%;
+  translate:-50% -50%;
+  pointer-events:none;
+  z-index:1;
+  filter:
+    drop-shadow(0 0 8px rgba(0,0,0,.12))
+    drop-shadow(0 0 16px rgba(0,0,0,.10));
+}
+
+.sacred-geometry-object{
+  width:160px;
+  height:160px;
+  pointer-events:none;
+}
+
+/* --------------------------------------------------
+   Detail Panel (no open animation)
+-------------------------------------------------- */
+.eternal-klock-detail{
+  margin-top:1rem;
+  padding:1.2rem 1.5rem;
+  width:100%;
+  max-width:420px;
+
+  border-radius:20px;
+  border:2px solid rgba(0,255,255,.15);
+  background:radial-gradient(circle at top, rgba(0,0,0,.68), rgba(0,0,0,.92));
+  box-shadow:
+    0 0 15px rgba(0,255,255,.18),
+    0 0 50px rgba(0,255,255,.06) inset;
+
+  position:relative;
+  z-index:20;
+
+  max-height:70vh;
+  overflow-y:auto;
+  overflow-x:clip;
+
+  scrollbar-gutter:stable both-edges;
+}
+
+.eternal-klock-title{
+  margin:0 0 .75rem;
+  text-align:center;
+  font-size:1.4rem;
+  color:var(--secondary-color);
+  text-shadow:0 0 10px rgba(0,255,255,.35);
+}
+
+.eternal-klock-detail div{
+  margin:.45rem 0;
+  color:rgba(255,255,255,.95);
+  font-size:1rem;
+  line-height:1.4;
+  text-align:left;
+}
+
+.eternal-klock-detail strong{
+  color:var(--primary-color);
+  margin-right:.4rem;
+  font-weight:600;
+}
+
+.eternal-klock-detail em{
+  color:var(--accent-color);
+  font-style:italic;
+  font-weight:700;
+}
+
+/* Inline code safety */
+.eternal-klock-detail code,
+.eternal-klock-detail kbd,
+.eternal-klock-detail samp{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:.95em;
+  background:rgba(0,255,255,.08);
+  border:1px solid rgba(0,255,255,.18);
+  padding:.05rem .35rem;
+  border-radius:6px;
+  overflow-wrap:anywhere;
+}
+
+.eternal-klock-section-title{
+  color:var(--secondary-color);
+  margin:1rem 0 .5rem;
+  font-size:1.1rem;
+  text-shadow:0 0 6px rgba(0,255,255,.25);
+  border-bottom:1px dashed rgba(0,255,255,.2);
+  padding-bottom:.4rem;
+}
+
+.eternal-klock-timestamp{
+  font-size:1.05rem;
+  font-weight:600;
+  color:#e0f7fa;
+  margin:.9rem 0 .3rem;
+  letter-spacing:.5px;
+  text-shadow:0 0 4px rgba(0,255,224,.35);
+}
+
+/* --------------------------------------------------
+   Progress Bars (fast, no sluggish easing)
+-------------------------------------------------- */
+.spiral-progress-bar{
+  height:10px;
+  background:#111;
+  border-radius:5px;
+  overflow:hidden;
+  margin:6px 0 10px;
+  box-shadow:0 0 6px rgba(0,255,204,.18) inset;
+}
+.spiral-progress-fill{
+  height:100%;
+  border-radius:5px;
+  background:linear-gradient(90deg,#00ffcc,#00d4ff);
+  transition:width 160ms linear;
+}
+
+.day-progress-bar{
+  width:100%;
+  height:10px;
+  background-color:rgba(255,255,255,.08);
+  border-radius:6px;
+  margin:6px 0 12px;
+  overflow:hidden;
+  box-shadow:0 0 4px rgba(255,255,255,.08) inset;
+}
+.day-progress-fill{
+  height:100%;
+  width:var(--day-progress,0%);
+  border-radius:6px 0 0 6px;
+  background-image:var(--chakra-grad);
+  transition:width 160ms linear;
+  box-shadow:
+    0 0 8px rgba(0,0,0,.08),
+    inset 0 0 10px rgba(0,0,0,.06);
+}
+
+/* Shared track */
+.month-progress-bar,
+.year-progress-bar,
+.week-progress-bar{
+  width:100%;
+  height:clamp(.5rem, 1.1vw + .35rem, .75rem);
+  margin-block:clamp(.4rem, 1vw, .7rem) clamp(.8rem, 2vw, 1.1rem);
+  border-radius:9999px;
+  overflow:hidden;
+  box-shadow:
+    0 0 max(4px,.25rem) rgba(0,0,0,.65) inset,
+    0 max(1px,.06rem) max(4px,.25rem) rgba(0,0,0,.75);
+}
+
+.month-progress-bar,
+.year-progress-bar{
+  background:
+    repeating-linear-gradient(45deg, transparent 0 4px, rgba(255,255,255,.04) 4px 8px),
+    rgba(0,40,40,.45);
+  border:max(1px,.075rem) solid rgba(0,200,180,.25);
+}
+
+.week-progress-bar{
+  background:
+    repeating-linear-gradient(45deg, transparent 0 4px, rgba(255,255,255,.035) 4px 8px),
+    rgba(48,0,84,.48);
+  border:max(1px,.075rem) solid rgba(200,100,255,.3);
+  backdrop-filter:blur(10px) saturate(1.35);
+}
+
+.month-progress-fill,
+.year-progress-fill,
+.week-progress-fill{
+  height:100%;
+  border-radius:inherit;
+  position:relative;
+  transition:width 160ms linear;
+  will-change:width;
+}
+
+/* Month (locked to Month 3 unless you set data-month) */
+.month-progress-fill{
+  background-image:var(--month-current);
+  background-size:200% 100%;
+  box-shadow:
+    0 0 max(8px,.5rem) 2px var(--month-glow),
+    inset 0 0 max(6px,.38rem) var(--month-inner);
+}
+
+/* Year (gold) */
+.year-progress-fill{
+  background-image:linear-gradient(90deg,#fff7c2,#ffd65c 45%,#ff9400);
+  background-size:200% 100%;
+  box-shadow:
+    0 0 max(10px,.6rem) 2px rgba(255,225,116,.55),
+    inset 0 0 max(6px,.38rem) rgba(255,225,116,.35);
+}
+
+/* Week (chakra) */
+.week-progress-fill{
+  background-image:var(--chakra-grad);
+  background-size:200% 100%;
+  box-shadow:
+    0 0 max(10px,.6rem) 2px rgba(100,180,255,.45),
+    inset 0 0 max(6px,.38rem) rgba(80,160,255,.28);
+}
+
+/* shared indicator (diamond + tail) */
+.month-progress-fill::after,
+.year-progress-fill::after,
+.week-progress-fill::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  right:clamp(-6px,-1vw,-4px);
+  inline-size:clamp(10px,1.3vw,14px);
+  block-size:clamp(10px,1.3vw,14px);
+  translate:0 -50%;
+  rotate:45deg;
+  border-radius:3px;
+  background:radial-gradient(circle at 30% 30%, #fff 0%, #dfe8ff 40%, #b4c9ff 100%);
+  box-shadow:0 0 max(6px,.38rem) rgba(255,255,255,.85);
+  z-index:2;
+}
+
+.month-progress-fill::before,
+.year-progress-fill::before,
+.week-progress-fill::before{
+  content:"";
+  position:absolute;
+  top:50%;
+  right:clamp(4px,.8vw,6px);
+  inline-size:clamp(22px,3vw,32px);
+  block-size:clamp(5px,.7vw,8px);
+  translate:0 -50%;
+  background:radial-gradient(ellipse at left, rgba(255,255,255,.45) 0%, transparent 70%);
+  filter:blur(4px);
+  pointer-events:none;
+}
+
+/* --------------------------------------------------
+   Embodied title & description
+-------------------------------------------------- */
+.embodied-section-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:1rem 0 .5rem;
+  padding-bottom:.4rem;
+  border-bottom:1px dashed rgba(0,255,255,.2);
+}
+
+.embodied-section-icon{
+  max-width:280px;
+  max-height:48px;
+  object-fit:contain;
+  filter:drop-shadow(0 0 6px rgba(0,255,255,.35));
+}
+
+.eternal-description{
+  margin:.25rem 0 1.25rem;
+  font-style:italic;
+  color:#d9ebff;
+  font-size:.95rem;
+  line-height:1.5;
+  background:linear-gradient(90deg, rgba(0,255,204,.10) 0%, rgba(0,204,255,.10) 100%);
+  border-left:3px solid #00ffe0;
+  padding:.75rem 1rem;
+  border-radius:.5rem;
+  box-shadow:0 0 8px rgba(0,255,255,.16);
+}
+
+.eternal-description em{
+  color:#ffffff;
+  text-shadow:0 0 3px rgba(60,250,255,.35);
+}
+
+/* --------------------------------------------------
+   Toolbar Button (No-Drift Overlay)
+-------------------------------------------------- */
+.eternal-klock-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:.85rem;
+  margin-block:.75rem 1rem;
+  position:relative;
+  isolation:isolate;
+}
+
+.eternal-klock-toolbar > *{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:2.5rem;
+  min-height:2.5rem;
+}
+
+.toolbar-btn{
+  all:unset;
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.4rem;
+
+  padding:.45rem .9rem;
+  min-height:2.5rem;
+  cursor:pointer;
+
+  font:700 .95rem/1.1 "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
+  letter-spacing:.02em;
+  color:#e6faff;
+  text-shadow:0 0 4px rgba(0,255,255,.55);
+
+  border-radius:9999px;
+  background:linear-gradient(135deg,
+    rgba(0,255,255,.12) 0%,
+    rgba(0,234,255,.06) 40%,
+    rgba(0,188,255,.04) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,255,255,.25),
+    0 2px 6px rgba(0,0,0,.35);
+
+  backdrop-filter:blur(6px) saturate(1.75);
+
+  /* keep it snappy */
+  transition:background 120ms ease, box-shadow 120ms ease, transform 90ms ease;
+
+  /* clip pseudo layers */
+  contain:paint;
+  transform:translateZ(0);
+}
+
+/* Glow ring (only appears on hover/focus, no “loading”) */
+.toolbar-btn::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:inherit;
+  padding:2px;
+  background:conic-gradient(from 0deg,
+    #00eaff 0 90deg,
+    #5c5cff 90deg 180deg,
+    #ff4dd2 180deg 270deg,
+    #00ff9e 270deg 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask-composite:exclude;
+  opacity:0;
+  filter:blur(4px);
+  transition:opacity 120ms linear;
+}
+
+/* Iridescent overlay — STATIC & element-anchored (no drift) */
+.toolbar-btn::after{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:inherit;
+  pointer-events:none;
+  mix-blend-mode:screen;
+
+  background-repeat:no-repeat;
+  background-position:50% 30%, 50% 70%;
+  background-size:160% 160%, 160% 160%;
+  background-image:
+    radial-gradient(ellipse at top left, rgba(0,255,255,.22), rgba(0,255,255,0) 60%),
+    radial-gradient(ellipse at bottom right, rgba(255,0,234,.22), rgba(255,0,234,0) 60%);
+
+  opacity:.55;
+  animation:none !important; /* hard kill any inherited motion */
+}
+
+.toolbar-icon{
+  width:1.6rem;
+  height:1.6rem;
+  pointer-events:none;
+  filter:drop-shadow(0 0 4px rgba(0,234,255,.28));
+  transition:transform 90ms ease;
+}
+
+.toolbar-btn:hover,
+.toolbar-btn:focus-visible{
+  background:linear-gradient(135deg,
+    rgba(0,255,255,.22) 0%,
+    rgba(0,234,255,.12) 40%,
+    rgba(0,188,255,.10) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,255,255,.55),
+    0 4px 14px rgba(0,255,255,.20),
+    0 2px 6px rgba(0,0,0,.45);
+  transform:translateY(-1px);
+}
+.toolbar-btn:hover::before,
+.toolbar-btn:focus-visible::before{ opacity:1; }
+.toolbar-btn:hover .toolbar-icon,
+.toolbar-btn:focus-visible .toolbar-icon{ transform:scale(1.12); }
+
+.toolbar-btn:active{
+  transform:translateY(0);
+  box-shadow:
+    inset 0 0 6px rgba(0,255,255,.55),
+    0 1px 3px rgba(0,0,0,.5);
+}
+
+@media (prefers-contrast:more){
+  .toolbar-btn{ text-shadow:none; }
+}
+
+/* --------------------------------------------------
+   Seal Chip (single, coherent implementation)
+-------------------------------------------------- */
+.seal-container{
+  --glass-bg:rgba(10,24,36,.35);
+  --glass-brd:rgba(140,240,255,.35);
+
+  --chip-start:#00fff7;
+  --chip-mid:#00c6ff;
+  --chip-end:#0066ff;
+
+  display:grid;
+  grid-auto-rows:min-content;
+  gap:.5rem;
+  width:100%;
+
+  padding:clamp(8px,1.2vw,12px) clamp(10px,1.6vw,16px);
+  border-radius:16px;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(0,255,255,.06) 0%, transparent 60%),
+    var(--glass-bg);
+  border:1px solid var(--glass-brd);
+  backdrop-filter:blur(10px) saturate(1.35);
+  -webkit-backdrop-filter:blur(10px) saturate(1.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 10px 24px rgba(0,0,0,.35),
+    0 0 0 1px rgba(0,200,255,.06);
+
+  color:#dff9ff;
+  text-shadow:0 0 6px rgba(0,255,255,.40);
+}
+
+.seal-chip{
+  appearance:none;
+  border:0;
+  outline:none;
+  cursor:pointer;
+
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+
+  width:100%;
+  min-height:36px;
+  padding:.35rem .6rem;
+
+  font-family:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:clamp(12px,1.2vw,14px);
+  line-height:1.15;
+
+  color:#f7fdff;
+  border-radius:10px;
+
+  background-image:linear-gradient(90deg, var(--chip-start), var(--chip-mid) 45%, var(--chip-end));
+  background-size:220% 100%;
+
+  box-shadow:0 6px 18px rgba(0,180,255,.16), inset 0 0 10px rgba(255,255,255,.08);
+
+  transition:background-position 220ms ease, transform 90ms ease, filter 120ms ease;
+  user-select:all;
+}
+
+.seal-chip::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 40%),
+    radial-gradient(80% 140% at 80% 0%, rgba(255,255,255,.14) 0%, transparent 70%);
+  mix-blend-mode:screen;
+  opacity:.9;
+}
+
+.seal-chip:hover{ background-position:100% 0; filter:saturate(1.06) brightness(1.04); }
+.seal-chip:active{ transform:translateY(1px) scale(.995); }
+
+.seal-text{
+  flex:1 1 auto;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  letter-spacing:.02em;
+}
+
+/* Toast (inline, no absolute positioning) */
+.seal-toast{
+  margin-left:auto;
+  opacity:0;
+  pointer-events:none;
+
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+
+  font-size:12px;
+  font-weight:600;
+  color:#07231f;
+  padding:.25rem .55rem;
+  border-radius:999px;
+
+  background:linear-gradient(180deg,#eafff7,#c8fff1);
+  border:1px solid rgba(0,210,180,.35);
+  box-shadow:
+    0 6px 22px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.85);
+  backdrop-filter:blur(6px) saturate(1.35);
+
+  transition:opacity 120ms ease;
+}
+
+.seal-toast .toast-icon{
+  display:inline-grid;
+  place-items:center;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #00ffcc, #00d6a8 70%, #00a97f);
+  color:#00221b;
+  font-weight:900;
+  line-height:1;
+}
+
+.seal-toast.show{ opacity:1; }
+
+/* Copied state (fast, no long animation) */
+.seal-chip.copied{
+  --chip-start:#fff7c2;
+  --chip-mid:#ffd65c;
+  --chip-end:#ff9400;
+  box-shadow:0 10px 26px rgba(255,193,7,.22), inset 0 0 12px rgba(255,255,255,.22);
+}
+
+/* --------------------------------------------------
+   Centered Popover Overlay (no open animation)
+-------------------------------------------------- */
+.eternal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+
+  background:radial-gradient(1200px 1200px at 50% 50%,
+    rgba(0,14,18,.86) 0%,
+    rgba(0,0,0,.78) 55%,
+    rgba(0,0,0,.90) 100%);
+
+  backdrop-filter:blur(12px) saturate(1.12);
+  overflow-x:clip;
+}
+
+body.eternal-overlay-open{
+  overflow:hidden;
+  overscroll-behavior:none;
+}
+
+.eternal-modal-card{
+  width:min(94vw, 560px);
+  max-width:min(94vw, 560px);
+  max-height:90vh;
+
+  overflow:auto;
+  overflow-x:clip;
+  -webkit-overflow-scrolling:touch;
+
+  background:rgba(4,18,24,.72);
+  border:1px solid rgba(0,234,255,.22);
+  border-radius:20px;
+  box-shadow:
+    0 0 10px rgba(0,255,255,.10) inset,
+    0 0 22px rgba(0,255,255,.14),
+    0 0 60px rgba(0,255,255,.08);
+
+  padding:clamp(14px, 3vmin, 28px);
+}
+
+.eternal-modal-card *{ max-width:100%; }
+
+/* --------------------------------------------------
+   Touch + Mobile ergonomics
+-------------------------------------------------- */
+:where(.toolbar-btn, .seal-chip, .eternal-klock-mini, button, [role="button"], a){
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:manipulation;
+}
+
+@media (hover:none) and (pointer:coarse){
+  :where(.toolbar-btn, .seal-chip, .eternal-klock-mini){
+    min-height:44px;
+    min-width:44px;
+  }
+  input,select,textarea{ font-size:16px; } /* iOS no-zoom */
+}
+
+/* --------------------------------------------------
+   Responsive
+-------------------------------------------------- */
+@media (max-width:600px){
+  .eternal-klock-mini{
+    font-size:.7rem;
+    padding:.45rem .9rem;
+    max-width:calc(100vw - 16px);
+    backdrop-filter:blur(10px) saturate(1.15);
+  }
+
+  .eternal-klock-detail{
+    padding:1rem;
+    max-width:90%;
+  }
+
+  .eternal-klock-title{ font-size:1.2rem; }
+
+  .eternal-klock-header{
+    flex-direction:column;
+    gap:.5rem;
+  }
+
+  .eternal-spiral-wrapper{ width:22px; height:22px; }
+  .eternal-spiral-svg{ width:44px; height:44px; }
+
+  .sacred-geometry-object{ width:120px; height:120px; }
+
+  .seal-toast{ font-size:11px; }
+  .seal-chip{ min-height:34px; }
+}
+
+/* --------------------------------------------------
+   Reduced Motion
+-------------------------------------------------- */
+@media (prefers-reduced-motion:reduce){
+  *{ transition:none !important; }
+}

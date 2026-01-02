@@ -1,0 +1,335 @@
+/* /components/KaiVoh/styles/VerifierFrame.css
+   VerifierFrame v3.2 — Top Bar that cannot collapse KPV-1
+*/
+
+.kv-verifier{
+  --br2: 22px;
+  --ink: rgba(242,255,252,0.92);
+  --dim: rgba(242,255,252,0.70);
+  --faint: rgba(242,255,252,0.52);
+  --border: rgba(255,255,255,0.14);
+  --pad: clamp(10px, 1.8vw, 14px);
+  --gap: clamp(10px, 1.6vw, 14px);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+  color: var(--ink);
+  font-family: var(--sans);
+
+  position: relative;
+  border-radius: var(--br2);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+  box-shadow: 0 18px 50px rgba(0,0,0,0.38), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  overflow: hidden;
+}
+
+.kv-topline{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(900px 240px at 12% 0%, rgba(55,255,228,0.16), rgba(0,0,0,0) 60%),
+    radial-gradient(760px 260px at 92% 6%, rgba(255,231,160,0.12), rgba(0,0,0,0) 62%),
+    linear-gradient(90deg, rgba(255,255,255,0.00), rgba(255,255,255,0.06), rgba(255,255,255,0.00));
+  opacity: 0.22;
+}
+
+.kv-wrap{
+  position: relative;
+  padding: var(--pad);
+  display: grid;
+  gap: var(--gap);
+}
+
+/* ─────────────────────────────────────────
+   TOP BAR
+──────────────────────────────────────── */
+
+.kv-topbar{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.kv-qr-shell{
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.18);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  overflow: hidden;
+  padding: 10px;
+  width: fit-content;
+}
+
+.kv-qr-inner{
+  border-radius: 14px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+  padding: 10px;
+  display: grid;
+  place-items: center;
+}
+
+/* Fallback never prints URL */
+.kv-qr-fallback{
+  width: 132px;
+  height: 132px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.kv-qr-fallback__mark{
+  font-weight: 1000;
+  letter-spacing: 0.18em;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  opacity: 0.92;
+}
+.kv-qr-fallback__sub{
+  font-weight: 900;
+  font-size: 0.78rem;
+  color: rgba(242,255,252,0.70);
+}
+
+/* Chip bar that CANNOT break KPV-1 */
+.kv-chipbar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.kv-chip{
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.14);
+  padding: 7px 10px;
+  min-height: 32px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+
+  /* critical: prevent “KPV- / 1” */
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.kv-chip__dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+}
+
+.kv-chip__txt{
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  color: rgba(242,255,252,0.86);
+
+  /* critical: prevent wrap inside label */
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.kv-chip--ok{
+  border-color: rgba(0,255,160,0.22);
+  background: linear-gradient(180deg, rgba(0,255,160,0.14), rgba(0,0,0,0.14));
+}
+.kv-chip--ok .kv-chip__dot{
+  border-color: rgba(0,255,160,0.30);
+  background: rgba(0,255,160,0.22);
+  box-shadow: 0 0 0 4px rgba(0,255,160,0.08);
+}
+
+.kv-chip--status{
+  margin-left: auto; /* pushes OFFICIAL SEAL to the far right when space exists */
+}
+
+/* On narrow widths, status becomes normal-flow (no weird gaps) */
+@media (max-width: 520px){
+  .kv-chip--status{ margin-left: 0; }
+  .kv-topbar{
+    grid-template-columns: 1fr;
+  }
+  .kv-qr-shell{ width: fit-content; }
+}
+
+/* ─────────────────────────────────────────
+   BODY
+──────────────────────────────────────── */
+
+.kv-body{
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.kv-head{ display: grid; gap: 6px; }
+.kv-title{
+  margin: 0;
+  font-weight: 1000;
+  letter-spacing: 0.02em;
+  font-size: clamp(1.00rem, 2.2vw, 1.15rem);
+  text-shadow: 0 0 22px rgba(55,255,228,0.10);
+}
+.kv-sub{
+  margin: 0;
+  color: var(--dim);
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+.kv-meta{
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.kv-row{
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.14);
+  padding: 8px 10px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+  min-width: 0;
+}
+.kv-row--wide{ grid-column: 1 / -1; }
+
+.kv-k{
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.kv-v{
+  margin: 6px 0 0 0;
+  font-weight: 1000;
+  color: rgba(242,255,252,0.94);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kv-mono{ font-family: var(--mono); font-size: 0.86rem; }
+
+.kv-caption{
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.12);
+  color: rgba(242,255,252,0.86);
+  line-height: 1.25;
+  font-style: italic;
+}
+
+.kv-actions{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kv-btn{
+  height: 36px;
+  border-radius: 14px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: var(--ink);
+  font-weight: 1000;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.74rem;
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.20);
+}
+.kv-btn:hover{ border-color: rgba(55,255,228,0.22); }
+
+.kv-btn--primary{
+  border-color: rgba(55,255,228,0.22);
+  background: linear-gradient(180deg, rgba(55,255,228,0.18), rgba(55,255,228,0.07));
+}
+
+.kv-ic{ width: 16px; height: 16px; display:block; }
+.kv-remember{ width: 16px; height: 16px; display:grid; place-items:center; transform: translateY(-0.5px); }
+.kv-btn__txt{ white-space: nowrap; }
+
+.kv-toast{
+  margin-left: auto;
+  min-height: 18px;
+  color: rgba(242,255,252,0.70);
+  font-weight: 900;
+  font-size: 0.78rem;
+}
+
+.kv-url{
+  display:flex;
+  gap: 8px;
+  align-items: baseline;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 10px;
+  color: rgba(242,255,252,0.82);
+  font-size: 0.84rem;
+  min-width: 0;
+}
+.kv-url__k{
+  color: var(--faint);
+  font-weight: 1000;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-size: 0.70rem;
+  white-space: nowrap;
+}
+.kv-url__v{
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Compact */
+.kv-verifier--compact{
+  --pad: 10px;
+  --gap: 10px;
+}
+.kv-verifier--compact .kv-btn{ height: 34px; padding: 0 10px; }
+.kv-verifier--compact .kv-row{ padding: 7px 9px; }
+.kv-verifier--compact .kv-chip{ padding: 6px 9px; min-height: 30px; }
+.kv-verifier--compact .kv-qr-fallback{ width: 120px; height: 120px; }
+
+/* Meta stacks on mobile */
+@media (max-width: 640px){
+  .kv-meta{ grid-template-columns: 1fr; }
+  .kv-row--wide{ grid-column: auto; }
+  .kv-toast{ margin-left: 0; width: 100%; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .kv-btn{ transition: none; }
+}

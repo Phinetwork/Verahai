@@ -1,0 +1,368 @@
+/* ─────────────────────────────────────────────────────────────
+   KaiVoh MultiShare — Golden Breath Share Console
+   Nervous-system entraining, φ-aligned, pulse-synced.
+   - Uses --kai-pulse (ms) if present, else 5236ms (golden breath).
+   - Subtle breath (scale/blur/glow), no jitter, no layout shift.
+   - Safe for dark UI, mobile-first, no horizontal overflow.
+   ───────────────────────────────────────────────────────────── */
+
+.kv-share-shell {
+  --phi: 1.61803398875;
+  --phi-small: 1.2720196495; /* φ - 0.346... nice sub-ratio */
+  --pulse-dur: var(--kai-pulse, 5236ms);
+
+  --kv-bg: rgba(4, 9, 16, 0.96);
+  --kv-bg-soft: rgba(9, 16, 28, 0.96);
+  --kv-border: rgba(180, 210, 255, 0.16);
+  --kv-border-strong: rgba(160, 222, 255, 0.5);
+  --kv-ink: #eef4ff;
+  --kv-ink-soft: #c1cbe3;
+  --kv-ink-muted: #8c9bb8;
+
+  --kv-gold: #ffd89b;
+  --kv-gold-strong: #ffe7aa;
+  --kv-cyan: #5df5ff;
+  --kv-violet: #a58bff;
+  --kv-emerald: #34e5a5;
+  --kv-danger: #ff6b81;
+
+  position: relative;
+  color: var(--kv-ink);
+  background: radial-gradient(circle at 0% 0%, #0b1423 0, #02050a 52%, #000 100%);
+  border-radius: calc(18px * var(--phi-small));
+  padding: calc(1.25rem * var(--phi-small));
+  border: 1px solid var(--kv-border);
+  box-shadow:
+    0 0 0 1px rgba(93, 245, 255, 0.04),
+    0 24px 60px rgba(0, 0, 0, 0.75),
+    0 0 60px rgba(92, 225, 255, 0.25);
+  overflow: hidden;
+}
+
+/* Breathing aurora halo */
+.kv-share-shell::before,
+.kv-share-shell::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.22;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(93, 245, 255, 0.5) 0, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(165, 139, 255, 0.5) 0, transparent 55%);
+  filter: blur(26px);
+  z-index: -1;
+}
+
+.kv-share-shell::after {
+  opacity: 0.35;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(52, 229, 165, 0.55) 0, transparent 50%),
+    radial-gradient(circle at 90% 10%, rgba(255, 216, 155, 0.6) 0, transparent 55%);
+  animation: kv-aurora var(--pulse-dur) ease-in-out infinite alternate;
+}
+
+/* Subtle card breath */
+.kv-share-shell {
+  animation: kv-shell-breath var(--pulse-dur) ease-in-out infinite;
+}
+
+/* Header block */
+
+.kv-share-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(180, 210, 255, 0.16);
+  margin-bottom: 0.9rem;
+}
+
+.kv-share-title {
+  font-size: clamp(1.1rem, 1rem + 0.2vw, 1.25rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kv-share-title::before {
+  content: "🌀";
+  font-size: 0.95em;
+  filter: drop-shadow(0 0 8px rgba(93, 245, 255, 0.8));
+}
+
+.kv-share-subtitle {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--kv-ink-muted);
+  max-width: 42rem;
+}
+
+/* Broadcast section */
+
+.kv-share-broadcast {
+  background: radial-gradient(circle at 0% 0%, rgba(9, 27, 48, 0.95), rgba(3, 7, 17, 0.98));
+  border-radius: calc(14px * var(--phi-small));
+  border: 1px solid rgba(103, 168, 255, 0.26);
+  padding: 0.9rem;
+  box-shadow: 0 0 0 1px rgba(93, 245, 255, 0.06);
+  position: relative;
+}
+
+.kv-share-broadcast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 0%, rgba(93, 245, 255, 0.08), transparent 60%);
+  opacity: 0.8;
+  mix-blend-mode: screen;
+}
+
+.kv-share-empty {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--kv-ink-muted);
+  background: rgba(6, 17, 30, 0.9);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  border: 1px dashed rgba(118, 140, 180, 0.6);
+}
+
+.kv-share-connected-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--kv-ink-soft);
+  margin-bottom: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.kv-share-connected-label::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(93, 245, 255, 0.3),
+    rgba(165, 139, 255, 0.1),
+    rgba(93, 245, 255, 0)
+  );
+}
+
+/* Connected account tiles (label is styled via Tailwind + this) */
+
+.kv-share-broadcast label {
+  position: relative;
+  overflow: hidden;
+}
+
+.kv-share-broadcast label::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(93, 245, 255, 0.18), transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(52, 229, 165, 0.18), transparent 60%);
+  transition: opacity 220ms ease-out;
+  z-index: -1;
+}
+
+.kv-share-broadcast label:hover::before {
+  opacity: 0.9;
+}
+
+.kv-share-broadcast input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.35rem;
+}
+
+/* Buttons */
+
+.kv-btn {
+  --btn-radius: 999px;
+  --btn-pad-y: 0.55rem;
+  --btn-pad-x: 1.15rem;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+
+  padding: var(--btn-pad-y) var(--btn-pad-x);
+  border-radius: var(--btn-radius);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+
+  transition:
+    transform 160ms ease-out,
+    box-shadow 160ms ease-out,
+    border-color 160ms ease-out,
+    background 160ms ease-out,
+    color 160ms ease-out,
+    opacity 80ms ease-out;
+}
+
+.kv-btn-primary {
+  background: radial-gradient(circle at 0% 0%, #5df5ff 0, #34e5a5 40%, #ffd89b 100%);
+  color: #020609;
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 12px 35px rgba(93, 245, 255, 0.3),
+    0 0 35px rgba(255, 216, 155, 0.3);
+}
+
+.kv-btn-primary:hover:not(.kv-btn-disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 16px 40px rgba(93, 245, 255, 0.4),
+    0 0 42px rgba(255, 216, 155, 0.4);
+}
+
+.kv-btn-primary:active:not(.kv-btn-disabled) {
+  transform: translateY(0) scale(0.99);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.85),
+    0 6px 24px rgba(93, 245, 255, 0.2);
+}
+
+.kv-btn-disabled,
+.kv-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  background: radial-gradient(circle at 0% 0%, #3a4a57 0, #1c2430 70%);
+  color: var(--kv-ink-muted);
+  border-color: rgba(140, 151, 172, 0.45);
+}
+
+/* Results & status */
+
+.kv-share-results {
+  background: linear-gradient(
+    135deg,
+    rgba(10, 21, 38, 0.95),
+    rgba(8, 18, 33, 0.98),
+    rgba(10, 22, 40, 0.98)
+  );
+  border-radius: 12px;
+  border: 1px solid rgba(93, 245, 255, 0.3);
+  padding: 0.75rem 0.9rem;
+  margin-top: 0.8rem;
+  box-shadow: 0 0 0 1px rgba(93, 245, 255, 0.16);
+}
+
+.kv-share-results h3 {
+  color: var(--kv-ink-soft);
+}
+
+.kv-share-results a {
+  color: var(--kv-cyan);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.kv-share-results a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.kv-share-status {
+  color: var(--kv-ink-soft);
+}
+
+.kv-share-error {
+  color: var(--kv-danger);
+}
+
+/* Manual share panel */
+
+.kv-share-manual {
+  margin-top: 0.4rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(165, 139, 255, 0.45);
+  background: radial-gradient(circle at 100% 0%, rgba(165, 139, 255, 0.18), transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(93, 245, 255, 0.1), transparent 55%);
+}
+
+/* Footer */
+
+.kv-share-footer {
+  border-top: 1px solid rgba(180, 210, 255, 0.16);
+  padding-top: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+/* Breathing + aurora animations
+   (kept minimal + smooth to entrain, not agitate) */
+
+@keyframes kv-shell-breath {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.7),
+      0 22px 55px rgba(0, 0, 0, 0.7),
+      0 0 46px rgba(93, 245, 255, 0.35);
+  }
+  50% {
+    transform: translateY(-0.5px) scale(1.007);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.65),
+      0 26px 62px rgba(0, 0, 0, 0.8),
+      0 0 60px rgba(93, 245, 255, 0.45);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.7),
+      0 22px 55px rgba(0, 0, 0, 0.7),
+      0 0 46px rgba(93, 245, 255, 0.35);
+  }
+}
+
+@keyframes kv-aurora {
+  0% {
+    transform: translate3d(-4%, 3%, 0) scale(1.02);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate3d(3%, -2%, 0) scale(1.06);
+    opacity: 0.42;
+  }
+  100% {
+    transform: translate3d(0%, 0%, 0) scale(1.03);
+    opacity: 0.32;
+  }
+}
+
+/* Motion safety */
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-share-shell,
+  .kv-share-shell::after {
+    animation: none !important;
+  }
+
+  .kv-btn,
+  .kv-share-broadcast label {
+    transition: none !important;
+  }
+}

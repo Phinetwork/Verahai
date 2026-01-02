@@ -1,0 +1,996 @@
+/* PulseHoneycombModal.css — v41.3.0 “ETHERIK FROSTED GLASS”
+   Atlantean-grade UI: carved light, breath-synced life, zero clutter.
+   - Breath cadence: 5.236s total (3.236 inhale / 2.000 exhale feel)
+   - Tooltip uses PORTAL: .phmTipPortal (fixed, never clipped)
+   - Proof strip: .phmProofStrip / .phmProofItem
+*/
+
+/* ─────────────────────────────────────────────────────────────
+   Core tokens (glass / glow / breath)
+───────────────────────────────────────────────────────────── */
+:root{
+  --phm-breath: 5.236s;
+  --phm-in: 3.236s;
+  --phm-out: 2s;
+
+  --phm-phi: 1.618;
+
+  --phm-white: rgba(255,255,255,0.96);
+  --phm-soft: rgba(255,255,255,0.78);
+  --phm-dim: rgba(255,255,255,0.62);
+
+  --phm-cyan: rgba(191,252,255,0.92);
+  --phm-cyan2: rgba(35,255,240,0.18);
+  --phm-violet: rgba(183,163,255,0.90);
+  --phm-violet2: rgba(183,163,255,0.14);
+
+  --phm-line: rgba(255,255,255,0.12);
+  --phm-line2: rgba(255,255,255,0.08);
+
+  --phm-bgA: rgba(6,10,14,0.76);
+  --phm-bgB: rgba(6,10,14,0.58);
+
+  --phm-shadow: 0 24px 70px rgba(0,0,0,0.62);
+
+  --phm-focus: 0 0 0 2px rgba(191,252,255,0.22), 0 0 0 4px rgba(183,163,255,0.18);
+
+  --phm-radius-xl: 20px;
+  --phm-radius-lg: 16px;
+  --phm-radius-md: 14px;
+
+  --phm-pad: 12px;
+
+  --phm-ease-in: cubic-bezier(.2,.95,.2,1);
+  --phm-ease-out: cubic-bezier(.2,.75,.2,1);
+
+  --phm-blur: 10px;
+}
+
+@media (prefers-reduced-motion: reduce){
+  :root{
+    --phm-breath: 0s;
+    --phm-in: 0s;
+    --phm-out: 0s;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Backdrop (presence without blocking)
+───────────────────────────────────────────────────────────── */
+.phmBackdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.phmBackdrop--anchored{
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.phmBackdrop--sheet{
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 12px env(safe-area-inset-bottom) 12px;
+}
+
+/* Breath field behind the shell */
+.phmBackdrop::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1300px 880px at 50% 110%, rgba(0,0,0,0.66), transparent 60%),
+    radial-gradient(1000px 700px at 18% 105%, rgba(35,255,240,0.10), transparent 62%),
+    radial-gradient(1000px 740px at 82% 108%, rgba(183,163,255,0.12), transparent 64%);
+  opacity: 0.58;
+  filter: blur(0px);
+  animation: phmFieldBreath var(--phm-breath) var(--phm-ease-in) infinite;
+}
+
+@keyframes phmFieldBreath{
+  0%,100%{ opacity: .44; filter: blur(0px); }
+  50%{ opacity: .72; filter: blur(1px); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Shell (etherik frosted glass)
+───────────────────────────────────────────────────────────── */
+.phmShell{
+  width: min(420px, calc(100dvw - 24px));
+  height: min(72dvh, 620px);
+  max-width: calc(100dvw - 24px);
+  max-height: calc(100dvh - 24px);
+  border-radius: var(--phm-radius-xl);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    radial-gradient(1200px 800px at 50% -10%, rgba(0, 0, 0, 0.36), rgba(0,0,0,0.50) 60%),
+    radial-gradient(900px 650px at 50% 20%, rgba(35,255,240,0.11), transparent 60%),
+    radial-gradient(760px 520px at 70% 80%, rgba(183,163,255,0.13), transparent 62%),
+    linear-gradient(180deg, var(--phm-bgA), var(--phm-bgB));
+  box-shadow: var(--phm-shadow);
+  position: relative;
+  isolation: isolate;
+  pointer-events: auto;
+  transform: translate3d(0,0,0);
+  contain: layout paint size style;
+}
+
+.phmShell--anchored{
+  position: fixed;
+  margin: 0;
+}
+
+.phmShell--sheet{
+  width: min(100dvw, 560px);
+  height: min(72dvh, 560px);
+  max-width: 100dvw;
+  max-height: calc(100dvh - env(safe-area-inset-bottom) - 16px);
+  border-radius: 18px 18px 0 0;
+}
+
+/* etched lattice + aurora haze */
+.phmShell::before,
+.phmShell::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+}
+
+.phmShell::before{
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255,255,255,0.02) 0px,
+      rgba(255,255,255,0.02) 1px,
+      rgba(0,0,0,0.0) 4px,
+      rgba(0,0,0,0.0) 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,0.012) 0px,
+      rgba(255,255,255,0.012) 1px,
+      rgba(0,0,0,0.0) 6px,
+      rgba(0,0,0,0.0) 12px
+    );
+  mix-blend-mode: overlay;
+  opacity: 0.42;
+}
+
+.phmShell::after{
+  background:
+    radial-gradient(900px 600px at 30% 20%, rgba(35,255,240,0.12), transparent 60%),
+    radial-gradient(840px 640px at 80% 70%, rgba(183,163,255,0.14), transparent 60%),
+    radial-gradient(820px 600px at 15% 85%, rgba(98,218,255,0.10), transparent 62%);
+  filter: blur(12px);
+  opacity: .52;
+  animation: phmAurora var(--phm-breath) ease-in-out infinite;
+}
+
+@keyframes phmAurora{
+  0%,100%{ transform: translate3d(0,0,0) scale(1); opacity: .42; }
+  50%{ transform: translate3d(0,-1px,0) scale(1.02); opacity: .60; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Root layout
+───────────────────────────────────────────────────────────── */
+.phmRoot{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Header (one glance)
+───────────────────────────────────────────────────────────── */
+.phmHeader{
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(to bottom, rgba(6,10,14,0.64), rgba(6,10,14,0));
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+
+/* subtle sheen sweep */
+.phmHeader::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background: linear-gradient(120deg, transparent 10%, rgba(255,255,255,0.12) 32%, transparent 58%);
+  opacity: .12;
+  transform: translate3d(-55%,0,0);
+  animation: phmSheenSweep var(--phm-breath) var(--phm-ease-in) infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes phmSheenSweep{
+  0%{ transform: translate3d(-65%,0,0); opacity: .08; }
+  50%{ transform: translate3d(35%,0,0); opacity: .18; }
+  100%{ transform: translate3d(120%,0,0); opacity: .08; }
+}
+
+.phmHeaderLeft{
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.phmHeaderStack{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+/* Sigil card */
+.phmSigilCard{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--phm-radius-md);
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    radial-gradient(120px 80px at 20% 30%, rgba(35,255,240,0.18), transparent 60%),
+    rgba(0,0,0,0.35);
+  box-shadow: inset 0 0 16px rgba(255,255,255,0.05);
+  min-width: 0;
+}
+
+.phmSigilFrame{
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--phm-radius-md);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.45);
+  box-shadow: 0 0 18px rgba(191,252,255,0.25);
+  position: relative;
+  overflow: hidden;
+  transform: translate3d(0,0,0);
+  animation: phmBreathGlow var(--phm-breath) ease-in-out infinite;
+}
+
+.phmSigilFrame::after{
+  content:"";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle, rgba(255,255,255,0.20), transparent 60%);
+  opacity: 0.20;
+  animation: phmBreathGlow var(--phm-breath) ease-in-out infinite reverse;
+}
+
+.phmSigilPlaceholder{
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.2);
+}
+
+.phmSigilMeta{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.phmSigilPulse{
+  font-size: 12px;
+  font-weight: 950;
+  color: var(--phm-white);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phmSigilSub{
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.65);
+}
+
+.phmDot{ opacity: 0.55; }
+
+/* Header right */
+.phmHeaderRight{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Close button */
+.phmBtn{
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 11px;
+  transition: transform .12s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+
+.phmBtn:hover{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+
+.phmBtn:focus-visible{ box-shadow: var(--phm-focus); }
+
+.phmBtnClose{
+  border-color: rgba(191,252,255,0.28);
+  background: rgba(191,252,255,0.12);
+  width: 34px;
+  display: grid;
+  place-items: center;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Proof strip (PhiKey / KaiSig / Key hash)
+───────────────────────────────────────────────────────────── */
+.phmProofStrip{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 540px;
+}
+
+.phmProofItem{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    radial-gradient(120px 70px at 20% 30%, rgba(35,255,240,0.12), transparent 60%),
+    rgba(0,0,0,0.26);
+  color: rgba(255,255,255,0.90);
+  cursor: pointer;
+  transition: transform .12s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+
+.phmProofItem:hover{
+  transform: translateY(-1px);
+  border-color: rgba(191,252,255,0.22);
+  background:
+    radial-gradient(120px 70px at 20% 30%, rgba(35,255,240,0.16), transparent 60%),
+    rgba(0,0,0,0.30);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+}
+
+.phmProofItem:focus-visible{ box-shadow: var(--phm-focus); }
+
+.phmProofK{
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 950;
+  color: rgba(191,252,255,0.86);
+}
+
+.phmProofV{
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.86);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Value Card (Φ ⇄ USD toggle)
+───────────────────────────────────────────────────────────── */
+.phmValueCard{
+  border-radius: var(--phm-radius-md);
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    linear-gradient(135deg, rgba(35,255,240,0.12), rgba(183,163,255,0.08)),
+    rgba(6,10,14,0.50);
+  box-shadow: inset 0 0 18px rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+  min-width: 168px;
+}
+
+.phmValueCard--switch{
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: transform .12s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+
+.phmValueCard--switch::after{
+  content:"";
+  position:absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.18) 40%, transparent 60%);
+  opacity: 0.18;
+  pointer-events: none;
+  transform: translateX(-40%);
+  animation: phmSheen var(--phm-in) ease-in-out infinite;
+}
+
+@keyframes phmSheen{
+  0%,100%{ transform: translateX(-45%); opacity: .10; }
+  50%{ transform: translateX(60%); opacity: .20; }
+}
+
+.phmValueCard--switch:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.22);
+  background:
+    linear-gradient(135deg, rgba(35,255,240,0.16), rgba(183,163,255,0.10)),
+    rgba(6,10,14,0.55);
+}
+
+.phmValueCard--switch:focus-visible{ box-shadow: var(--phm-focus); }
+
+.phmValueLabel{
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.62);
+  font-weight: 950;
+}
+
+.phmValuePrimary{
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: 0.2px;
+  color: rgba(255,255,255,0.96);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phmValueSecondary{
+  font-size: 11px;
+  font-weight: 850;
+  color: rgba(183,163,255,0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phmValueMeta{
+  font-size: 9px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Chart
+───────────────────────────────────────────────────────────── */
+.phmChartWrap{ min-width: 0; }
+
+.phmChart{
+  border-radius: var(--phm-radius-lg);
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.35);
+  overflow: hidden;
+  box-shadow: inset 0 0 18px rgba(255,255,255,0.05);
+  position: relative;
+}
+
+.phmChart--interactive{
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.phmChart--interactive::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(520px 240px at 50% 120%, rgba(191,252,255,0.10), transparent 60%),
+    radial-gradient(420px 220px at 20% 0%, rgba(183,163,255,0.10), transparent 55%);
+  opacity: .55;
+  animation: phmChartBreath var(--phm-breath) ease-in-out infinite;
+}
+
+@keyframes phmChartBreath{
+  0%,100%{ opacity: .40; transform: translate3d(0,0,0) scale(1); }
+  50%{ opacity: .70; transform: translate3d(0,-1px,0) scale(1.02); }
+}
+
+.phmChart--lite{
+  width: 100%;
+  height: 92px;
+  padding: 6px 8px 8px 8px;
+}
+
+.phmChartTopRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.phmChartBadge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(191,252,255,0.30);
+  font-size: 9px;
+  font-weight: 950;
+  color: rgba(191,252,255,0.90);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.phmLiveDot{
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #7fffe0;
+  box-shadow: 0 0 8px rgba(127,255,224,0.8);
+  animation: phmPulseDot var(--phm-breath) ease-in-out infinite;
+}
+
+.phmTicker{
+  font-size: 12px;
+  font-weight: 950;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phmChartHint{
+  font-size: 10px;
+  font-weight: 850;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+
+.phmChartSvg{
+  width: 100%;
+  height: 56px;
+  display: block;
+}
+
+.phmChartDot{
+  fill: rgba(191,252,255,0.95);
+  stroke: rgba(0,0,0,0.35);
+  stroke-width: 2;
+  animation: phmDotBreath var(--phm-breath) ease-in-out infinite;
+}
+
+.phmChartBottomRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.phmChartSub{
+  font-size: 10px;
+  color: rgba(255,255,255,0.70);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phmChartChg{
+  font-size: 10px;
+  font-weight: 950;
+  color: rgba(183,163,255,0.88);
+  white-space: nowrap;
+}
+
+.phmChartEmpty{
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,0.65);
+}
+
+.phmChart--interactive.isLocked{
+  border-color: rgba(191,252,255,0.22);
+  box-shadow: inset 0 0 18px rgba(255,255,255,0.05), 0 0 0 1px rgba(191,252,255,0.12);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tooltip portal (FIXED, NEVER CLIPPED)
+───────────────────────────────────────────────────────────── */
+.phmTipPortal{
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 14px));
+  pointer-events: none;
+  z-index: 2147483647; /* above everything */
+  max-width: 280px;
+  width: max-content;
+}
+
+.phmTipPortal::after{
+  content:"";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(0,0,0,0.62);
+  border-right: 1px solid rgba(255,255,255,0.14);
+  border-bottom: 1px solid rgba(255,255,255,0.14);
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,0.35));
+}
+
+.phmTipPortal.isLocked .phmTipInner{
+  border-color: rgba(191,252,255,0.26);
+}
+
+.phmTipInner{
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(220px 160px at 20% 20%, rgba(35,255,240,0.12), transparent 60%),
+    radial-gradient(260px 180px at 80% 80%, rgba(183,163,255,0.14), transparent 62%),
+    rgba(0,0,0,0.62);
+  box-shadow:
+    0 22px 56px rgba(0,0,0,0.60),
+    inset 0 0 18px rgba(255,255,255,0.06);
+  backdrop-filter: blur(var(--phm-blur));
+  -webkit-backdrop-filter: blur(var(--phm-blur));
+  padding: 10px 10px 9px 10px;
+}
+
+.phmTipTop{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.phmTipTitle{
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(191,252,255,0.86);
+}
+
+.phmTipIndex{
+  font-size: 10px;
+  font-weight: 850;
+  color: rgba(255,255,255,0.70);
+  white-space: nowrap;
+}
+
+.phmTipMain{
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.phmTipBig{
+  font-size: 14px;
+  font-weight: 950;
+  color: rgba(255,255,255,0.96);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.phmTipSubRow{
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.phmTipSub{
+  font-size: 11px;
+  font-weight: 850;
+  color: rgba(255,255,255,0.82);
+}
+
+.phmTipDot{
+  opacity: 0.55;
+  color: rgba(255,255,255,0.70);
+}
+
+.phmTipGrid{
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 6px 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.phmTipK{
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  font-weight: 950;
+}
+
+.phmTipV{
+  font-size: 11px;
+  color: rgba(255,255,255,0.86);
+  font-weight: 850;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phmTipMini{
+  font-size: 10px;
+  color: rgba(183,163,255,0.88);
+  font-weight: 950;
+}
+
+.phmTipHint{
+  margin-top: 8px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.55);
+  text-align: right;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Body / Honeycomb
+───────────────────────────────────────────────────────────── */
+.phmBody{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.phmCombPanel{
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.phmViewport{
+  flex: 1;
+  min-height: 0;
+}
+
+/* Hint bubble */
+.phmHint{
+  left: 10px;
+  bottom: 10px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Bottom bar (slim, sacred, functional)
+───────────────────────────────────────────────────────────── */
+.phmBottomBar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(to top, rgba(6,10,14,0.74), rgba(6,10,14,0.18));
+  position: relative;
+  z-index: 2;
+}
+
+.phmBottomBar::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background: radial-gradient(520px 220px at 50% 0%, rgba(191,252,255,0.08), transparent 65%);
+  opacity: .40;
+  animation: phmFooterBreath var(--phm-breath) ease-in-out infinite;
+}
+
+@keyframes phmFooterBreath{
+  0%,100%{ opacity: .26; }
+  50%{ opacity: .50; }
+}
+
+.phmSelChip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+  min-width: 0;
+  max-width: 56%;
+}
+
+.phmSelLabel{
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 950;
+  color: rgba(191,252,255,0.85);
+}
+
+.phmSelHash{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+  font-size: 11px;
+  font-weight: 950;
+  color: rgba(255,255,255,0.86);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phmBottomActions{
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.phmMiniBtn{
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 950;
+  transition: transform .12s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+
+.phmMiniBtn:hover{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+
+.phmMiniBtn:focus-visible{ box-shadow: var(--phm-focus); }
+
+.phmMiniBtn:disabled{
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.phmMiniBtn--glow{
+  border-color: rgba(191,252,255,0.28);
+  background: rgba(191,252,255,0.10);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Breath animations
+───────────────────────────────────────────────────────────── */
+@keyframes phmBreathGlow{
+  0%, 100%{
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(191,252,255,0.25);
+  }
+  50%{
+    transform: scale(1.04);
+    box-shadow: 0 0 22px rgba(191,252,255,0.55);
+  }
+}
+
+@keyframes phmPulseDot{
+  0%, 100%{ opacity: 0.5; transform: scale(0.8); }
+  50%{ opacity: 1; transform: scale(1.25); }
+}
+
+@keyframes phmDotBreath{
+  0%,100%{ transform: scale(0.85); opacity: .70; }
+  50%{ transform: scale(1.25); opacity: 1; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Scrollbar polish (optional but makes it feel “real”)
+───────────────────────────────────────────────────────────── */
+.phmShell *{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(191,252,255,0.22) rgba(0,0,0,0.18);
+}
+.phmShell *::-webkit-scrollbar{
+  width: 10px;
+  height: 10px;
+}
+.phmShell *::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, rgba(191,252,255,0.18), rgba(183,163,255,0.16));
+  border: 2px solid rgba(0,0,0,0.30);
+  border-radius: 999px;
+}
+.phmShell *::-webkit-scrollbar-track{
+  background: rgba(0,0,0,0.18);
+  border-radius: 999px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsive: smallest devices stay “one glance”
+───────────────────────────────────────────────────────────── */
+@media (max-width: 520px){
+  .phmSigilCard{ width: 100%; }
+  .phmHeaderRight{ width: 100%; justify-content: space-between; }
+  .phmProofStrip{ max-width: 100%; }
+  .phmProofV{ max-width: 120px; }
+  .phmSelChip{ max-width: 48%; }
+  .phmTicker{ max-width: 52vw; }
+  .phmValueCard{ min-width: 0; flex: 1; }
+}
+
+@media (max-width: 380px){
+  .phmChart--lite{ height: 96px; }
+  .phmSelChip{ max-width: 44%; }
+  .phmMiniBtn{ height: 28px; font-size: 11px; padding: 0 9px; }
+  .phmTipPortal{ max-width: 240px; }
+}
+
+/* Center on small / short */
+@media (max-width: 900px), (max-height: 720px){
+  .phmBackdrop{
+    align-items: center;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,1335 @@
+/* src/pages/VerifyPage.css
+   ✅ No page scroll
+   ✅ Each panel scrolls ONLY if needed (most devices won’t)
+   ✅ Inhale upload is always visible on mobile
+   ✅ Drag & drop supported (desktop); tap-to-upload on mobile
+   ✅ Tabs pinned to bottom; single row (scroll only on ultra-small)
+*/
+
+html.verify-shell,
+body.verify-shell{
+  --ink: rgba(242, 255, 252, 0.92);
+  --inkDim: rgba(242, 255, 252, 0.72);
+  --inkFaint: rgba(242, 255, 252, 0.52);
+
+  --aqua: rgba(55, 255, 228, 1);
+  --gold: rgba(255, 231, 160, 1);
+
+  --ok: rgba(0, 255, 160, 1);
+  --bad: rgba(255, 80, 80, 1);
+
+  --br2: 22px;
+  --pad: clamp(10px, 1.4vw, 14px);
+  --gap: clamp(8px, 1.1vw, 12px);
+
+  --border: rgba(255,255,255,0.12);
+
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+  --safeTop: env(safe-area-inset-top);
+  --safeBot: env(safe-area-inset-bottom);
+  --safeLeft: env(safe-area-inset-left);
+  --safeRight: env(safe-area-inset-right);
+
+  --btn: clamp(30px, 4.6vw, 34px);
+  --btnR: 12px;
+
+  --tabPadY: clamp(7px, 1.5vw, 9px);
+  --tabPadX: clamp(9px, 2.0vw, 12px);
+  --tabFont: clamp(12px, 2.7vw, 14px);
+  --tabGap: clamp(6px, 1.2vw, 8px);
+}
+
+.verify-shell *, .verify-shell *::before, .verify-shell *::after{ box-sizing: border-box; }
+.verify-shell .mono{ font-family: var(--mono); }
+
+html.verify-shell, body.verify-shell{
+  height: 100%;
+  margin: 0;
+  background: #02070a;
+  color: var(--ink);
+  font-family: var(--sans);
+  overflow: hidden; /* ✅ never page scroll */
+}
+
+.verify-shell textarea,
+.verify-shell input,
+.verify-shell select,
+.verify-shell button{
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+.verify-shell textarea,
+.verify-shell input,
+.verify-shell select{ font-size: 16px; }
+
+/* App shell */
+.vapp{
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  height: 100svh;
+  min-height: 100svh;
+  width: 100vw;
+  padding:
+    calc(var(--pad) + var(--safeTop))
+    calc(var(--pad) + var(--safeRight))
+    calc(var(--pad) + var(--safeBot))
+    calc(var(--pad) + var(--safeLeft));
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--gap);
+  isolation: isolate;
+}
+
+.vapp::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(1100px 520px at 12% 0%,
+      rgba(55,255,228,0.16),
+      rgba(55,255,228,0.05) 44%,
+      rgba(0,0,0,0) 72%),
+    radial-gradient(900px 520px at 92% 6%,
+      rgba(255,231,160,0.14),
+      rgba(255,231,160,0.04) 46%,
+      rgba(0,0,0,0) 74%),
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.00) 30%);
+  opacity: 1;
+}
+
+/* Header */
+.vhead{
+  position: relative;
+  border-radius: var(--br2);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+  box-shadow:
+    0 12px 34px rgba(0,0,0,0.34),
+    0 0 0 1px rgba(255,255,255,0.05) inset;
+  overflow: hidden;
+  padding: var(--pad);
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 12px;
+  z-index: 2;
+}
+
+.vhead::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  pointer-events:none;
+  background:
+    radial-gradient(820px 240px at 10% 0%,
+      rgba(55,255,228,0.18),
+      rgba(0,0,0,0) 62%),
+    radial-gradient(640px 240px at 92% 6%,
+      rgba(255,231,160,0.14),
+      rgba(0,0,0,0) 60%);
+  opacity: 0.9;
+}
+
+.vhead-left, .vhead-right{
+  position: relative;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.vtitle{
+  font-weight: 1000;
+  letter-spacing: 0.02em;
+  font-size: clamp(1.02rem, 2.1vw, 1.42rem);
+  text-shadow: 0 0 24px rgba(55,255,228,0.10);
+}
+
+.vsub{
+  margin-top: 4px;
+  color: var(--inkDim);
+  line-height: 1.25;
+  font-size: 0.90rem;
+  max-width: 72ch;
+}
+
+.vlink{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  min-width: 0;
+}
+
+.vlink-k{
+  color: var(--inkFaint);
+  font-size: 0.75rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.vlink-v{
+  font-size: 0.90rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Official badge */
+.official{
+  justify-self: end;
+  width: min(360px, 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  padding: 10px 12px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+.official-top{ display:flex; align-items:center; gap: 10px; }
+.official-ring{
+  width: 22px; height: 22px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), rgba(255,255,255,0.04)),
+    radial-gradient(circle at 70% 70%, rgba(55,255,228,0.18), rgba(0,0,0,0));
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.04), 0 0 20px rgba(55,255,228,0.10);
+}
+.official-title{ font-weight: 1000; letter-spacing: 0.14em; font-size: 0.82rem; }
+.official-sub{ margin-top: 6px; color: var(--inkDim); font-size: 0.82rem; line-height: 1.25; }
+
+.official[data-kind="ok"]{ border-color: rgba(0,255,160,0.22); box-shadow: 0 0 0 1px rgba(0,255,160,0.10) inset, 0 0 0 4px rgba(0,255,160,0.06); }
+.official[data-kind="busy"]{ border-color: rgba(55,255,228,0.22); box-shadow: 0 0 0 1px rgba(55,255,228,0.10) inset, 0 0 0 4px rgba(55,255,228,0.06); }
+.official[data-kind="fail"]{ border-color: rgba(255,80,80,0.22); box-shadow: 0 0 0 1px rgba(255,80,80,0.10) inset, 0 0 0 4px rgba(255,80,80,0.06); }
+
+/* Seals */
+.vseals{
+  display:flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.vseal-value{
+  display: grid;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  min-width: 150px;
+}
+.vseal-value-label{
+  font-weight: 1000;
+  letter-spacing: 0.24em;
+  font-size: 0.62rem;
+  color: var(--inkFaint);
+}
+.vseal-value-phi{
+  font-weight: 1000;
+  font-size: 0.84rem;
+}
+.vseal-value-usd{
+  font-size: 0.74rem;
+  color: var(--inkDim);
+}
+.seal{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  white-space: nowrap;
+}
+.seal-ic{
+  width: 18px; height: 18px; display:grid; place-items:center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.18);
+  font-weight: 1000; font-size: 0.80rem;
+}
+.seal-lbl{ font-weight: 1000; letter-spacing: 0.10em; font-size: 0.72rem; color: var(--inkFaint); }
+.seal-txt{ font-weight: 1000; letter-spacing: 0.10em; font-size: 0.72rem; }
+.seal[data-state="valid"]{ border-color: rgba(0,255,160,0.22); }
+.seal[data-state="valid"] .seal-ic{ border-color: rgba(0,255,160,0.30); box-shadow: 0 0 0 4px rgba(0,255,160,0.08); }
+.seal[data-state="invalid"]{ border-color: rgba(255,80,80,0.22); }
+.seal[data-state="invalid"] .seal-ic{ border-color: rgba(255,80,80,0.30); box-shadow: 0 0 0 4px rgba(255,80,80,0.08); }
+.seal[data-state="busy"]{ border-color: rgba(55,255,228,0.22); }
+.seal[data-state="busy"] .seal-ic{ border-color: rgba(55,255,228,0.30); box-shadow: 0 0 0 4px rgba(55,255,228,0.08); }
+.seal[data-state="off"], .seal[data-state="na"]{ opacity: 0.72; }
+
+/* KPIs */
+.vkpis{ display:grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.mini{
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.16);
+  padding: 8px 10px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+  min-width: 0;
+}
+.mini-k{
+  color: var(--inkFaint);
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+.mini-v{
+  color: rgba(242,255,252,0.95);
+  font-weight: 1000;
+  font-size: 0.90rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Header responsive */
+@media (max-width: 980px){
+  .vhead{ grid-template-columns: 1fr; }
+  .vseals{ justify-content: flex-start; }
+  .official{ justify-self: start; }
+  .vkpis{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px){
+  .vhead{
+    padding: calc(var(--pad) - 2px);
+    gap: 8px;
+  }
+  .vtitle{ font-size: 0.98rem; }
+  .vsub{ font-size: 0.78rem; }
+  .official{
+    width: 100%;
+    padding: 8px 10px;
+  }
+  .official-ring{ width: 18px; height: 18px; }
+  .official-title{ font-size: 0.70rem; letter-spacing: 0.12em; }
+  .official-sub{ font-size: 0.72rem; }
+  .seal{ padding: 4px 8px; }
+  .seal-ic{ width: 16px; height: 16px; font-size: 0.72rem; }
+  .seal-lbl,
+  .seal-txt{ font-size: 0.66rem; }
+}
+
+/* Body layout */
+.vbody{
+  position: relative;
+  min-height: 0;
+  display:grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--gap);
+  z-index: 2;
+}
+
+.vpanel{
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+.vcard{
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: var(--br2);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+  box-shadow: 0 12px 34px rgba(0,0,0,0.34), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.vcard-head{
+  padding: var(--pad);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.10);
+}
+
+.vcard-title{ font-weight: 1000; letter-spacing: 0.02em; font-size: 1.02rem; }
+.vcard-sub{ margin-top: 6px; color: var(--inkDim); font-size: 0.86rem; line-height: 1.25; }
+
+/* Panels scroll ONLY if they need to */
+.vcard-body{
+  padding: var(--pad);
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.vcard-body::-webkit-scrollbar{ display:none; }
+
+.vfit{ position: relative; height: 100%; min-height: 0; }
+
+/* Grids */
+.vgrid-2{
+  display:grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: var(--gap);
+  min-height: 0;
+}
+.vgrid-2--inhale{
+  grid-template-columns: 0.9fr 1.1fr;
+  grid-template-areas: "control console";
+}
+.vgrid-2--inhale .vcontrol{ grid-area: control; }
+.vgrid-2--inhale .vconsole{ grid-area: console; }
+
+.vgrid-2--capsule{ grid-template-columns: 1.10fr 0.90fr; }
+
+@media (max-width: 980px){
+  .vgrid-2, .vgrid-2--capsule{
+    grid-template-columns: 1fr;
+  }
+  /* Mobile: control FIRST so upload is always visible */
+  .vgrid-2--inhale{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "control"
+      "console";
+  }
+}
+
+/* Drag & drop wrapper */
+.vdropzone{
+  position: relative;
+  border-radius: 18px;
+  min-height: 0;
+}
+.vdropzone.is-drag{
+  outline: 2px dashed rgba(55,255,228,0.40);
+  outline-offset: 6px;
+}
+.vdropzone-hint{
+  margin-top: 10px;
+  color: rgba(242,255,252,0.55);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+/* Console */
+.vconsole{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.20);
+  overflow: hidden;
+  display:grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  height: clamp(180px, 28vh, 240px);
+}
+@media (max-width: 980px){
+  .vconsole{ height: clamp(140px, 20vh, 180px); }
+}
+
+.vpre{
+  margin: 0;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  overflow: hidden;
+  color: rgba(242,255,252,0.92);
+  font-family: var(--mono);
+  font-size: 0.80rem;
+  line-height: 1.30;
+}
+
+.vconsole-foot{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.16);
+}
+
+.vchip{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(242,255,252,0.86);
+  font-weight: 1000;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vactions{ display:inline-flex; gap: 8px; align-items: center; }
+
+/* Icon buttons */
+.vbtn{
+  width: var(--btn);
+  height: var(--btn);
+  border-radius: var(--btnR);
+  border: 1px solid rgba(255,255,255,0.16);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0.04)),
+    rgba(0,0,0,0.14);
+  color: var(--ink);
+  display:grid;
+  place-items:center;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 140ms ease, filter 120ms ease;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.20), 0 0 0 1px rgba(255,255,255,0.05) inset;
+}
+.vbtn:hover{ transform: translateY(-1px); border-color: rgba(55,255,228,0.22); filter: brightness(1.03); }
+.vbtn:active{ transform: translateY(0px); }
+.vbtn:disabled{ opacity: 0.55; cursor: default; transform: none; filter: none; }
+.vbtn--primary{
+  border-color: rgba(55,255,228,0.22);
+  background: linear-gradient(180deg, rgba(55,255,228,0.18), rgba(55,255,228,0.06));
+}
+.vbtn-ic{ font-size: 1.0rem; line-height: 1; transform: translateY(-0.5px); }
+
+/* Control block */
+.vcontrol{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.16);
+  padding: 12px;
+  display:grid;
+  gap: 10px;
+  align-content: start;
+}
+
+/* Hidden file input (NOT display:none) */
+.vfile{
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.vdrop{
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(55,255,228,0.22);
+  background: linear-gradient(180deg, rgba(55,255,228,0.16), rgba(55,255,228,0.06));
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.20);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.vdrop:focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(55,255,228,0.12) inset,
+    0 0 0 4px rgba(55,255,228,0.10);
+}
+
+.vdrop-ic{ display:grid; place-items:center; }
+.vphi-ic{ width: 16px; height: 16px; display:block; opacity: 0.95; }
+
+.vdrop-txt{
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  font-size: 0.80rem;
+}
+
+.vdrop-mark{
+  margin-left: auto;
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.16);
+}
+.vphi{ width: 14px; height: 14px; display:block; opacity: 0.95; }
+.vdrop-mark-txt{ font-weight: 1000; letter-spacing: 0.10em; font-size: 0.74rem; opacity: 0.92; }
+
+.vcontrol-row{
+  display:flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Mini grids */
+.vmini-grid{ display:grid; gap: 8px; }
+.vmini-grid--2{ grid-template-columns: 1fr 1fr; }
+.vmini-grid--3{ grid-template-columns: 1fr 1fr 1fr; }
+.vmini-grid--6{ grid-template-columns: 1fr 1fr 1fr; }
+
+.vvaluation-dashboard{ margin-top: 12px; }
+
+@media (max-width: 520px){
+  .vmini-grid--3, .vmini-grid--6{ grid-template-columns: 1fr; }
+  .mini-v{ white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* Frame */
+.vframe-wrap{
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.14);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+
+/* Rail grids */
+.vrail-grid{ display:grid; gap: 8px; }
+.vrail-grid--2{ grid-template-columns: 1fr 1fr; }
+@media (max-width: 980px){ .vrail-grid--2{ grid-template-columns: 1fr; } }
+
+/* Rows */
+.vrow{
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.14);
+  padding: 8px;
+  display:grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+.vk{ color: var(--inkFaint); font-size: 0.70rem; letter-spacing: 0.14em; text-transform: uppercase; padding-left: 6px; }
+.vv{
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.20);
+  padding: 8px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  font-size: 0.84rem;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+.vrow-actions{ display:inline-flex; gap: 8px; justify-content: flex-end; }
+.vseal-inline{ display:flex; align-items:center; }
+
+/* Footer */
+.vfoot{
+  margin-top: 10px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vfoot-right{ display:flex; gap: 8px; align-items:center; }
+
+/* Toasts */
+.vtoast, .verror{
+  margin-top: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.86rem;
+  backdrop-filter: blur(8px);
+}
+.vtoast{
+  border: 1px solid rgba(55,255,228,0.18);
+  background: rgba(10, 30, 28, 0.45);
+  color: rgba(242,255,252,0.92);
+}
+.verror{
+  border: 1px solid rgba(255,80,80,0.18);
+  background: rgba(40, 12, 12, 0.45);
+  color: rgba(242,255,252,0.92);
+}
+
+/* Bottom tabs */
+.vtabs{
+  display:flex;
+  align-items:center;
+  gap: var(--tabGap);
+  padding: 10px 10px calc(10px + max(var(--safeBot), 8px)) 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+@media (max-width: 360px){
+  .vtabs{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .vtabs::-webkit-scrollbar{ display:none; }
+}
+
+.vtab{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: var(--tabPadY) var(--tabPadX);
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: var(--ink);
+  font-weight: 1000;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 120ms ease, border-color 140ms ease, background 140ms ease;
+  flex: 0 0 auto;
+  font-size: var(--tabFont);
+}
+.vtab:hover{ transform: translateY(-1px); border-color: rgba(55,255,228,0.22); }
+.vtab:active{ transform: translateY(0px); }
+.vtab.active{
+  border-color: rgba(55,255,228,0.26);
+  background: linear-gradient(180deg, rgba(55,255,228,0.14), rgba(55,255,228,0.05));
+  box-shadow: 0 0 0 4px rgba(55,255,228,0.06);
+}
+
+.vtab-ic{ opacity: 0.92; display:grid; place-items:center; }
+.vtab-phi{ width: 16px; height: 16px; display:block; opacity: 0.95; }
+.mark{ width: 18px; height: 18px; display:block; color: rgba(242,255,252,0.92); opacity: 0.95; }
+
+.vtabs-spacer{ flex: 1 1 auto; min-width: 8px; }
+
+@media (max-width: 430px){
+  .vtab-txt{ display:none; }
+  .vtab{ padding: var(--tabPadY) 10px; }
+}
+
+.vverify{
+  flex: 0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: var(--tabPadY) calc(var(--tabPadX) + 2px);
+  border: 1px solid rgba(55,255,228,0.22);
+  background: linear-gradient(180deg, rgba(55,255,228,0.18), rgba(55,255,228,0.07));
+  color: var(--ink);
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.22);
+  transition: transform 120ms ease, filter 120ms ease;
+  font-size: var(--tabFont);
+}
+.vverify:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+.vverify:active{ transform: translateY(0px); }
+.vverify:disabled{ opacity: 0.62; cursor: default; transform: none; }
+
+.vverify-ic{
+  width: 18px;
+  height: 18px;
+  display:grid;
+  place-items:center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(0,0,0,0.18);
+}
+@media (max-width: 430px){
+  .vverify-txt{ display:none; }
+}
+
+/* Modal (unchanged) */
+.vmodal-backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.64);
+  display: grid;
+  place-items: center;
+  padding:
+    calc(var(--pad) + var(--safeTop))
+    calc(var(--pad) + var(--safeRight))
+    calc(var(--pad) + var(--safeBot))
+    calc(var(--pad) + var(--safeLeft));
+}
+
+.vmodal{
+  width: min(980px, 100%);
+  height: min(92dvh, 780px);
+  border-radius: var(--br2);
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(8,16,22,0.94), rgba(5,10,14,0.94));
+  box-shadow: 0 26px 80px rgba(0,0,0,0.55);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.vmodal-head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.22);
+}
+
+.vmodal-title{ font-weight: 1000; letter-spacing: 0.02em; }
+.vmodal-sub{ margin-top: 4px; color: var(--inkDim); font-size: 0.90rem; line-height: 1.25; }
+
+.vmodal-close{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: var(--ink);
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.vmodal-body{ padding: 12px 14px; overflow: auto; }
+
+.vta{
+  width: 100%;
+  min-height: 56vh;
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+  color: rgba(242,255,252,0.92);
+  font-family: var(--mono);
+  font-size: 16px;
+  line-height: 1.35;
+  outline: none;
+  resize: none;
+}
+.vta:focus{
+  border-color: rgba(55,255,228,0.28);
+  box-shadow: 0 0 0 1px rgba(55,255,228,0.10) inset, 0 0 0 4px rgba(55,255,228,0.08);
+}
+.vta--readonly{ opacity: 0.96; }
+
+.vmodal-actions{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+.vcta{
+  border-radius: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(55,255,228,0.22);
+  background: linear-gradient(180deg, rgba(55,255,228,0.18), rgba(55,255,228,0.08));
+  color: var(--ink);
+  font-weight: 1000;
+  letter-spacing: 0.10em;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.22);
+}
+.vcta:disabled{ opacity: 0.62; cursor: default; }
+.vcta--ghost{ border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce){
+  .vtab, .vverify, .vbtn{ transition: none; }
+}
+/* ────────────────────────────────────────────────────────────────
+   Header: badge + sigil preview row
+─────────────────────────────────────────────────────────────── */
+
+.vhead-top{
+  display:flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vsigil-thumb{
+  width: 92px;
+  height: 92px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 10px 22px rgba(0,0,0,0.22);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.vsigil-img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display:block;
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,0.28));
+}
+
+@media (max-width: 520px){
+  .vsigil-thumb{ width: 74px; height: 74px; border-radius: 16px; }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Official badge: make it less wide + add checkmark in ring
+─────────────────────────────────────────────────────────────── */
+
+.official{
+  /* was min(360px,100%) — tighten so sigil preview can sit beside it */
+  width: min(280px, 100%);
+}
+
+.official-ring{
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.official-check{
+  font-weight: 1000;
+  font-size: 0.82rem;
+  line-height: 1;
+  color: rgba(0,255,160,0.98);
+  text-shadow: 0 0 18px rgba(0,255,160,0.35);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Toast: float it so it’s always visible + dismissable
+─────────────────────────────────────────────────────────────── */
+
+.vtoast-floating{
+  position: fixed;
+  z-index: 10001;
+  top: calc(var(--pad) + var(--safeTop) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - (var(--pad) * 2)));
+  margin: 0;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference){
+  .vtoast-floating{
+    animation: vtoastIn 160ms ease-out;
+  }
+  @keyframes vtoastIn{
+    from{ opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    to{ opacity: 1; transform: translateX(-50%) translateY(0px); }
+  }
+}
+/* ────────────────────────────────────────────────────────────────
+   ADDON: Bottom bar horizontal scroll on small devices
+   - one row, no wrap
+   - scrollable when it overflows
+   - keeps end buttons reachable
+─────────────────────────────────────────────────────────────── */
+
+/* Always keep the bottom bar one line + allow horizontal scrolling */
+.vtabs{
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;              /* Firefox */
+  overscroll-behavior-x: contain;
+  gap: clamp(6px, 1.2vw, 10px);
+}
+
+/* Hide scrollbar (WebKit) */
+.vtabs::-webkit-scrollbar{
+  display: none;
+}
+
+/* Ensure children don't shrink weirdly */
+.vtab,
+.vverify{
+  flex: 0 0 auto;
+}
+
+/* Give the bar a little extra right padding so the last button isn't clipped */
+.vtabs{
+  padding-right: calc(10px + var(--safeRight, 0px) + 6px) !important;
+}
+
+/* On very small widths, hide tab labels to reduce width pressure */
+@media (max-width: 420px){
+  .vtab-txt{ display:none !important; }
+  .vtab{ padding: var(--tabPadY) 10px !important; }
+  .vverify-txt{ display:none !important; }
+}
+
+/* Optional: add subtle “edge fade” cues that it scrolls */
+.vtabs{
+  position: relative;
+}
+.vtabs::before,
+.vtabs::after{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  width: 18px;
+  pointer-events:none;
+  opacity: 0.65;
+}
+.vtabs::before{
+  left:0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.35), rgba(0,0,0,0));
+}
+.vtabs::after{
+  right:0;
+  background: linear-gradient(270deg, rgba(0,0,0,0.35), rgba(0,0,0,0));
+}
+/* ────────────────────────────────────────────────────────────────
+   ADDON: Bottom bar always fits (no horizontal scroll)
+   - tabs shrink to fit the row
+   - labels collapse on smaller widths
+   - icons stay visible
+─────────────────────────────────────────────────────────────── */
+
+.vtabs{
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;          /* no scroll */
+  gap: clamp(6px, 1.0vw, 10px);
+}
+
+/* Let tabs shrink (previously they were flex: 0 0 auto) */
+.vtab,
+.vverify{
+  flex: 1 1 0 !important;               /* share the row */
+  min-width: 0 !important;              /* allow ellipsis/shrink */
+}
+
+/* Keep the spacer from stealing space */
+.vtabs-spacer{
+  flex: 0 0 0 !important;
+  min-width: 0 !important;
+}
+
+/* Make each button compact when it needs to be */
+.vtab,
+.vverify{
+  padding: clamp(6px, 1.2vw, 9px) clamp(8px, 1.6vw, 12px) !important;
+  border-radius: clamp(10px, 2vw, 14px);
+}
+
+/* Text can truncate instead of forcing width */
+.vtab-txt,
+.vverify-txt{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Prefer icons always visible */
+.vtab-ic,
+.vverify-ic{
+  flex: 0 0 auto;
+}
+
+/* Step-down rules: progressively hide text to guarantee fit */
+@media (max-width: 520px){
+  .vtab-txt{ display:none !important; }   /* icons-only */
+  .vtab{ justify-content: center; }
+  .vverify-txt{ display:none !important; }
+}
+
+@media (max-width: 380px){
+  /* ultra-tight: reduce padding even more */
+  .vtab,
+  .vverify{
+    padding: 6px 8px !important;
+  }
+  .vtab-ic .mark,
+  .vverify-ic{
+    transform: scale(0.95);
+  }
+}
+/* ────────────────────────────────────────────────────────────────
+   ADDON: Center all bottom-bar icons inside their boxes
+   (fixes the bottom-left Verify/Inhale icon alignment)
+─────────────────────────────────────────────────────────────── */
+
+/* Make the button itself a grid so contents are centered */
+.vtab,
+.vverify{
+  display: grid !important;
+  place-items: center !important;
+  justify-items: center !important;
+  align-items: center !important;
+}
+
+/* Make the icon wrapper a perfect centered box */
+.vtab-ic,
+.vverify-ic{
+  display: grid !important;
+  place-items: center !important;
+  width: 22px;              /* consistent icon box */
+  height: 22px;
+  line-height: 1;
+  margin: 0 auto !important;
+}
+
+/* Ensure the actual icon element centers (emoji, svg, img) */
+.vtab-ic > *,
+.vverify-ic > *{
+  display: block;
+  margin: 0 auto;
+}
+
+/* Center SVG marks */
+.vtab-ic .mark,
+.vverify-ic .mark{
+  width: 18px;
+  height: 18px;
+}
+
+/* Center image icons (phi.svg etc.) */
+.vtab-ic img,
+.vverify-ic img{
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* When labels are hidden, keep the icon vertically centered */
+@media (max-width: 520px){
+  .vtab,
+  .vverify{
+    grid-auto-flow: row;
+  }
+  .vtab-txt,
+  .vverify-txt{
+    display: none !important;
+  }
+}
+/* ────────────────────────────────────────────────────────────────
+   ADDON: Center the 4 round action buttons under ΦKey inhale
+   (fixes subtle icon drift inside the circular pills)
+─────────────────────────────────────────────────────────────── */
+
+/* If those 4 buttons are .vbtn (same class as your icon buttons), this will nail it */
+.vcontrol-row .vbtn{
+  display: grid !important;
+  place-items: center !important;
+  justify-items: center !important;
+  align-items: center !important;
+
+  /* ensure perfectly round hitbox */
+  width: var(--btn) !important;
+  height: var(--btn) !important;
+  padding: 0 !important;
+
+  line-height: 1 !important;
+}
+
+/* Center the icon wrapper inside the button */
+.vcontrol-row .vbtn .vbtn-ic{
+  display: grid !important;
+  place-items: center !important;
+  width: 20px;
+  height: 20px;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+/* Center actual icon element (svg/img/emoji) */
+.vcontrol-row .vbtn .vbtn-ic > *{
+  display: block;
+  margin: 0 auto;
+}
+
+/* Standardize icon sizes */
+.vcontrol-row .vbtn svg,
+.vcontrol-row .vbtn .mark{
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.vcontrol-row .vbtn img{
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+/* If any icon is an emoji/text node, keep it centered */
+.vcontrol-row .vbtn{
+  font-size: 16px;            /* emoji size */
+}
+.vcontrol-row .vbtn .vbtn-ic{
+  transform: translateY(0);   /* remove half-pixel drift */
+}
+/* ────────────────────────────────────────────────────────────────
+   ADDON: Center the round buttons in the console footer
+   (the two buttons next to "SOVEREIGN · SHA256 · JCS")
+─────────────────────────────────────────────────────────────── */
+
+/* Console footer button alignment */
+.vconsole-foot .vactions .vbtn,
+.vconsole-foot .vrow-actions .vbtn{
+  display: grid !important;
+  place-items: center !important;
+
+  width: var(--btn) !important;
+  height: var(--btn) !important;
+  padding: 0 !important;
+
+  line-height: 1 !important;
+}
+
+/* Icon wrapper centered and normalized */
+.vconsole-foot .vactions .vbtn .vbtn-ic,
+.vconsole-foot .vrow-actions .vbtn .vbtn-ic{
+  display: grid !important;
+  place-items: center !important;
+
+  width: 20px;
+  height: 20px;
+  margin: 0 !important;
+  line-height: 1 !important;
+
+  transform: translateY(0) !important;
+}
+
+/* Center actual icon elements */
+.vconsole-foot .vactions .vbtn .vbtn-ic > *,
+.vconsole-foot .vrow-actions .vbtn .vbtn-ic > *{
+  display: block;
+  margin: 0 auto;
+}
+
+/* Standardize SVG/img sizes inside */
+.vconsole-foot .vactions .vbtn svg,
+.vconsole-foot .vrow-actions .vbtn svg,
+.vconsole-foot .vactions .vbtn .mark,
+.vconsole-foot .vrow-actions .vbtn .mark{
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.vconsole-foot .vactions .vbtn img,
+.vconsole-foot .vrow-actions .vbtn img{
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+/* ────────────────────────────────────────────────────────────────
+   ADDON: Center the right-side row buttons (💠) in the capsule rows
+   (the circular buttons at the far right of each field row)
+─────────────────────────────────────────────────────────────── */
+
+.vrow .vbtn{
+  display: grid !important;
+  place-items: center !important;
+
+  width: var(--btn) !important;
+  height: var(--btn) !important;
+  padding: 0 !important;
+
+  line-height: 1 !important;
+}
+
+/* Center the icon wrapper itself */
+.vrow .vbtn .vbtn-ic{
+  display: grid !important;
+  place-items: center !important;
+
+  width: 20px;
+  height: 20px;
+  margin: 0 !important;
+
+  line-height: 1 !important;
+  transform: translateY(0) !important; /* kill half-pixel drift */
+}
+
+/* Center any actual icon element */
+.vrow .vbtn .vbtn-ic > *{
+  display: block;
+  margin: 0 auto;
+}
+
+/* Normalize SVG / img inside */
+.vrow .vbtn svg,
+.vrow .vbtn .mark{
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.vrow .vbtn img{
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+/* If your "icon" is an emoji/text, keep it centered */
+.vrow .vbtn{
+  font-size: 16px; /* emoji size */
+}
+/* ────────────────────────────────────────────────────────────────
+   FINAL ADDON: Center the round buttons in the Audit JSON footer row
+   (the two buttons to the right of "AUDIT JSON")
+─────────────────────────────────────────────────────────────── */
+
+.vfoot-right .vbtn{
+  display: grid !important;
+  place-items: center !important;
+
+  width: var(--btn) !important;
+  height: var(--btn) !important;
+  padding: 0 !important;
+
+  line-height: 1 !important;
+}
+
+.vfoot-right .vbtn .vbtn-ic{
+  display: grid !important;
+  place-items: center !important;
+
+  width: 20px;
+  height: 20px;
+  margin: 0 !important;
+
+  line-height: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.vfoot-right .vbtn .vbtn-ic > *{
+  display: block;
+  margin: 0 auto;
+}
+
+.vfoot-right .vbtn svg,
+.vfoot-right .vbtn .mark{
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.vfoot-right .vbtn img{
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+/* If any icon is an emoji/text */
+.vfoot-right .vbtn{
+  font-size: 16px;
+}

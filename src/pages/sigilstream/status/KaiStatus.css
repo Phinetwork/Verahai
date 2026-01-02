@@ -1,0 +1,870 @@
+/* src/pages/sigilstream/status/KaiStatus.css
+   KaiStatus — Atlantean μpulse Bar (v4.8)
+   SLIM TIMELINE MODE • krystal-frost • never-cut.
+
+   ✅ TOP line (one line, never wraps): Beat:Step • D/M/Y • Day • DayChakra • MonthName • MonthChakra • Ark • (Pulse on wide/tight)
+   ✅ BOTTOM line: Pulse (when tiny/nano) + NEXT countdown (full length)
+   ✅ No ellipsis, no abbreviations, no hidden data
+   ✅ If the TOP line is too narrow: it becomes horizontally scrollable (so nothing is cut off)
+   ✅ TRUE scaling via --kai-ui-scale (no transforms)
+
+   ✅ NEW (v4.8 TSX parity):
+   - Chakra tint hooks via data-chakra on pills + D/M segments
+   - Day name + Day chakra + D# segment all match DAY chakra color
+   - Month name + Month chakra + M# segment all match MONTH chakra color
+   - Ark pill is always HEART colored
+*/
+
+.kai-feed-status{
+  /* ───────── phase / progress (driven) ───────── */
+  --pulse-dur: 5.2360679s;
+  --pulse-offset: 0s;
+  --kai-progress: 0;
+  --kai-ui-scale: 1;
+
+  /* local alias */
+  --s: var(--kai-ui-scale);
+
+  /* ───────── chakra ink (RGB triplets) ───────── */
+  /* Keep these as your canonical chakra colors (edit here to match your system exactly). */
+  --ch-root: 255 72 92;
+  --ch-sacral: 255 156 72;
+  --ch-solar: 255 226 90;
+  --ch-heart: 92 236 134;
+  --ch-throat: 98 190 255;
+  --ch-third-eye: 146 126 255;
+  --ch-crown: 238 150 255;
+
+  /* ───────── geometry (slim) ───────── */
+  --r: 16px;
+  --padX: 12px;
+  --padY: 8px;
+
+  --gapTop: 8px;
+  --gapBottom: 10px;
+  --pillGap: 8px;
+
+  --barH: 5px;
+  --barBottom: 7px;
+
+  /* ───────── ink ───────── */
+  --ink: rgba(240,246,255,0.96);
+  --muted: rgba(198,212,235,0.82);
+
+  /* ───────── glass ───────── */
+  --ring: rgba(255,255,255,0.14);
+  --shadow: 0 18px 54px rgba(0,0,0,0.48);
+  --inner: inset 0 1px 0 rgba(255,255,255,0.10);
+
+  /* ───────── aurora accents ───────── */
+  --a1: rgba(120,190,255,0.14);
+  --a2: rgba(255,180,245,0.12);
+
+  position: relative;
+  display: block;
+
+  /* Slim, content-driven height (never clips). */
+  min-height: 48px;
+  padding: var(--padY) var(--padX);
+  padding-bottom: calc(var(--padY) + var(--barH) + var(--barBottom) + 2px);
+  margin: 8px 12px 10px;
+
+  border-radius: var(--r);
+  border: 1px solid var(--ring);
+
+  background:
+    radial-gradient(120% 180% at 10% -30%,
+      var(--a1),
+      rgba(255,255,255,0.00) 55%),
+    radial-gradient(150% 220% at 92% 130%,
+      var(--a2),
+      rgba(255,255,255,0.00) 62%),
+    radial-gradient(140% 200% at 50% 40%,
+      rgba(255,255,255,0.08),
+      rgba(255,255,255,0.00) 58%),
+    linear-gradient(135deg,
+      rgba(255,255,255,0.090),
+      rgba(255,255,255,0.028)),
+    rgba(255,255,255,0.040);
+
+  box-shadow: var(--shadow), var(--inner);
+
+  backdrop-filter: blur(16px) saturate(1.22);
+  -webkit-backdrop-filter: blur(16px) saturate(1.22);
+
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  contain: layout paint;
+}
+
+/* outer krystal edge highlight */
+.kai-feed-status::after{
+  content:"";
+  position:absolute;
+  inset: 0;
+  pointer-events:none;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.18),
+      rgba(255,255,255,0.02) 34%,
+      rgba(0,0,0,0.00) 72%),
+    radial-gradient(140% 180% at 50% 0%,
+      rgba(255,255,255,0.16),
+      rgba(255,255,255,0.00) 60%);
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+/* phase-locked aurora shimmer */
+.kai-feed-status::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  pointer-events:none;
+  background:
+    linear-gradient(115deg,
+      rgba(255,255,255,0.00) 0%,
+      rgba(255,255,255,0.12) 20%,
+      rgba(255,255,255,0.00) 42%,
+      rgba(255,255,255,0.10) 64%,
+      rgba(255,255,255,0.00) 88%),
+    radial-gradient(circle at 30% 40%,
+      rgba(170,230,255,0.12),
+      rgba(255,255,255,0.00) 60%),
+    radial-gradient(circle at 70% 60%,
+      rgba(255,180,245,0.10),
+      rgba(255,255,255,0.00) 62%);
+  opacity: 0.42;
+  transform: translate3d(-34%, 0, 0);
+  mix-blend-mode: overlay;
+  animation: kai-status-shimmer var(--pulse-dur) linear infinite;
+  animation-delay: calc(-1 * var(--pulse-offset));
+}
+@keyframes kai-status-shimmer{
+  0%   { transform: translate3d(-38%, 0, 0); }
+  100% { transform: translate3d( 38%, 0, 0); }
+}
+
+/* boundary flash */
+.kai-feed-status--flash{
+  animation: kai-status-flash 180ms ease-out;
+}
+@keyframes kai-status-flash{
+  0%   { filter: brightness(1); }
+  35%  { filter: brightness(1.10); }
+  100% { filter: brightness(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SLIM STRUCTURE (v4.8 TSX)
+   .kai-status__top    (one line timeline; scrolls horizontally if needed)
+   .kai-status__bottom (pulse (if needed) + countdown slightly below)
+   ───────────────────────────────────────────────────────────── */
+
+.kai-status__top{
+  display: flex;
+  align-items: center;
+  gap: calc(var(--gapTop) * var(--s));
+
+  /* MUST stay one line */
+  flex-wrap: nowrap;
+  white-space: nowrap;
+
+  /* never cut off: allow horizontal scroll instead of clipping */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  min-width: 0;
+  padding-bottom: calc(2px * var(--s));
+}
+.kai-status__top::-webkit-scrollbar{ height: 0; width: 0; }
+
+.kai-status__bsiWrap{
+  display: inline-flex;
+  align-items: baseline;
+  gap: calc(10px * var(--s));
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.kai-status__kLabel{
+  color: var(--muted);
+  font-size: clamp(9px, calc(10.5px * var(--s)), 11px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+
+.kai-status__bsi{
+  color: var(--ink);
+  font-size: clamp(14px, calc(17px * var(--s)), 18px);
+  font-weight: 860;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+
+.kai-status__bottom{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--gapBottom) * var(--s));
+  min-width: 0;
+
+  /* slightly below timeline */
+  margin-top: calc(2px * var(--s));
+}
+
+/* nano: stack bottom (pulse above countdown) */
+.kai-feed-status[data-bottom="stack"] .kai-status__bottom{
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(6px * var(--s));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Pills (never truncate)
+   ───────────────────────────────────────────────────────────── */
+
+.kai-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--s));
+
+  height: clamp(20px, calc(24px * var(--s)), 26px);
+  padding: 0 clamp(6px, calc(9px * var(--s)), 10px);
+  border-radius: 999px;
+
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    radial-gradient(120% 180% at 30% 0%,
+      rgba(255,255,255,0.10),
+      rgba(255,255,255,0.00) 62%),
+    linear-gradient(180deg,
+      rgba(255,255,255,0.080),
+      rgba(255,255,255,0.020));
+
+  color: rgba(236,244,255,0.92);
+  font-size: clamp(9.6px, calc(11.5px * var(--s)), 12px);
+  line-height: 1;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 10px 22px rgba(0,0,0,0.16);
+
+  flex: 0 0 auto;
+
+  /* NEVER truncate pill content */
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.kai-pill--pulse{
+  border-color: rgba(255,255,255,0.14);
+  background:
+    radial-gradient(140% 220% at 18% 0%,
+      rgba(170,230,255,0.22),
+      rgba(255,255,255,0.00) 60%),
+    radial-gradient(140% 220% at 85% 120%,
+      rgba(255,180,245,0.16),
+      rgba(255,255,255,0.00) 62%),
+    linear-gradient(180deg,
+      rgba(255,255,255,0.09),
+      rgba(255,255,255,0.03));
+}
+
+.kai-pill__num{
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   D/M/Y pill (segmented; D and M inherit chakra tint)
+   ───────────────────────────────────────────────────────────── */
+
+.kai-pill--dmy{
+  gap: calc(4px * var(--s));
+  padding: 0 clamp(6px, calc(8px * var(--s)), 9px);
+}
+
+.kai-dmy__seg{
+  display: inline-flex;
+  align-items: baseline;
+  gap: calc(2px * var(--s));
+  font-weight: 860;
+  letter-spacing: 0.01em;
+}
+
+.kai-dmy__num{
+  font-weight: 930;
+  letter-spacing: 0.01em;
+}
+
+.kai-dmy__sep{
+  opacity: 0.65;
+  color: rgba(220,232,250,0.92);
+  margin: 0 calc(1px * var(--s));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Chakra tinting (exact color hooks)
+   - Targets only the REAL chakra names (Pulse/Year stay neutral)
+   - Applies to: Day, DayChakra, MonthName, MonthChakra, Ark(Heart), and D/M segments
+   ───────────────────────────────────────────────────────────── */
+
+@supports (color: rgb(0 0 0 / 1)){
+  /* ROOT */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Root"]{
+    --ch: var(--ch-root);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.34);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.22),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.085),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+
+  /* SACRAL */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Sacral"]{
+    --ch: var(--ch-sacral);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.34);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.22),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.085),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+
+  /* SOLAR PLEXUS */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Solar Plexus"]{
+    --ch: var(--ch-solar);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.36);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.20),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.090),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+
+  /* HEART (also Ark) */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Heart"]{
+    --ch: var(--ch-heart);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.34);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.22),
+        rgba(255,255,255,0.00) 62%),
+      radial-gradient(140% 220% at 90% 120%,
+        rgb(var(--ch) / 0.14),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.085),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+
+  /* THROAT */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Throat"]{
+    --ch: var(--ch-throat);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.34);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.22),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.085),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+
+  /* THIRD EYE */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Third Eye"]{
+    --ch: var(--ch-third-eye);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.34);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.22),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.085),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+
+  /* CROWN (label may render as Krown, but data-chakra stays Crown) */
+  .kai-feed-status :is(.kai-pill,.kai-dmy__seg)[data-chakra="Crown"]{
+    --ch: var(--ch-crown);
+    color: rgb(var(--ch) / 0.96);
+    border-color: rgb(var(--ch) / 0.34);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.22);
+    background:
+      radial-gradient(140% 220% at 22% 0%,
+        rgb(var(--ch) / 0.22),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(180deg,
+        rgba(255,255,255,0.085),
+        rgba(255,255,255,0.020));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 10px 22px rgba(0,0,0,0.16),
+      0 0 0 1px rgb(var(--ch) / 0.10);
+  }
+}
+
+/* Make the segmented D/M/Y pill keep its separators neutral even when segments are tinted */
+.kai-pill--dmy .kai-dmy__sep{
+  color: rgba(220,232,250,0.88);
+}
+
+/* Slightly tighten the chakra name pills (they can be longer words) */
+.kai-pill--dayChakra,
+.kai-pill--monthChakra{
+  padding: 0 clamp(6px, calc(8px * var(--s)), 9px);
+  letter-spacing: 0.01em;
+}
+
+/* Month name can be wide; keep it crisp */
+.kai-pill--monthName{
+  letter-spacing: 0.01em;
+}
+
+/* Ark pill must always read like “Heart” even if other rules change */
+.kai-pill--ark{
+  /* data-chakra="Heart" from TSX drives actual tint;
+     this just ensures shape/weight feels “official” */
+  font-weight: 900;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Countdown (slightly below, full length)
+   ───────────────────────────────────────────────────────────── */
+
+.kai-status__countdown{
+  display: inline-flex;
+  align-items: baseline;
+  gap: calc(8px * var(--s));
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.kai-status__nLabel{
+  color: var(--muted);
+  font-size: clamp(9px, calc(10.5px * var(--s)), 11px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+
+.kai-status__nVal{
+  color: var(--ink);
+  font-size: clamp(13px, calc(16.5px * var(--s)), 18px);
+  font-weight: 880;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+
+.kai-status__nUnit{
+  margin-left: clamp(2px, calc(4px * var(--s)), 4px);
+  color: rgba(210,224,245,0.90);
+  font-size: clamp(10px, calc(11.5px * var(--s)), 12px);
+  letter-spacing: 0.10em;
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Progress bar (slimmer)
+   ───────────────────────────────────────────────────────────── */
+
+.kai-feed-status__bar{
+  position: absolute;
+  left: var(--padX);
+  right: var(--padX);
+  bottom: var(--barBottom);
+
+  height: var(--barH);
+  border-radius: 999px;
+  overflow: hidden;
+
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.060), rgba(255,255,255,0.012)),
+    radial-gradient(140% 240% at 50% 50%,
+      rgba(255,255,255,0.06),
+      rgba(255,255,255,0.00) 60%);
+  pointer-events: none;
+}
+
+.kai-feed-status__barFill{
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(var(--kai-progress));
+  will-change: transform;
+  background:
+    radial-gradient(140% 220% at 18% 0%,
+      rgba(170,230,255,0.56),
+      rgba(255,255,255,0.00) 60%),
+    radial-gradient(140% 220% at 82% 120%,
+      rgba(255,180,245,0.42),
+      rgba(255,255,255,0.00) 62%),
+    linear-gradient(90deg,
+      rgba(255,255,255,0.18),
+      rgba(255,255,255,0.04));
+}
+
+.kai-feed-status__barSpark{
+  position:absolute;
+  top: -16px;
+  left: -34%;
+  width: 28%;
+  height: 38px;
+
+  background:
+    radial-gradient(circle at 50% 50%,
+      rgba(255,255,255,0.20),
+      rgba(255,255,255,0.00) 62%),
+    radial-gradient(circle at 35% 50%,
+      rgba(170,230,255,0.12),
+      rgba(255,255,255,0.00) 64%);
+
+  mix-blend-mode: screen;
+  opacity: 0.72;
+
+  animation: kai-bar-spark var(--pulse-dur) linear infinite;
+  animation-delay: calc(-1 * var(--pulse-offset));
+}
+@keyframes kai-bar-spark{
+  0%   { transform: translateX(0);     opacity: 0.0; }
+  10%  { opacity: 0.85; }
+  100% { transform: translateX(560%); opacity: 0.0; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Layout tuning (never hide anything)
+   ───────────────────────────────────────────────────────────── */
+
+.kai-feed-status[data-layout="tight"]{
+  --padX: 11px;
+  --padY: 8px;
+  --r: 15px;
+  --pillGap: 7px;
+  --barH: 5px;
+  --barBottom: 7px;
+}
+
+.kai-feed-status[data-layout="tiny"]{
+  --padX: 10px;
+  --padY: 8px;
+  --r: 14px;
+  --pillGap: 6px;
+  --barH: 5px;
+  --barBottom: 7px;
+}
+
+/* nano: tightest */
+.kai-feed-status[data-layout="nano"]{
+  --padX: 10px;
+  --padY: 7px;
+  --r: 14px;
+  --pillGap: 6px;
+  --barH: 4px;
+  --barBottom: 6px;
+}
+
+/* motion safety */
+@media (prefers-reduced-motion: reduce){
+  .kai-feed-status::before,
+  .kai-feed-status__barSpark{
+    animation: none !important;
+  }
+  .kai-feed-status--flash{
+    animation: none !important;
+  }
+}
+
+/* backdrop fallback */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  .kai-feed-status{
+    background:
+      radial-gradient(120% 180% at 10% -30%,
+        rgba(120,190,255,0.10),
+        rgba(255,255,255,0.00) 55%),
+      radial-gradient(150% 220% at 92% 130%,
+        rgba(255,180,245,0.08),
+        rgba(255,255,255,0.00) 62%),
+      linear-gradient(135deg,
+        rgba(40,52,78,0.78),
+        rgba(20,26,40,0.72));
+  }
+}
+/* ─────────────────────────────────────────────────────────────
+   v4.8.x — MOBILE SLIM LIFT
+   Goal: keep layout identical, but reduce vertical bulk on mobile by:
+   - slightly smaller inner padding
+   - slimmer progress bar
+   - lift Pulse + NEXT closer to the Day/timeline
+   (no transforms, no truncation, no wrapping changes)
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 520px){
+  /* global mobile tighten (applies regardless of data-layout) */
+  .kai-feed-status{
+    /* shave overall height */
+    min-height: 44px;
+
+    /* tighten inner padding + bar footprint */
+    --padY: 7px;
+    --gapBottom: 8px;
+
+    /* slimmer bar + less reserved space at bottom */
+    --barH: 4px;
+    --barBottom: 6px;
+  }
+
+  /* bring Pulse/NEXT up closer to the timeline */
+  .kai-feed-status .kai-status__bottom{
+    margin-top: 0; /* was 2px*scale */
+  }
+
+  /* tiny: a bit tighter */
+  .kai-feed-status[data-layout="tiny"]{
+    --padY: 6px;
+    --gapBottom: 7px;
+    --barH: 4px;
+    --barBottom: 5px;
+  }
+
+  /* nano: tightest + a tiny lift */
+  .kai-feed-status[data-layout="nano"]{
+    --padY: 6px;
+    --gapBottom: 6px;
+    --barH: 3px;
+    --barBottom: 5px;
+  }
+  .kai-feed-status[data-layout="nano"] .kai-status__bottom{
+    margin-top: -1px;
+  }
+}
+/* ─────────────────────────────────────────────
+   Kai-Klok popover (Atlantean glass)
+───────────────────────────────────────────── */
+
+.kai-feed-status{
+  cursor: pointer;
+}
+.kai-feed-status:focus-visible{
+  outline: 2px solid rgba(255, 225, 120, 0.65);
+  outline-offset: 3px;
+}
+
+.kk-pop{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: stretch;
+  padding: 0;
+  background: radial-gradient(1400px 900px at 18% 8%,
+      rgba(255, 220, 140, 0.18),
+      transparent 64%),
+    radial-gradient(1200px 820px at 82% 16%,
+      rgba(120, 220, 255, 0.16),
+      transparent 62%),
+    radial-gradient(900px 700px at 50% 110%,
+      rgba(190, 130, 255, 0.1),
+      transparent 60%),
+    rgba(2, 4, 8, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.kk-pop__backdrop{
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: radial-gradient(1200px 700px at 30% 10%,
+      rgba(120, 220, 255, 0.14),
+      rgba(0, 0, 0, 0.72) 55%,
+      rgba(0, 0, 0, 0.86));
+  backdrop-filter: blur(10px);
+}
+
+.kk-pop__panel{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)) padding-box,
+    radial-gradient(1200px 500px at 20% 0%,
+      rgba(255, 220, 120, 0.18),
+      rgba(120, 220, 255, 0.12),
+      transparent 70%) border-box;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    0 40px 120px rgba(0,0,0,0.55);
+  overflow: hidden;
+  transform-origin: 50% 50%;
+  animation: kk-pop-in 180ms cubic-bezier(.22,.61,.36,1) both;
+}
+
+@keyframes kk-pop-in{
+  from { transform: translateY(8px) scale(0.985); opacity: 0; }
+  to   { transform: translateY(0)   scale(1);     opacity: 1; }
+}
+
+.kk-pop__head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+}
+
+.kk-pop__title{
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  color: rgba(240, 246, 255, 0.96);
+  text-shadow: 0 0 18px rgba(255, 220, 120, 0.18);
+}
+
+.kk-pop__close{
+  border: 0;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(240, 246, 255, 0.92);
+  cursor: pointer;
+}
+.kk-pop__close:hover{
+  background: rgba(255,255,255,0.10);
+}
+
+.kk-pop__meta{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 18px 14px;
+}
+
+.kk-pop__pill{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+  color: rgba(230, 240, 255, 0.92);
+}
+
+.kk-pop__dial{
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  justify-items: center;
+  padding:
+    calc(10px + env(safe-area-inset-top, 0px))
+    calc(12px + env(safe-area-inset-right, 0px))
+    calc(14px + env(safe-area-inset-bottom, 0px))
+    calc(12px + env(safe-area-inset-left, 0px));
+}
+
+.kk-pop__dial > *{
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.kk-pop__dial .klock-stage{
+  width: min(
+    88vmin,
+    calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 28px),
+    1200px
+  );
+  height: auto;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  align-items: center;
+  justify-items: center;
+  padding:
+    calc(10px + env(safe-area-inset-top, 0px))
+    calc(10px + env(safe-area-inset-right, 0px))
+    calc(10px + env(safe-area-inset-bottom, 0px))
+    calc(10px + env(safe-area-inset-left, 0px));
+  transform: none;
+}
+
+.kk-pop__dial .klock-stage__inner{
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.kk-pop__dial .kai-klock-shell{
+  max-width: none !important;
+  width: min(100%, clamp(260px, 82vmin, 1200px)) !important;
+  aspect-ratio: 1 / 1;
+}
+
+.kk-pop__foot{
+  padding: 0 14px 14px;
+  display: flex;
+  justify-content: center;
+}
+
+.kk-pop__hint{
+  font-size: 12px;
+  color: rgba(198, 212, 235, 0.78);
+}

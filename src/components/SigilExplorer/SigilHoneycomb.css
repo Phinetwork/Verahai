@@ -1,0 +1,664 @@
+/* ─────────────────────────────────────────────────────────────
+   Memory Lattice (Honeycomb) — Sovereign glass + mobile-first
+───────────────────────────────────────────────────────────── */
+
+.sigilHoneycomb {
+  --hc-bg: radial-gradient(1200px 800px at 50% -10%, rgba(0, 0, 0, 0.64), #000000a6 60%),
+    radial-gradient(1100px 820px at 50% 20%, rgba(35, 255, 240, 0.14), transparent 60%),
+    radial-gradient(900px 650px at 10% 90%, rgba(98, 218, 255, 0.12), transparent 60%),
+    radial-gradient(900px 700px at 90% 80%, rgba(183, 163, 255, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(6, 10, 14, 0.92), rgba(6, 10, 14, 0.8));
+  --hc-border: rgba(255, 255, 255, 0.12);
+  --hc-border-strong: rgba(255, 255, 255, 0.22);
+  --hc-panel: rgba(255, 255, 255, 0.04);
+  --hc-panel-2: rgba(255, 255, 255, 0.07);
+  --hc-text: var(--sx-text, rgba(255, 255, 255, 0.92));
+  --hc-text-dim: var(--sx-text-dim, rgba(255, 255, 255, 0.62));
+  --hc-text-faint: rgba(255, 255, 255, 0.4);
+  --hc-accent: var(--sx-accent, #23fff0);
+  --hc-accent-2: var(--sx-accent-2, #b7a3ff);
+  --hc-accent-3: var(--sx-accent-3, #62daff);
+  --hc-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  --hc-radius: 22px;
+
+  /* Hex sizing (must match TS: radiusPx=28) */
+  --hex-r: 28px;
+  --hex-w: calc(var(--hex-r) * 1.7320508076);
+  --hex-h: calc(var(--hex-r) * 2);
+
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--hc-bg);
+  color: var(--hc-text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--hc-radius);
+  overflow: hidden;
+  box-shadow: var(--hc-shadow);
+  position: relative;
+  isolation: isolate;
+}
+
+.sigilHoneycomb::before,
+.sigilHoneycomb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sigilHoneycomb::before {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      rgba(0, 0, 0, 0) 4px,
+      rgba(0, 0, 0, 0) 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.012) 0px,
+      rgba(255, 255, 255, 0.012) 1px,
+      rgba(0, 0, 0, 0) 6px,
+      rgba(0, 0, 0, 0) 12px
+    );
+  mix-blend-mode: overlay;
+  opacity: 0.4;
+}
+
+.sigilHoneycomb::after {
+  background:
+    radial-gradient(900px 600px at 30% 20%, rgba(35, 255, 240, 0.1), transparent 60%),
+    radial-gradient(800px 620px at 80% 70%, rgba(183, 163, 255, 0.12), transparent 60%),
+    radial-gradient(760px 560px at 15% 85%, rgba(98, 218, 255, 0.1), transparent 62%);
+  filter: blur(12px);
+  opacity: 0.5;
+}
+
+.sigilHoneycombHeader,
+.sigilHoneycombBody {
+  position: relative;
+  z-index: 1;
+}
+
+.sigilHoneycombHeader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background:
+    linear-gradient(180deg, rgba(6, 10, 14, 0.5), rgba(6, 10, 14, 0));
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 2;
+  backdrop-filter: blur(6px);
+}
+
+.sigilHoneycombTitle .h1 {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.sigilHoneycombTitle .h2 {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--hc-text-dim);
+}
+
+.sigilHoneycombControls {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+  align-items: center;
+}
+
+.searchBox {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  justify-content: flex-start;
+  flex: 1;
+}
+
+.searchBox input {
+  width: 100%;
+  height: 30px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(120% 180% at 0% 0%, rgba(35, 255, 240, 0.08), transparent 60%),
+    rgba(0, 0, 0, 0.3);
+  color: var(--hc-text);
+  padding: 0 14px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.btn-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  width: 16px;
+}
+
+.btn-text{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.searchBox input::placeholder {
+  color: var(--hc-text-faint);
+}
+
+.toggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.seg {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.seg button {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--hc-text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seg button.on {
+  background: rgba(35, 255, 240, 0.16);
+  color: var(--hc-text);
+}
+
+.miniBtn {
+  height: 28px;
+  border-radius: 12px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hc-text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.miniBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.miniBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.sigilHoneycombBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  padding-top: 42px;
+}
+
+.combViewport {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+  background:
+    radial-gradient(1200px 900px at 50% 20%, rgba(35, 255, 240, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 70% 70%, rgba(183, 163, 255, 0.12), transparent 62%),
+    radial-gradient(760px 520px at 20% 80%, rgba(98, 218, 255, 0.08), transparent 62%),
+    #060a0f;
+  touch-action: none;
+}
+
+.combViewport::before{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  background:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.45), transparent 60%),
+    radial-gradient(1px 1px at 70% 30%, rgba(255,255,255,0.35), transparent 60%),
+    radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.3), transparent 60%),
+    radial-gradient(2px 2px at 80% 75%, rgba(35,255,240,0.4), transparent 60%),
+    radial-gradient(2px 2px at 20% 60%, rgba(183,163,255,0.35), transparent 60%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.combInner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.combEdges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.edgeLine {
+  stroke-width: 1.6;
+  stroke: rgba(255, 255, 255, 0.2);
+  filter: drop-shadow(0 0 6px rgba(35, 255, 240, 0.25));
+}
+
+.edge-parent {
+  stroke: rgba(191, 252, 255, 0.5);
+  stroke-width: 2.2;
+}
+
+.edge-child {
+  stroke: rgba(182, 155, 255, 0.46);
+  stroke-width: 2;
+}
+
+.edge-origin {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-dasharray: 5 4;
+}
+
+.combHint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.sigilHex {
+  position: absolute;
+  width: var(--hex-w);
+  height: var(--hex-h);
+  transform-style: preserve-3d;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  clip-path: none;
+  color: var(--hc-text);
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.2s ease;
+  box-shadow: none;
+}
+
+.sigilHexInner{
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  box-sizing: border-box;
+}
+
+.sigilHexGlyphFrame{
+  position: absolute;
+  inset: 14%;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sigilHexGlyphSimple {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  --hex-tint: 120 190 255;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(160deg, rgba(var(--hex-tint), 0.8), rgba(var(--hex-tint), 0.1));
+  filter: drop-shadow(0 0 10px rgba(var(--hex-tint), 0.4));
+  opacity: 0.92;
+  border: 1px solid rgba(var(--hex-tint), 0.5);
+  background-color: rgba(var(--hex-tint), 0.22);
+}
+
+.sigilHexGlyphSimple.shape-0 {
+  clip-path: polygon(25% 6%, 75% 6%, 98% 50%, 75% 94%, 25% 94%, 2% 50%);
+}
+
+.sigilHexGlyphSimple.shape-1 {
+  clip-path: circle(46% at 50% 50%);
+}
+
+.sigilHexGlyphSimple.shape-2 {
+  clip-path: polygon(50% 4%, 96% 50%, 50% 96%, 4% 50%);
+}
+
+.sigilHexGlyphSimple.shape-3 {
+  clip-path: polygon(50% 6%, 96% 90%, 4% 90%);
+}
+
+.sigilHexGlyphSimple.shape-4 {
+  clip-path: polygon(50% 4%, 61% 34%, 94% 38%, 68% 58%, 76% 90%, 50% 72%, 24% 90%, 32% 58%, 6% 38%, 39% 34%);
+}
+
+.sigilHexGlyphSimple.shape-5 {
+  clip-path: polygon(20% 6%, 80% 6%, 94% 35%, 72% 94%, 28% 94%, 6% 35%);
+}
+
+.sigilHexGlyphSimple.shape-root {
+  clip-path: inset(10% round 6px);
+}
+
+.sigilHexGlyphSimple.shape-sacral {
+  clip-path: circle(46% at 50% 50%);
+}
+
+.sigilHexGlyphSimple.shape-solar {
+  clip-path: polygon(50% 6%, 96% 86%, 4% 86%);
+}
+
+.sigilHexGlyphSimple.shape-heart {
+  clip-path: polygon(50% 4%, 94% 50%, 50% 96%, 6% 50%);
+}
+
+.sigilHexGlyphSimple.shape-throat {
+  clip-path: polygon(25% 6%, 75% 6%, 98% 50%, 75% 94%, 25% 94%, 2% 50%);
+}
+
+.sigilHexGlyphSimple.shape-third {
+  clip-path: polygon(50% 4%, 61% 34%, 94% 38%, 68% 58%, 76% 90%, 50% 72%, 24% 90%, 32% 58%, 6% 38%, 39% 34%);
+}
+
+.sigilHexGlyphSimple.shape-crown {
+  clip-path: polygon(30% 4%, 70% 4%, 96% 30%, 96% 70%, 70% 96%, 30% 96%, 4% 70%, 4% 30%);
+}
+
+.chakra-root { --hex-tint: 255 59 59; }
+.chakra-sacral { --hex-tint: 255 138 61; }
+.chakra-solar { --hex-tint: 255 213 74; }
+.chakra-heart { --hex-tint: 61 255 154; }
+.chakra-throat { --hex-tint: 70 211 255; }
+.chakra-third { --hex-tint: 107 108 255; }
+.chakra-crown { --hex-tint: 193 139 255; }
+.chakra-unknown { --hex-tint: 120 190 255; }
+
+.sigilHex:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 0 12px rgba(35,255,240,0.5));
+}
+
+.sigilHex.isSelected {
+  filter: drop-shadow(0 0 16px rgba(35,255,240,0.8));
+}
+
+.sigilHexTop,
+.sigilHexBot {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+}
+
+.sigilHexMid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+}
+
+.sigilHexHash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--hc-text);
+}
+
+.sigilHexDelta {
+  color: rgba(255, 215, 128, 0.9);
+}
+
+.combInspector {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(140% 220% at 0% 0%, rgba(183, 163, 255, 0.12), transparent 60%),
+    rgba(0, 0, 0, 0.3);
+  overflow: auto;
+  min-height: 0;
+}
+
+.inspectorCard {
+  margin: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.inspectorHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspectorTitle {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inspectorSub {
+  font-size: 12px;
+  color: var(--hc-text-dim);
+}
+
+.inspectorGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: var(--hc-text-dim);
+}
+
+.inspectorGrid .k {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--hc-text-faint);
+}
+
+.linkBtn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--hc-accent);
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  color: var(--hc-accent-3);
+}
+
+.hcInhaleRow {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.hcInhaleInput {
+  width: min(560px, 100%);
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--hc-text);
+  padding: 0 12px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.hcInhaleInput::placeholder {
+  color: var(--hc-text-faint);
+}
+
+.hcImportBtn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hcImportBtn input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .sigilHoneycombHeader {
+    padding: 6px 8px;
+  }
+
+  .sigilHoneycombControls {
+    align-items: center;
+  }
+
+  .searchBox {
+    justify-content: flex-start;
+  }
+
+  .toggleRow {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 980px) {
+  .sigilHoneycombBody {
+    grid-template-columns: minmax(0, 1fr);
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .combInspector {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .sigilHoneycomb {
+    min-height: 0;
+  }
+
+  .sigilHoneycombHeader {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .sigilHoneycombTitle .h1 {
+    font-size: 14px;
+  }
+
+  .sigilHoneycombTitle .h2 {
+    font-size: 10px;
+    display: none;
+  }
+
+  .searchBox input,
+  .hcInhaleInput {
+    width: 100%;
+  }
+
+  .toggleRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .seg {
+    width: 100%;
+  }
+
+  .seg button {
+    flex: 1;
+  }
+
+  .btn-text{
+    display: none;
+  }
+
+  .seg button,
+  .miniBtn{
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .hcInhaleRow{
+    display: none;
+  }
+
+  .searchBox input{
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .miniBtn{
+    height: 22px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+}

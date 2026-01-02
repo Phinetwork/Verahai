@@ -1,0 +1,910 @@
+/* src/components/KaiVoh/PostComposer.css */
+/* KaiVoh Post Composer — Glyph OS Share Panel
+   - Frosted glass card, mobile-first, zero horizontal overflow
+   - Breath-synced subtle glow (respects prefers-reduced-motion)
+   - Clear step indicator + file meta + caption ergonomics
+   - Keyboard-accessible dropzone + strong focus outlines
+   - Extended for multi-attachment + legal / contract sealing
+*/
+
+/* ─────────────────────────────────────────────────────────────
+   Scoped tokens
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-composer {
+  --kv-post-bg: rgba(4, 9, 16, 0.92);
+  --kv-post-bg-soft: rgba(11, 18, 28, 0.96);
+  --kv-post-border: rgba(148, 196, 255, 0.25);
+  --kv-post-border-soft: rgba(148, 196, 255, 0.12);
+  --kv-post-ink: #e9f0ff;
+  --kv-post-ink-soft: #b9c7e3;
+  --kv-post-ink-muted: #7f8fb0;
+  --kv-post-accent: #53f6ff;
+  --kv-post-accent-soft: rgba(83, 246, 255, 0.2);
+  --kv-post-danger-bg: rgba(255, 94, 122, 0.1);
+  --kv-post-danger-border: rgba(255, 94, 122, 0.8);
+  --kv-post-danger-text: #ffc6d3;
+  --kv-post-radius-lg: 18px;
+  --kv-post-radius-md: 12px;
+  --kv-post-radius-sm: 8px;
+  --kv-post-shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.45);
+  --kv-post-blur: 22px;
+
+  --kv-post-tag-bg: rgba(83, 246, 255, 0.12);
+  --kv-post-tag-border: rgba(83, 246, 255, 0.55);
+  --kv-post-tag-text: #dffbff;
+
+  --kv-post-pill-bg: rgba(255, 215, 128, 0.1);
+  --kv-post-pill-border: rgba(255, 215, 128, 0.9);
+  --kv-post-pill-text: #ffe9b0;
+
+  --kv-post-legal-bg: rgba(10, 18, 32, 0.96);
+  --kv-post-legal-border: rgba(134, 189, 255, 0.26);
+  --kv-post-legal-highlight: rgba(83, 246, 255, 0.16);
+
+  /* Breath timing (falls back to 5.236s if not provided) */
+  --kv-post-breath: var(--pulse-dur, 5.236s);
+
+  color: var(--kv-post-ink);
+}
+
+/* Ensure no accidental horizontal scroll from this component */
+.kv-post-composer,
+.kv-post-composer * {
+  box-sizing: border-box;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Header / Step indicator
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-header {
+  background: radial-gradient(
+      circle at top left,
+      rgba(83, 246, 255, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(180, 137, 255, 0.16),
+      transparent 55%
+    ),
+    linear-gradient(135deg, var(--kv-post-bg-soft), #05070c 80%);
+  border-radius: var(--kv-post-radius-lg);
+  border: 1px solid var(--kv-post-border-soft);
+  box-shadow: var(--kv-post-shadow-soft);
+  padding: 14px 16px;
+  backdrop-filter: blur(var(--kv-post-blur));
+  -webkit-backdrop-filter: blur(var(--kv-post-blur));
+}
+
+.kv-post-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kv-post-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(83, 246, 255, 0.28),
+      transparent 55%
+    ),
+    rgba(6, 12, 22, 0.85);
+  border: 1px solid rgba(83, 246, 255, 0.35);
+}
+
+.kv-post-step-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: radial-gradient(circle at 30% 20%, #ffffff, #ffd47a 60%);
+  color: #05070c;
+  box-shadow: 0 0 0 1px rgba(6, 6, 10, 0.5);
+}
+
+.kv-post-step-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--kv-post-ink-soft);
+}
+
+.kv-post-reset-btn {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--kv-post-ink-muted);
+  background: rgba(5, 8, 13, 0.7);
+  cursor: pointer;
+  transition:
+    background 160ms ease-out,
+    border-color 160ms ease-out,
+    color 160ms ease-out,
+    transform 120ms ease-out;
+}
+
+.kv-post-reset-btn:hover {
+  border-color: rgba(83, 246, 255, 0.7);
+  color: var(--kv-post-ink);
+  transform: translateY(-1px);
+}
+
+.kv-post-reset-btn:active {
+  transform: translateY(0);
+}
+
+.kv-post-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--kv-post-ink-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Post kind selector (intent)
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-kind-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kv-post-kind-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--kv-post-ink-muted);
+}
+
+.kv-post-kind-select {
+  min-width: 180px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(153, 201, 255, 0.5);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(83, 246, 255, 0.12),
+      transparent 55%
+    ),
+    rgba(5, 9, 16, 0.9);
+  color: var(--kv-post-ink-soft);
+  font-size: 0.8rem;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  padding-right: 26px;
+  background-image: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18),
+      rgba(255, 255, 255, 0)
+    ),
+    radial-gradient(circle at 90% 50%, rgba(255, 255, 255, 0.12), transparent);
+  background-repeat: no-repeat;
+  background-position:
+    0 0,
+    100% 50%;
+  background-size:
+    100% 100%,
+    18px 18px;
+}
+
+.kv-post-kind-select:focus-visible {
+  border-color: rgba(83, 246, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(83, 246, 255, 0.7);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Error
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--kv-post-radius-md);
+  background: var(--kv-post-danger-bg);
+  border: 1px solid var(--kv-post-danger-border);
+  color: var(--kv-post-danger-text);
+  font-size: 0.8rem;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Dropzone
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-dropzone {
+  position: relative;
+  border-radius: var(--kv-post-radius-lg);
+  border: 1px dashed var(--kv-post-border);
+  background: radial-gradient(
+      circle at 10% 0%,
+      var(--kv-post-accent-soft),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 90% 100%,
+      rgba(180, 137, 255, 0.22),
+      transparent 60%
+    ),
+    linear-gradient(135deg, rgba(6, 11, 19, 0.9), rgba(3, 6, 12, 0.9));
+  padding: 18px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 180ms ease-out,
+    box-shadow 180ms ease-out,
+    background 220ms ease-out,
+    transform 160ms ease-out;
+}
+
+/* Breath glow */
+@keyframes kv-post-breath {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(83, 246, 255, 0.14),
+      0 18px 40px rgba(0, 0, 0, 0.8);
+  }
+  100% {
+    box-shadow:
+      0 0 0 10px rgba(83, 246, 255, 0),
+      0 24px 55px rgba(0, 0, 0, 0.95);
+  }
+}
+
+.kv-post-dropzone:not(.kv-post-dropzone--has-media) {
+  animation: kv-post-breath var(--kv-post-breath) ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-post-dropzone {
+    animation: none !important;
+  }
+}
+
+.kv-post-dropzone--dragging {
+  border-style: solid;
+  border-color: var(--kv-post-accent);
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(83, 246, 255, 0.5),
+    0 18px 46px rgba(0, 0, 0, 0.9);
+}
+
+.kv-post-dropzone--has-media {
+  border-style: solid;
+  border-color: rgba(83, 246, 255, 0.6);
+}
+
+.kv-post-dropzone-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.kv-post-dropzone-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: radial-gradient(circle at 30% 20%, #ffffff, #b8e6ff 65%);
+  color: #020308;
+  box-shadow:
+    0 0 0 1px rgba(4, 6, 12, 0.8),
+    0 12px 30px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+}
+
+.kv-post-dropzone-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kv-post-dropzone-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--kv-post-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.kv-post-dropzone-hint {
+  font-size: 0.8rem;
+  color: var(--kv-post-ink-muted);
+}
+
+.kv-post-dropzone-meta {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: rgba(143, 167, 210, 0.9);
+}
+
+/* Keyboard focus outline */
+.kv-post-dropzone:focus-visible {
+  box-shadow:
+    0 0 0 0 rgba(83, 246, 255, 0.16),
+    0 0 0 2px rgba(83, 246, 255, 0.9);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Body / preview
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-body {
+  background: linear-gradient(
+      135deg,
+      rgba(12, 21, 35, 0.96),
+      rgba(4, 7, 13, 0.98)
+    );
+  border-radius: var(--kv-post-radius-lg);
+  border: 1px solid rgba(150, 205, 255, 0.2);
+  box-shadow: var(--kv-post-shadow-soft);
+  padding: 14px 16px 16px;
+}
+
+.kv-post-preview {
+  border-radius: var(--kv-post-radius-md);
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, #283145, #05070c 70%);
+  border: 1px solid rgba(170, 210, 255, 0.22);
+  margin-bottom: 12px;
+}
+
+.kv-post-preview-media {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(420px, 72vh);
+  object-fit: contain;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Attachments list
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-attachments {
+  margin-top: 4px;
+  padding: 8px 10px 10px;
+  border-radius: var(--kv-post-radius-md);
+  border: 1px solid rgba(143, 190, 255, 0.25);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(83, 246, 255, 0.06),
+      transparent 55%
+    ),
+    rgba(5, 9, 16, 0.96);
+}
+
+.kv-post-attachments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kv-post-attachments-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kv-post-ink-soft);
+}
+
+.kv-post-attachments-summary {
+  font-size: 0.75rem;
+  color: var(--kv-post-ink-muted);
+  white-space: nowrap;
+}
+
+.kv-post-attachments-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.kv-post-attachments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kv-post-attachments-list::-webkit-scrollbar-track {
+  background: rgba(5, 9, 16, 0.3);
+}
+
+.kv-post-attachments-list::-webkit-scrollbar-thumb {
+  background: rgba(143, 190, 255, 0.6);
+  border-radius: 999px;
+}
+
+.kv-post-attachment-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 6px;
+  border-radius: var(--kv-post-radius-sm);
+  border: 1px solid rgba(105, 157, 230, 0.2);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(83, 246, 255, 0.03),
+      transparent 60%
+    ),
+    rgba(4, 7, 13, 0.85);
+}
+
+.kv-post-attachment-item + .kv-post-attachment-item {
+  margin-top: 6px;
+}
+
+.kv-post-attachment-item--primary {
+  border-color: var(--kv-post-pill-border);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(255, 215, 128, 0.18),
+      transparent 60%
+    ),
+    rgba(6, 10, 18, 0.95);
+}
+
+.kv-post-attachment-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kv-post-attachment-name {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--kv-post-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-post-attachment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--kv-post-ink-muted);
+}
+
+.kv-post-attachment-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--kv-post-pill-border);
+  background: var(--kv-post-pill-bg);
+  color: var(--kv-post-pill-text);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kv-post-attachment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.kv-post-attachment-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(145, 195, 255, 0.6);
+  background: rgba(4, 7, 12, 0.9);
+  color: var(--kv-post-ink-soft);
+  font-size: 0.72rem;
+  padding: 2px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  transition:
+    background 140ms ease-out,
+    border-color 140ms ease-out,
+    transform 100ms ease-out;
+}
+
+.kv-post-attachment-btn:hover {
+  background: rgba(10, 18, 30, 0.95);
+  border-color: rgba(83, 246, 255, 0.8);
+  transform: translateY(-0.5px);
+}
+
+.kv-post-attachment-btn:active {
+  transform: translateY(0);
+}
+
+.kv-post-attachment-btn--danger {
+  border-color: rgba(255, 130, 152, 0.85);
+  color: #ffd7e0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   File meta (legacy single-file meta block, still used)
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.kv-post-meta-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--kv-post-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-post-meta-details {
+  font-size: 0.78rem;
+  color: var(--kv-post-ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kv-post-meta-dot {
+  opacity: 0.6;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Caption
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-caption-block {
+  margin-top: 14px;
+}
+
+.kv-post-caption-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--kv-post-ink-soft);
+  margin-bottom: 4px;
+}
+
+.kv-post-caption-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border-radius: var(--kv-post-radius-md);
+  border: 1px solid rgba(151, 192, 255, 0.26);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(83, 246, 255, 0.09),
+      transparent 55%
+    ),
+    rgba(3, 6, 12, 0.9);
+  color: var(--kv-post-ink);
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  outline: none;
+  transition:
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out,
+    background 180ms ease-out;
+}
+
+.kv-post-caption-textarea::placeholder {
+  color: rgba(145, 165, 205, 0.7);
+}
+
+.kv-post-caption-textarea:focus-visible {
+  border-color: rgba(83, 246, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(83, 246, 255, 0.6);
+}
+
+.kv-post-caption-footer {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.kv-post-caption-count {
+  font-size: 0.75rem;
+  color: var(--kv-post-ink-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Canonical link block
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-link-block {
+  margin-top: 16px;
+}
+
+.kv-post-link-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--kv-post-ink-soft);
+  margin-bottom: 4px;
+}
+
+.kv-post-link-input {
+  width: 100%;
+  border-radius: var(--kv-post-radius-md);
+  border: 1px solid rgba(151, 192, 255, 0.32);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(83, 246, 255, 0.07),
+      transparent 55%
+    ),
+    rgba(3, 6, 12, 0.96);
+  color: var(--kv-post-ink);
+  font-size: 0.82rem;
+  padding: 7px 10px;
+  outline: none;
+  transition:
+    border-color 140ms ease-out,
+    box-shadow 140ms ease-out;
+}
+
+.kv-post-link-input::placeholder {
+  color: rgba(145, 165, 205, 0.7);
+}
+
+.kv-post-link-input:focus-visible {
+  border-color: rgba(83, 246, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(83, 246, 255, 0.6);
+}
+
+.kv-post-link-hint {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--kv-post-ink-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Legal details block
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-legal-block {
+  margin-top: 18px;
+  padding: 12px 12px 10px;
+  border-radius: var(--kv-post-radius-lg);
+  border: 1px solid var(--kv-post-legal-border);
+  background: radial-gradient(
+      circle at 0% 0%,
+      var(--kv-post-legal-highlight),
+      transparent 60%
+    ),
+    var(--kv-post-legal-bg);
+}
+
+.kv-post-legal-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kv-post-ink-soft);
+  margin-bottom: 8px;
+}
+
+.kv-post-legal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.kv-post-legal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kv-post-legal-label {
+  font-size: 0.78rem;
+  color: var(--kv-post-ink-soft);
+}
+
+.kv-post-legal-required {
+  color: #ffd166;
+  margin-left: 2px;
+}
+
+.kv-post-legal-input {
+  width: 100%;
+  border-radius: var(--kv-post-radius-md);
+  border: 1px solid rgba(143, 190, 255, 0.5);
+  background: rgba(5, 9, 16, 0.9);
+  color: var(--kv-post-ink);
+  font-size: 0.8rem;
+  padding: 6px 9px;
+  outline: none;
+  transition:
+    border-color 140ms ease-out,
+    box-shadow 140ms ease-out,
+    background 160ms ease-out;
+}
+
+.kv-post-legal-input::placeholder {
+  color: rgba(145, 165, 205, 0.75);
+}
+
+.kv-post-legal-input:focus-visible {
+  border-color: rgba(83, 246, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(83, 246, 255, 0.6);
+  background: rgba(4, 8, 15, 0.98);
+}
+
+.kv-post-legal-flags {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kv-post-legal-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--kv-post-ink-muted);
+}
+
+.kv-post-legal-flag input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(143, 190, 255, 0.7);
+  background: rgba(4, 7, 13, 0.9);
+  accent-color: #53f6ff;
+}
+
+.kv-post-legal-hint {
+  font-size: 0.74rem;
+  color: rgba(158, 189, 230, 0.95);
+  line-height: 1.4;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Actions
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-actions {
+  margin-bottom: 2px;
+}
+
+.kv-post-submit-btn {
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  color: #020308;
+  background: radial-gradient(
+      circle at 30% 0%,
+      #ffffff,
+      #ffe7a1 40%,
+      #ffd166 70%
+    );
+  box-shadow:
+    0 0 0 1px rgba(5, 5, 10, 0.9),
+    0 18px 40px rgba(0, 0, 0, 0.85);
+  transform-origin: center;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 160ms ease-out,
+    filter 160ms ease-out,
+    opacity 160ms ease-out;
+}
+
+.kv-post-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 0 0 1px rgba(5, 5, 10, 0.95),
+    0 24px 52px rgba(0, 0, 0, 0.9);
+}
+
+.kv-post-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 0 0 1px rgba(5, 5, 10, 1),
+    0 16px 36px rgba(0, 0, 0, 0.8);
+}
+
+.kv-post-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow:
+    0 0 0 1px rgba(5, 5, 10, 0.9),
+    0 10px 24px rgba(0, 0, 0, 0.7);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Hidden file input
+   ───────────────────────────────────────────────────────────── */
+
+.kv-post-file-input {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Layout tweaks (mobile-first)
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .kv-post-composer {
+    padding-inline: 1rem !important;
+  }
+
+  .kv-post-header,
+  .kv-post-body {
+    padding-inline: 12px;
+  }
+
+  .kv-post-dropzone {
+    padding: 14px;
+  }
+
+  .kv-post-dropzone-inner {
+    gap: 10px;
+  }
+
+  .kv-post-dropzone-title {
+    font-size: 0.9rem;
+  }
+
+  .kv-post-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .kv-post-kind-row {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .kv-post-kind-select {
+    flex: 1 1 auto;
+  }
+
+  .kv-post-attachment-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .kv-post-legal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 641px) {
+  .kv-post-legal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

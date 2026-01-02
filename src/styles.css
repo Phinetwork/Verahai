@@ -1,0 +1,42 @@
+/* src/styles.css — reset only. NO theme, NO centering. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
+@supports (min-height: 100svh) {
+  html,
+  body,
+  #root {
+    min-height: 100svh;
+  }
+}
+
+/* Kill the Vite default “center the app” behavior */
+body {
+  display: block;
+}
+
+/* iOS text sizing stability */
+html {
+  -webkit-text-size-adjust: 100%;
+}
