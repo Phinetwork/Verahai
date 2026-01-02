@@ -20,6 +20,12 @@ export const MICRO_PULSES_PER_MS = 1000 / PHI_BREATH_SECONDS;
 /** 1 pulse = 1,000,000 micro-pulses. */
 export const MICRO_PER_PULSE = 1_000_000n;
 
+/**
+ * KKS v1.0 genesis anchor (UTC).
+ * Pulse 0 is defined at the solar flare anchor.
+ */
+const GENESIS_EPOCH_MS = Date.parse("2024-05-10T06:45:41.888Z");
+
 /** Grid constants for beat/step indexing (KKS indexing). */
 const PULSES_PER_STEP = 11;
 const STEPS_PER_BEAT = 44;
@@ -70,6 +76,13 @@ const dateNowMs = (): number => {
   return Number.isFinite(out) ? out : 0;
 };
 
+const microFromEpochMs = (epochMs: number): bigint => {
+  if (!Number.isFinite(epochMs)) return 0n;
+  const deltaMs = Math.max(0, epochMs - GENESIS_EPOCH_MS);
+  const micro = Math.floor(deltaMs * MICRO_PULSES_PER_MS);
+  return micro > 0 ? BigInt(micro) : 0n;
+};
+
 export type KaiNowClock = Readonly<{
   microNow: () => bigint;
   source: KaiNowSource;
@@ -113,17 +126,14 @@ export const createKaiNowClock = (): KaiNowClock => {
     };
   }
 
-  // Last resort: bridge from Date.now with an arbitrary epoch 0.
-  // (This is only for standalone/demo contexts that haven't seeded Kai time.)
-  const t0 = dateNowMs();
+  // Last resort: bridge from Date.now using the canonical KKS v1.0 genesis anchor.
+  // (This keeps pulse counts stable across refreshes, even in standalone/demo contexts.)
   return {
     microNow: () => {
-      const dtMs = dateNowMs() - t0;
-      const add = BigInt(Math.max(0, Math.floor(dtMs * MICRO_PULSES_PER_MS)));
-      return add;
+      return microFromEpochMs(dateNowMs());
     },
     source: "date-bridge",
-    isSeeded: false,
+    isSeeded: true,
   };
 };
 
