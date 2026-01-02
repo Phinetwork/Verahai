@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "krystal-primitive"
+version = "1.0.0"
+description = "Reference implementation and verifier for the Krystal deterministic memory primitive (KKS/KRL/KRC)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+  {name = "Krystal Primitive Contributors"}
+]
+dependencies = []
+
+[project.scripts]
+krystal = "krystal.cli:main"

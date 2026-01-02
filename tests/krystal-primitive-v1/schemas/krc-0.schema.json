@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/krystal/schemas/krc-0.schema.json",
+  "title": "KRC-0 Krystal Registry (URL-list)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "urls"
+  ],
+  "properties": {
+    "urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    }
+  }
+}

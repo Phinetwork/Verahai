@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/krystal/schemas/krl-content-payload.schema.json",
+  "title": "KRL Content Locator Payload (expanded or capsule)",
+  "oneOf": [
+    {
+      "title": "Expanded payload",
+      "type": "object",
+      "required": [
+        "pulse"
+      ],
+      "properties": {
+        "pulse": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beat": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 35
+        },
+        "stepIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 43
+        },
+        "chakraDay": {
+          "type": "string"
+        },
+        "stepsPerBeat": {
+          "type": "integer"
+        },
+        "userPhiKey": {
+          "type": "string"
+        },
+        "kaiSignature": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    {
+      "title": "Capsule payload",
+      "type": "object",
+      "required": [
+        "u"
+      ],
+      "properties": {
+        "u": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "b": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 35
+        },
+        "s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 43
+        },
+        "c": {
+          "type": "string"
+        },
+        "d": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

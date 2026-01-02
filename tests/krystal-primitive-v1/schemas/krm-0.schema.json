@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/krystal/schemas/krm-0.schema.json",
+  "title": "KRM-0 Krystal Moment (stream payload envelope)",
+  "type": "object",
+  "required": [
+    "pulse"
+  ],
+  "properties": {
+    "v": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "kind": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "pulse": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "caption": {
+      "type": "string"
+    },
+    "author": {},
+    "body": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "html": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "attachments": {
+      "type": "array"
+    },
+    "source": {
+      "type": "string"
+    },
+    "phiKey": {
+      "type": "string"
+    },
+    "kaiSignature": {
+      "type": "string"
+    },
+    "parentUrl": {
+      "type": "string"
+    },
+    "originUrl": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer"
+    },
+    "seal": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

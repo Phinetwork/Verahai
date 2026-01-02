@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kairos • Offline</title>
+  <style>
+    :root { color-scheme: dark light; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.05), transparent 35%),
+                  radial-gradient(circle at 80% 0%, rgba(255,255,255,0.06), transparent 25%),
+                  #0b0d15;
+      color: #f4f6fb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 28px 24px;
+      max-width: 420px;
+      width: min(420px, 100%);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; letter-spacing: 0.01em; }
+    p { margin: 0 0 16px; line-height: 1.5; color: #d5d9e3; }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #fff;
+    }
+    a {
+      color: #c5f36b;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="pill">Offline • Kairos</div>
+    <h1>You’re offline</h1>
+    <p>
+      We’ll keep your last screen cached. As soon as you’re back on a connection,
+      everything will refresh automatically.
+    </p>
+    <p>
+      If you just installed the app, open it once while online so the shell can be cached.
+    </p>
+    <p><a href="/">Retry now</a></p>
+  </div>
+</body>
+</html>

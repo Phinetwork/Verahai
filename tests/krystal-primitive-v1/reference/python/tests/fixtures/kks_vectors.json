@@ -1,0 +1,413 @@
+{
+  "spec": "KKS-1.0",
+  "constants": {
+    "MICRO": 1000000,
+    "N_DAY_MU": 17491270421,
+    "GRID_PULSES_PER_DAY": 17424,
+    "BEATS_PER_DAY": 36,
+    "STEPS_PER_BEAT": 44,
+    "PULSES_PER_STEP": 11
+  },
+  "vectors": [
+    {
+      "pulse": 0,
+      "dayIndex": 0,
+      "rMu": 0,
+      "gridIndex": 0,
+      "beat": 0,
+      "stepIndex": 0,
+      "pulseInStep": 0,
+      "kairos": "00:00:00"
+    },
+    {
+      "pulse": 1,
+      "dayIndex": 0,
+      "rMu": 1000000,
+      "gridIndex": 0,
+      "beat": 0,
+      "stepIndex": 0,
+      "pulseInStep": 0,
+      "kairos": "00:00:00"
+    },
+    {
+      "pulse": 10,
+      "dayIndex": 0,
+      "rMu": 10000000,
+      "gridIndex": 9,
+      "beat": 0,
+      "stepIndex": 0,
+      "pulseInStep": 9,
+      "kairos": "00:00:09"
+    },
+    {
+      "pulse": 11,
+      "dayIndex": 0,
+      "rMu": 11000000,
+      "gridIndex": 10,
+      "beat": 0,
+      "stepIndex": 0,
+      "pulseInStep": 10,
+      "kairos": "00:00:10"
+    },
+    {
+      "pulse": 12,
+      "dayIndex": 0,
+      "rMu": 12000000,
+      "gridIndex": 11,
+      "beat": 0,
+      "stepIndex": 1,
+      "pulseInStep": 0,
+      "kairos": "00:01:00"
+    },
+    {
+      "pulse": 8917415,
+      "dayIndex": 509,
+      "rMu": 14358355711,
+      "gridIndex": 14303,
+      "beat": 29,
+      "stepIndex": 24,
+      "pulseInStep": 3,
+      "kairos": "29:24:03"
+    },
+    {
+      "pulse": 8936216,
+      "dayIndex": 510,
+      "rMu": 15668085290,
+      "gridIndex": 15607,
+      "beat": 32,
+      "stepIndex": 10,
+      "pulseInStep": 9,
+      "kairos": "32:10:09"
+    },
+    {
+      "pulse": 9048821,
+      "dayIndex": 517,
+      "rMu": 5834192343,
+      "gridIndex": 5811,
+      "beat": 12,
+      "stepIndex": 0,
+      "pulseInStep": 3,
+      "kairos": "12:00:03"
+    },
+    {
+      "pulse": 9055384,
+      "dayIndex": 517,
+      "rMu": 12397192343,
+      "gridIndex": 12349,
+      "beat": 25,
+      "stepIndex": 22,
+      "pulseInStep": 7,
+      "kairos": "25:22:07"
+    },
+    {
+      "pulse": 9122965,
+      "dayIndex": 521,
+      "rMu": 10013110659,
+      "gridIndex": 9974,
+      "beat": 20,
+      "stepIndex": 26,
+      "pulseInStep": 8,
+      "kairos": "20:26:08"
+    },
+    {
+      "pulse": 9157250,
+      "dayIndex": 523,
+      "rMu": 9315569817,
+      "gridIndex": 9279,
+      "beat": 19,
+      "stepIndex": 7,
+      "pulseInStep": 6,
+      "kairos": "19:07:06"
+    },
+    {
+      "pulse": 9177424,
+      "dayIndex": 524,
+      "rMu": 11998299396,
+      "gridIndex": 11952,
+      "beat": 24,
+      "stepIndex": 30,
+      "pulseInStep": 6,
+      "kairos": "24:30:06"
+    },
+    {
+      "pulse": 9181829,
+      "dayIndex": 524,
+      "rMu": 16403299396,
+      "gridIndex": 16340,
+      "beat": 33,
+      "stepIndex": 33,
+      "pulseInStep": 5,
+      "kairos": "33:33:05"
+    },
+    {
+      "pulse": 9217452,
+      "dayIndex": 526,
+      "rMu": 17043758554,
+      "gridIndex": 16978,
+      "beat": 35,
+      "stepIndex": 3,
+      "pulseInStep": 5,
+      "kairos": "35:03:05"
+    },
+    {
+      "pulse": 9229334,
+      "dayIndex": 527,
+      "rMu": 11434488133,
+      "gridIndex": 11390,
+      "beat": 23,
+      "stepIndex": 23,
+      "pulseInStep": 5,
+      "kairos": "23:23:05"
+    },
+    {
+      "pulse": 9249112,
+      "dayIndex": 528,
+      "rMu": 13721217712,
+      "gridIndex": 13668,
+      "beat": 28,
+      "stepIndex": 10,
+      "pulseInStep": 6,
+      "kairos": "28:10:06"
+    },
+    {
+      "pulse": 9281260,
+      "dayIndex": 530,
+      "rMu": 10886676870,
+      "gridIndex": 10844,
+      "beat": 22,
+      "stepIndex": 17,
+      "pulseInStep": 9,
+      "kairos": "22:17:09"
+    },
+    {
+      "pulse": 9320481,
+      "dayIndex": 532,
+      "rMu": 15125136028,
+      "gridIndex": 15066,
+      "beat": 31,
+      "stepIndex": 5,
+      "pulseInStep": 7,
+      "kairos": "31:05:07"
+    },
+    {
+      "pulse": 9346959,
+      "dayIndex": 534,
+      "rMu": 6620595186,
+      "gridIndex": 6595,
+      "beat": 13,
+      "stepIndex": 27,
+      "pulseInStep": 6,
+      "kairos": "13:27:06"
+    },
+    {
+      "pulse": 9347447,
+      "dayIndex": 534,
+      "rMu": 7108595186,
+      "gridIndex": 7081,
+      "beat": 14,
+      "stepIndex": 27,
+      "pulseInStep": 8,
+      "kairos": "14:27:08"
+    },
+    {
+      "pulse": 9349286,
+      "dayIndex": 534,
+      "rMu": 8947595186,
+      "gridIndex": 8913,
+      "beat": 18,
+      "stepIndex": 18,
+      "pulseInStep": 3,
+      "kairos": "18:18:03"
+    },
+    {
+      "pulse": 9403346,
+      "dayIndex": 537,
+      "rMu": 10533783923,
+      "gridIndex": 10493,
+      "beat": 21,
+      "stepIndex": 29,
+      "pulseInStep": 10,
+      "kairos": "21:29:10"
+    },
+    {
+      "pulse": 9435800,
+      "dayIndex": 539,
+      "rMu": 8005243081,
+      "gridIndex": 7974,
+      "beat": 16,
+      "stepIndex": 20,
+      "pulseInStep": 10,
+      "kairos": "16:20:10"
+    },
+    {
+      "pulse": 9436303,
+      "dayIndex": 539,
+      "rMu": 8508243081,
+      "gridIndex": 8475,
+      "beat": 17,
+      "stepIndex": 22,
+      "pulseInStep": 5,
+      "kairos": "17:22:05"
+    },
+    {
+      "pulse": 9597927,
+      "dayIndex": 548,
+      "rMu": 12710809292,
+      "gridIndex": 12661,
+      "beat": 26,
+      "stepIndex": 7,
+      "pulseInStep": 0,
+      "kairos": "26:07:00"
+    },
+    {
+      "pulse": 9695654,
+      "dayIndex": 554,
+      "rMu": 5490186766,
+      "gridIndex": 5469,
+      "beat": 11,
+      "stepIndex": 13,
+      "pulseInStep": 2,
+      "kairos": "11:13:02"
+    },
+    {
+      "pulse": 9703766,
+      "dayIndex": 554,
+      "rMu": 13602186766,
+      "gridIndex": 13549,
+      "beat": 27,
+      "stepIndex": 43,
+      "pulseInStep": 8,
+      "kairos": "27:43:08"
+    },
+    {
+      "pulse": 9708588,
+      "dayIndex": 555,
+      "rMu": 932916345,
+      "gridIndex": 929,
+      "beat": 1,
+      "stepIndex": 40,
+      "pulseInStep": 5,
+      "kairos": "01:40:05"
+    },
+    {
+      "pulse": 9709076,
+      "dayIndex": 555,
+      "rMu": 1420916345,
+      "gridIndex": 1415,
+      "beat": 2,
+      "stepIndex": 40,
+      "pulseInStep": 7,
+      "kairos": "02:40:07"
+    },
+    {
+      "pulse": 9777039,
+      "dayIndex": 558,
+      "rMu": 16910105082,
+      "gridIndex": 16845,
+      "beat": 34,
+      "stepIndex": 35,
+      "pulseInStep": 4,
+      "kairos": "34:35:04"
+    },
+    {
+      "pulse": 9777777,
+      "dayIndex": 559,
+      "rMu": 156834661,
+      "gridIndex": 156,
+      "beat": 0,
+      "stepIndex": 14,
+      "pulseInStep": 2,
+      "kairos": "00:14:02"
+    },
+    {
+      "pulse": 9781102,
+      "dayIndex": 559,
+      "rMu": 3481834661,
+      "gridIndex": 3468,
+      "beat": 7,
+      "stepIndex": 7,
+      "pulseInStep": 3,
+      "kairos": "07:07:03"
+    },
+    {
+      "pulse": 9781967,
+      "dayIndex": 559,
+      "rMu": 4346834661,
+      "gridIndex": 4330,
+      "beat": 8,
+      "stepIndex": 41,
+      "pulseInStep": 7,
+      "kairos": "08:41:07"
+    },
+    {
+      "pulse": 9782476,
+      "dayIndex": 559,
+      "rMu": 4855834661,
+      "gridIndex": 4837,
+      "beat": 9,
+      "stepIndex": 43,
+      "pulseInStep": 8,
+      "kairos": "09:43:08"
+    },
+    {
+      "pulse": 9782853,
+      "dayIndex": 559,
+      "rMu": 5232834661,
+      "gridIndex": 5212,
+      "beat": 10,
+      "stepIndex": 33,
+      "pulseInStep": 9,
+      "kairos": "10:33:09"
+    },
+    {
+      "pulse": 9785192,
+      "dayIndex": 559,
+      "rMu": 7571834661,
+      "gridIndex": 7542,
+      "beat": 15,
+      "stepIndex": 25,
+      "pulseInStep": 7,
+      "kairos": "15:25:07"
+    },
+    {
+      "pulse": 9831901,
+      "dayIndex": 562,
+      "rMu": 1807023398,
+      "gridIndex": 1800,
+      "beat": 3,
+      "stepIndex": 31,
+      "pulseInStep": 7,
+      "kairos": "03:31:07"
+    },
+    {
+      "pulse": 9832432,
+      "dayIndex": 562,
+      "rMu": 2338023398,
+      "gridIndex": 2329,
+      "beat": 4,
+      "stepIndex": 35,
+      "pulseInStep": 8,
+      "kairos": "04:35:08"
+    },
+    {
+      "pulse": 9832872,
+      "dayIndex": 562,
+      "rMu": 2778023398,
+      "gridIndex": 2767,
+      "beat": 5,
+      "stepIndex": 31,
+      "pulseInStep": 6,
+      "kairos": "05:31:06"
+    },
+    {
+      "pulse": 9833095,
+      "dayIndex": 562,
+      "rMu": 3001023398,
+      "gridIndex": 2989,
+      "beat": 6,
+      "stepIndex": 7,
+      "pulseInStep": 8,
+      "kairos": "06:07:08"
+    }
+  ]
+}

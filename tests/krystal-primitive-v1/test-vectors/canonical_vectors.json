@@ -1,0 +1,47 @@
+{
+  "spec": "KCS-1",
+  "vectors": [
+    {
+      "name": "key_ordering",
+      "input": {
+        "b": 2,
+        "a": 1
+      },
+      "canonical": "{\"a\":1,\"b\":2}",
+      "sha256": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "name": "string_escapes",
+      "input": {
+        "s": "a\nb\t\"c\"\\d"
+      },
+      "canonical": "{\"s\":\"a\\nb\\t\\\"c\\\"\\\\d\"}",
+      "sha256": "68dd9b4d0e9fce55be627770a4768d1667cd627e7b94b8ba4f50d6264ee8900e"
+    },
+    {
+      "name": "unicode_preserve",
+      "input": {
+        "snowman": "☃",
+        "u2028": " "
+      },
+      "canonical": "{\"snowman\":\"☃\",\"u2028\":\" \"}",
+      "sha256": "556dd800514235a89eb667cd0375c7624a3ff240efbb8f5d3752c79aa4d68ebb"
+    },
+    {
+      "name": "array_nested",
+      "input": [
+        1,
+        {
+          "z": 0,
+          "y": [
+            true,
+            null,
+            "x"
+          ]
+        }
+      ],
+      "canonical": "[1,{\"y\":[true,null,\"x\"],\"z\":0}]",
+      "sha256": "7c38fe36f6ab375c578fe27a6cdc5fe48e0437ff3e82f1e6f25540a1b1d2cd61"
+    }
+  ]
+}

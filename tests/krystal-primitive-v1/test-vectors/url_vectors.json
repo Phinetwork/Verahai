@@ -1,0 +1,45 @@
+{
+  "spec": "KRL-1.0",
+  "vectors": [
+    {
+      "url": "https://phi.network/stream/p/eyJ2IjoyLCJ1cmwiOiJodHRwczovL3BoaS5uZXR3b3JrL3MvZDdlMzM1YmIxMzJkYzliNDRkZWZjNjgxZTc2MTIwNDkzOWE2YjQ4MTIzNTJhYWFkYmUxZDhlZjZkNmIzMjk4Yz9wPWV5SndkV3h6WlNJNk9UWTVNalV5Tml3aVltVmhkQ0k2TkN3aWMzUmxjRWx1WkdWNElqb3pOeXdpWTJoaGEzSmhSR0Y1SWpvaVUyOXNZWElnVUd4bGVIVnpJaXdpYzNSbGNITlFaWEpDWldGMElqbzBOQ3dpZFhObGNsQm9hVXRsZVNJNklqRk9TMjFPVGpOa1EyUnhZM1IxWWs1YWQzQTJVa3RqT0ZOWmIwRnhZMnRwUVVZaUxDSnJZV2xUYVdkdVlYUjFjbVVpT2lJellURTRZV0UyWm1FNFpqQTNORGcxWWpKa056VTVNalUyT0dRMFpHWXlNMlF6TldZek1UUTFZbU0zWW1JMU9HRXhOMkkxT0RGa01HTTRNbVppTmpVd0luMCIsInB1bHNlIjo5NjkyOTI2LCJjYXB0aW9uIjoiVGhlIGRpbm9zYXVycyBhbHdheXMgdGhpbmsgdGhleeKAmXJlIHRoZSBhcGV44oCmIHVudGlsIHRoZSBtZXRlb3IgYnJlYXRoZXMuIn0",
+      "decoded": {
+        "kind": "stream",
+        "pulse": 9692926,
+        "beat": null,
+        "stepIndex": null,
+        "artifactHash": null
+      }
+    },
+    {
+      "url": "https://phi.network/s/2b29bbf2db593b5577962673a0f7cf7f6fe445c00a8139e7c3cd11d9846acf88?p=c:eyJ1Ijo5ODMzMDk1LCJiIjo2LCJzIjo3LCJjIjoiVGhyb2F0IiwiZCI6NDR9",
+      "decoded": {
+        "kind": "content",
+        "pulse": 9833095,
+        "beat": 6,
+        "stepIndex": 7,
+        "artifactHash": "2b29bbf2db593b5577962673a0f7cf7f6fe445c00a8139e7c3cd11d9846acf88"
+      }
+    },
+    {
+      "url": "https://phi.network/s/2b29bbf2db593b5577962673a0f7cf7f6fe445c00a8139e7c3cd11d9846acf88?p=eyJwdWxzZSI6OTgzMzA5NSwiYmVhdCI6Niwic3RlcEluZGV4Ijo3LCJjaGFrcmFEYXkiOiJUaHJvYXQiLCJzdGVwc1BlckJlYXQiOjQ0LCJ1c2VyUGhpS2V5IjoiMUpkcUdXTHM4d01LWlZLR0drcm44M3VBcllLUlU1RDZFdiIsImthaVNpZ25hdHVyZSI6IjhkNjMyZDA4ODhlZWExYzZlMWE0ZWI0NjhiMDg4MTI0YmY5Y2ExMGI2NTJkMDcxOTljYzJiNTgxZGEzNjk2M2YifQ",
+      "decoded": {
+        "kind": "content",
+        "pulse": 9833095,
+        "beat": 6,
+        "stepIndex": 7,
+        "artifactHash": "2b29bbf2db593b5577962673a0f7cf7f6fe445c00a8139e7c3cd11d9846acf88"
+      }
+    },
+    {
+      "url": "https://krystal.local/stream#t=eyJjYXB0aW9uIjoiZnJhZ21lbnQgdGVzdCIsInB1bHNlIjo5Nzc3Nzc3LCJ2IjoxfQ",
+      "decoded": {
+        "kind": "stream",
+        "pulse": 9777777,
+        "beat": null,
+        "stepIndex": null,
+        "artifactHash": null
+      }
+    }
+  ]
+}
