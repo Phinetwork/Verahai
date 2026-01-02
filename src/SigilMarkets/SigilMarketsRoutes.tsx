@@ -29,6 +29,7 @@ export type SigilMarketsRoutesProps = Readonly<{
 
 const SheetsLayer = (props: Readonly<{ now: KaiMoment }>) => {
   const { state, actions } = useSigilMarketsUi();
+  const { state: posState } = useSigilMarketsPositionStore();
   const top = state.sheets.length > 0 ? state.sheets[state.sheets.length - 1].payload : null;
 
   if (!top) return null;
@@ -55,20 +56,26 @@ const SheetsLayer = (props: Readonly<{ now: KaiMoment }>) => {
         now={props.now}
         initialMarketId={(top.marketId ?? null) as MarketId | null}
       />
-      
-      
     );
-    
   }
-  
-  
-const { state: posState } = useSigilMarketsPositionStore();
 
-if (top.id === "share-sigil") {
-  const refId = top.refId;
-  // MVP: support position share by positionId
-  const pos = posState.byId[refId] ?? null;
-  const svgUrl = pos?.sigil?.url;
+  if (top.id === "share-sigil") {
+    const refId = top.refId;
+    // MVP: support position share by positionId
+    const pos = posState.byId[refId] ?? null;
+    const svgUrl = pos?.sigil?.url;
+
+    return (
+      <SigilShareSheet
+        open
+        onClose={close}
+        title="Share sigil"
+        filenameBase={`sigil-${refId}`}
+        svgUrl={svgUrl}
+        svgText={pos?.sigil?.svg}
+      />
+    );
+  }
 
   // Other sheets are rendered locally for now (MarketRoom, Vault, Positions).
   // We’ll centralize them here later once every sheet is fully wired.
