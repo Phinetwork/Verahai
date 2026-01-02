@@ -124,12 +124,14 @@ const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<stri
     }
   }
 
-  const payloadForHash: Record<string, unknown> = { ...payload };
-  delete payloadForHash.zkProof;
-  delete payloadForHash.zkPublicInputs;
-  delete payloadForHash.zkPoseidonHash;
+  const payloadForHash: Record<string, JSONLike | undefined> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (key === "zkProof" || key === "zkPublicInputs" || key === "zkPoseidonHash") continue;
+    if (value === undefined) continue;
+    payloadForHash[key] = toJSONLike(value);
+  }
 
-  const bytes = canonicalize(toJSONLike(payloadForHash));
+  const bytes = canonicalize(payloadForHash);
   return blake3Hex(bytes);
 };
 
