@@ -15,19 +15,17 @@
  * - Preserves embedded <metadata> and <desc>.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "../ui/atoms/Button";
 import { Icon } from "../ui/atoms/Icon";
 import { useSigilMarketsUi } from "../state/uiStore";
-import { canonicalize } from "../../lib/sigil/canonicalize";
+import { canonicalize, type JSONLike } from "../../lib/sigil/canonicalize";
 import { blake3Hex } from "../../lib/sigil/hash";
 import { computeZkPoseidonHash } from "../../utils/kai";
 import { buildProofHints, generateZkProofFromPoseidonHash } from "../../utils/zkProof";
 import type { SigilProofHints } from "../../types/sigil";
 
 type ExportResult = Readonly<{ ok: true } | { ok: false; error: string }>;
-
-const isString = (v: unknown): v is string => typeof v === "string";
 
 const downloadBlob = (blob: Blob, filename: string): void => {
   const url = URL.createObjectURL(blob);
@@ -68,14 +66,53 @@ const encodeXmlEntities = (value: string): string =>
 
 const stripCdata = (value: string): { text: string; usedCdata: boolean } => {
   const trimmed = value.trim();
-  if (trimmed.startsWith("<![CDATA[") && trimmed.endsWith("]]>") ) {
+  if (trimmed.startsWith("<![CDATA[") && trimmed.endsWith("]]>")) {
     return { text: trimmed.slice(9, -3), usedCdata: true };
   }
   return { text: trimmed, usedCdata: false };
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Convert unknown -> JSONLike (and fail fast if non-JSONLike).
+ * This satisfies canonicalize(JSONLike) without unsafe casts.
+ */
+const toJSONLike = (
+  value: unknown,
+  seen: WeakSet<object> = new WeakSet<object>(),
+  depth = 0
+): JSONLike => {
+  if (depth > 64) throw new Error("Non-JSONLike: max depth exceeded");
+
+  if (value === null) return null;
+
+  const t = typeof value;
+  if (t === "string" || t === "number" || t === "boolean") return value;
+
+  // Some projects include Date in JSONLike for canonicalization purposes.
+  if (value instanceof Date) return value;
+
+  if (Array.isArray(value)) {
+    return value.map((v) => toJSONLike(v, seen, depth + 1));
+  }
+
+  if (t === "object") {
+    const obj = value as Record<string, unknown>;
+    if (seen.has(obj)) throw new Error("Non-JSONLike: circular reference");
+    seen.add(obj);
+
+    const out: Record<string, JSONLike> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v === undefined) continue; // undefined is not JSON; omit for stable hashing
+      out[k] = toJSONLike(v, seen, depth + 1);
+    }
+    return out;
+  }
+
+  throw new Error("Non-JSONLike: unsupported value");
+};
 
 const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<string> => {
   const integrity = payload.integrity;
@@ -92,7 +129,7 @@ const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<stri
   delete payloadForHash.zkPublicInputs;
   delete payloadForHash.zkPoseidonHash;
 
-  const bytes = canonicalize(payloadForHash);
+  const bytes = canonicalize(toJSONLike(payloadForHash));
   return blake3Hex(bytes);
 };
 
@@ -136,6 +173,7 @@ const ensureZkProofInSvg = async (svgText: string): Promise<string> => {
     const existingPublicInputs = Array.isArray(payload.zkPublicInputs)
       ? payload.zkPublicInputs.map((entry) => String(entry))
       : [];
+
     const hasValidProof =
       !!payload.zkProof &&
       existingPublicInputs.length > 0 &&
@@ -185,7 +223,6 @@ const svgToPngBlob = async (svgText: string, sizePx: number): Promise<Blob> => {
   try {
     const img = new Image();
     img.decoding = "async";
-    // Important for SVG rendering in some browsers:
     img.src = url;
 
     await new Promise<void>((resolve, reject) => {
