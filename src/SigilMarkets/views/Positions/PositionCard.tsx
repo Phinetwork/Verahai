@@ -71,7 +71,7 @@ export const PositionCard = (props: PositionCardProps) => {
           <div className="sm-pos-card-top">
             <div className="sm-pos-card-q">{question}</div>
 
-            <Chip size="sm" selected={false} tone={pillTone} variant="outline">
+            <Chip as="span" size="sm" selected={false} tone={pillTone} variant="outline">
               {statusLabel(p.status)}
             </Chip>
           </div>
