@@ -1,12 +1,8 @@
-import { motion } from 'framer-motion';
+// SigilMarkets/ui/motion/LossFade.tsx
+"use client";
 
-export const LossFade = () => {
-  return (
-    <motion.div
-      className="sm-loss-fade"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
-    />
-  );
+import React from "react";
+
+export const LossFade = (props: Readonly<{ children: React.ReactNode }>) => {
+  return <div className="sm-loss-fade">{props.children}</div>;
 };

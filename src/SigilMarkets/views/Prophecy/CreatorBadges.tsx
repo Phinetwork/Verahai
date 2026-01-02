@@ -1,14 +1,18 @@
-import { Card } from '../../ui/atoms/Card';
+// SigilMarkets/views/Prophecy/CreatorBadges.tsx
+"use client";
 
-export const CreatorBadges = () => {
+
+import { Chip } from "../../ui/atoms/Chip";
+
+export const CreatorBadges = (props: Readonly<{ badges: readonly string[] }>) => {
+  if (!props.badges.length) return null;
   return (
-    <Card className="sm-prophecy-badges">
-      <h4>Creator glyphs</h4>
-      <div className="sm-prophecy-badges__grid">
-        <span>Kai Whisperer</span>
-        <span>Vault Harbinger</span>
-        <span>Oracle Scribe</span>
-      </div>
-    </Card>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {props.badges.slice(0, 6).map((b) => (
+        <Chip key={b} size="sm" selected={false} variant="outline">
+          {b}
+        </Chip>
+      ))}
+    </div>
   );
 };

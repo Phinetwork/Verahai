@@ -1,12 +1,14 @@
-import { motion } from 'framer-motion';
+// SigilMarkets/ui/motion/WinBurst.tsx
+"use client";
 
-export const WinBurst = () => {
-  return (
-    <motion.div
-      className="sm-win-burst"
-      initial={{ scale: 0.6, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    />
-  );
+import { useEffect } from "react";
+import { confettiBurst } from "../../utils/confetti";
+
+export const WinBurst = (props: Readonly<{ fire: boolean }>) => {
+  useEffect(() => {
+    if (!props.fire) return;
+    confettiBurst({ intensity: 1, durationMs: 900 });
+  }, [props.fire]);
+
+  return null;
 };

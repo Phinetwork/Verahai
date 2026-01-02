@@ -1,15 +1,8 @@
-import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+// SigilMarkets/ui/motion/KaiReveal.tsx
+"use client";
 
-export const KaiReveal = ({ children }: { children: ReactNode }) => {
-  return (
-    <motion.div
-      className="sm-kai-reveal"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      {children}
-    </motion.div>
-  );
+import React from "react";
+
+export const KaiReveal = (props: Readonly<{ children: React.ReactNode }>) => {
+  return <div className="sm-kai-reveal">{props.children}</div>;
 };

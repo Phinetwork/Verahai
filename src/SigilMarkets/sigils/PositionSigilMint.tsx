@@ -6,323 +6,308 @@
 /**
  * PositionSigilMint
  *
- * Fully functional minting for Position Sigils:
- * - Generates an SVG artifact (no placeholders)
- * - Embeds SM-POS-1 payload JSON inside <metadata>
- * - Computes svgHash (sha256 hex)
- * - Returns a blob URL for immediate viewing/downloading
+ * Mints a portable Position Sigil SVG with embedded metadata:
+ * - <metadata> contains SM-POS-1 JSON payload
+ * - data-* attributes mirror key fields for quick inspection
  *
- * This file exports:
- * - mintPositionSigil(req): Promise<MintPositionSigilResult>
- * - buildPositionSigilSvg(payload): string
+ * Output:
+ * - PositionSigilArtifact { sigilId, svgHash, url?, payload }
+ *
+ * This file does NOT export PNG yet (that’s SigilExport.tsx next).
  */
 
+import React, { useCallback, useMemo, useState } from "react";
 import type { KaiMoment } from "../types/marketTypes";
-import { type MarketId, type VaultId } from "../types/marketTypes";
-import type {
-  MintPositionSigilRequest,
-  MintPositionSigilResult,
-  PositionSigilArtifact,
-  PositionSigilPayloadV1,
-} from "../types/sigilPositionTypes";
+import type { PositionRecord, PositionSigilArtifact, PositionSigilPayloadV1 } from "../types/sigilPositionTypes";
 import { asPositionSigilId } from "../types/sigilPositionTypes";
-import type { MicroDecimalString, SvgHash } from "../types/vaultTypes";
-import { asMicroDecimalString, asSvgHash } from "../types/vaultTypes";
-import { derivePositionSigilId, sha256Hex } from "../utils/ids";
+import type { VaultRecord } from "../types/vaultTypes";
+import { asSvgHash } from "../types/vaultTypes";
 
-/** JSON stringify with stable key ordering for deterministic hashing. */
-const stableStringify = (v: unknown): string => {
-  const seen = new WeakSet<object>();
+import { sha256Hex, derivePositionSigilId } from "../utils/ids";
+import { Button } from "../ui/atoms/Button";
+import { Icon } from "../ui/atoms/Icon";
+import { useSigilMarketsPositionStore } from "../state/positionStore";
+import { useSigilMarketsUi } from "../state/uiStore";
 
-  const sortKeys = (obj: Record<string, unknown>): Record<string, unknown> => {
-    const out: Record<string, unknown> = {};
-    const keys = Object.keys(obj).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-    for (const k of keys) out[k] = normalize((obj as Record<string, unknown>)[k]);
-    return out;
-  };
+type UnknownRecord = Record<string, unknown>;
+const isRecord = (v: unknown): v is UnknownRecord => typeof v === "object" && v !== null;
 
-  const normalize = (x: unknown): unknown => {
-    if (x === null) return null;
-    const t = typeof x;
-    if (t === "string" || t === "number" || t === "boolean") return x;
-
-    if (typeof x === "bigint") return x.toString(10);
-
-    if (Array.isArray(x)) return x.map((i) => normalize(i));
-
-    if (t === "object") {
-      const o = x as Record<string, unknown>;
-      if (seen.has(o)) return "[Circular]";
-      seen.add(o);
-      return sortKeys(o);
-    }
-
-    return String(x);
-  };
-
-  return JSON.stringify(normalize(v));
-};
-
-const dec = (v: bigint): MicroDecimalString => asMicroDecimalString(v.toString(10));
-
-const sanitizeText = (s: string): string =>
+const esc = (s: string): string =>
   s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 
-const short = (s: string, left = 10, right = 6): string => {
-  const t = s.trim();
-  if (t.length <= left + right + 1) return t;
-  return `${t.slice(0, left)}…${t.slice(-right)}`;
+const biDec = (v: bigint): string => (v < 0n ? "0" : v.toString(10));
+
+const clamp01 = (n: number): number => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+/** Tiny deterministic PRNG (xorshift32) from hex seed */
+const seed32FromHex = (hex: string): number => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < hex.length; i += 1) {
+    h ^= hex.charCodeAt(i);
+    h = (h + ((h << 1) >>> 0) + ((h << 4) >>> 0) + ((h << 7) >>> 0) + ((h << 8) >>> 0) + ((h << 24) >>> 0)) >>> 0;
+  }
+  return h >>> 0;
 };
 
-const sideTone = (side: "YES" | "NO"): { a: string; b: string } => {
-  return side === "YES"
-    ? { a: "rgba(191,252,255,0.95)", b: "rgba(35,255,240,0.22)" }
-    : { a: "rgba(183,163,255,0.95)", b: "rgba(183,163,255,0.22)" };
+const makeRng = (seed: number) => {
+  let x = seed >>> 0;
+  return () => {
+    // xorshift32
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    return (x >>> 0) / 0xffffffff;
+  };
 };
 
-export const buildPositionSigilSvg = (payload: PositionSigilPayloadV1): string => {
-  const side = payload.side;
-  const tones = sideTone(side);
+const lissajousPath = (seedHex: string): string => {
+  const seed = seed32FromHex(seedHex);
+  const rnd = makeRng(seed);
 
-  const title = `Sigil Position — ${side}`;
-  const q = payload.label ?? `Market ${payload.marketId as unknown as string}`;
+  const A = 360 + Math.floor(rnd() * 120);
+  const B = 360 + Math.floor(rnd() * 120);
+  const a = 3 + Math.floor(rnd() * 4);
+  const b = 4 + Math.floor(rnd() * 5);
+  const delta = rnd() * Math.PI;
+
+  const cx = 500;
+  const cy = 500;
+
+  const steps = 240;
+  let d = "";
+  for (let i = 0; i <= steps; i += 1) {
+    const t = (i / steps) * Math.PI * 2;
+    const x = cx + A * Math.sin(a * t + delta);
+    const y = cy + B * Math.sin(b * t);
+    d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)} ` : `L ${x.toFixed(2)} ${y.toFixed(2)} `;
+  }
+  d += "Z";
+  return d;
+};
+
+const hexRingPath = (): string => {
+  // A simple hex ring for “artifact” feel
+  const pts: Array<[number, number]> = [];
+  const cx = 500;
+  const cy = 500;
+  const r = 430;
+  for (let i = 0; i < 6; i += 1) {
+    const a = (Math.PI / 3) * i - Math.PI / 6;
+    pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  let d = `M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)} `;
+  for (let i = 1; i < pts.length; i += 1) d += `L ${pts[i][0].toFixed(2)} ${pts[i][1].toFixed(2)} `;
+  d += "Z";
+  return d;
+};
+
+const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayloadV1 => {
+  return {
+    v: "SM-POS-1",
+    kind: "position",
+    userPhiKey: vault.owner.userPhiKey,
+    kaiSignature: vault.owner.kaiSignature,
+
+    marketId: pos.marketId,
+    positionId: pos.id,
+
+    side: pos.entry.side,
+
+    lockedStakeMicro: biDec(pos.lock.lockedStakeMicro) as any,
+    sharesMicro: biDec(pos.entry.sharesMicro) as any,
+
+    avgPriceMicro: biDec(pos.entry.avgPriceMicro) as any,
+    worstPriceMicro: biDec(pos.entry.worstPriceMicro) as any,
+
+    feeMicro: biDec(pos.entry.feeMicro) as any,
+    totalCostMicro: biDec(pos.entry.totalCostMicro) as any,
+
+    vaultId: pos.lock.vaultId,
+    lockId: pos.lock.lockId,
+
+    openedAt: pos.entry.openedAt,
+    venue: pos.entry.venue,
+
+    marketDefinitionHash: pos.entry.marketDefinitionHash,
+
+    resolution: pos.resolution
+      ? {
+          outcome: pos.resolution.outcome,
+          resolvedPulse: pos.resolution.resolvedPulse,
+          status: pos.status,
+          creditedMicro: pos.settlement ? (biDec(pos.settlement.creditedMicro) as any) : undefined,
+          debitedMicro: pos.settlement ? (biDec(pos.settlement.debitedMicro) as any) : undefined,
+        }
+      : undefined,
+
+    label: `Position ${pos.entry.side}`,
+    note: undefined,
+  } as unknown as PositionSigilPayloadV1;
+};
+
+const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string): string => {
+  const ring = hexRingPath();
+  const wave = lissajousPath(svgHashSeed);
+
+  const yesTone = "rgba(191,252,255,0.92)";
+  const noTone = "rgba(183,163,255,0.92)";
+  const tone = payload.side === "YES" ? yesTone : noTone;
+
   const stake = payload.lockedStakeMicro;
   const shares = payload.sharesMicro;
 
-  const metaJson = stableStringify(payload);
+  const metaJson = JSON.stringify(payload);
 
-  const header = `${payload.marketId as unknown as string} • ${side}`;
-  const sub = `stake ${stake}μ • shares ${shares}μ`;
-  const owner = short(payload.userPhiKey as unknown as string, 10, 4);
+  const title = `SigilMarkets Position — ${payload.side} — p${payload.openedAt.pulse}`;
+  const desc = `Market ${payload.marketId}; Stake ${stake}; Shares ${shares}; Vault ${payload.vaultId}; Lock ${payload.lockId}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
-     xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="0 0 1000 1000"
-     width="1024" height="1024"
-     role="img"
-     aria-label="${sanitizeText(title)}"
-     data-kind="sigilmarkets-position"
-     data-v="SM-POS-1"
-     data-market-id="${sanitizeText(payload.marketId as unknown as string)}"
-     data-position-id="${sanitizeText(payload.positionId as unknown as string)}"
-     data-side="${sanitizeText(side)}"
-     data-vault-id="${sanitizeText(payload.vaultId as unknown as string)}"
-     data-lock-id="${sanitizeText(payload.lockId as unknown as string)}"
-     data-user-phikey="${sanitizeText(payload.userPhiKey as unknown as string)}"
-     data-kai-signature="${sanitizeText(payload.kaiSignature as unknown as string)}">
-  <metadata>${sanitizeText(metaJson)}</metadata>
+  viewBox="0 0 1000 1000"
+  width="1000" height="1000"
+  role="img"
+  aria-label="${esc(title)}"
+  data-kind="sigilmarkets-position"
+  data-v="SM-POS-1"
+  data-market-id="${esc(payload.marketId as unknown as string)}"
+  data-position-id="${esc(payload.positionId as unknown as string)}"
+  data-side="${esc(payload.side)}"
+  data-vault-id="${esc(payload.vaultId as unknown as string)}"
+  data-lock-id="${esc(payload.lockId as unknown as string)}"
+  data-user-phikey="${esc(payload.userPhiKey as unknown as string)}"
+  data-kai-signature="${esc(payload.kaiSignature as unknown as string)}"
+  data-pulse="${esc(String(payload.openedAt.pulse))}"
+  data-beat="${esc(String(payload.openedAt.beat))}"
+  data-step-index="${esc(String(payload.openedAt.stepIndex))}">
+  <title>${esc(title)}</title>
+  <desc>${esc(desc)}</desc>
+  <metadata>${esc(metaJson)}</metadata>
 
   <defs>
-    <radialGradient id="rg" cx="50%" cy="42%" r="70%">
-      <stop offset="0%" stop-color="${tones.a}" stop-opacity="0.20"/>
-      <stop offset="35%" stop-color="${tones.b}" stop-opacity="0.22"/>
-      <stop offset="70%" stop-color="rgba(0,0,0,0)" stop-opacity="0"/>
+    <radialGradient id="bg" cx="50%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.10)"/>
+      <stop offset="60%" stop-color="rgba(0,0,0,0.00)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.22)"/>
     </radialGradient>
 
-    <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${tones.a}" stop-opacity="0.55"/>
-      <stop offset="60%" stop-color="${tones.b}" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0.05)" stop-opacity="0.10"/>
-    </linearGradient>
-
     <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
-      <feColorMatrix in="blur" type="matrix"
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feColorMatrix in="b" type="matrix"
         values="1 0 0 0 0
                 0 1 0 0 0
                 0 0 1 0 0
-                0 0 0 0.55 0" result="g"/>
+                0 0 0 0.45 0"/>
       <feMerge>
-        <feMergeNode in="g"/>
+        <feMergeNode/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
   </defs>
 
-  <rect x="0" y="0" width="1000" height="1000" fill="rgba(0,0,0,0)"/>
-  <circle cx="500" cy="500" r="440" fill="url(#rg)"/>
+  <rect x="0" y="0" width="1000" height="1000" fill="rgba(8,10,18,1)"/>
+  <rect x="0" y="0" width="1000" height="1000" fill="url(#bg)"/>
 
-  <!-- Hex frame -->
-  <g filter="url(#glow)">
-    <path d="M500 95
-             L842 290
-             L842 710
-             L500 905
-             L158 710
-             L158 290
-             Z"
-          fill="rgba(255,255,255,0.04)"
-          stroke="url(#lg)"
-          stroke-width="8"
-          stroke-linejoin="round"/>
+  <path d="${ring}" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="10"/>
+  <path d="${ring}" fill="none" stroke="${tone}" stroke-width="3" opacity="0.75"/>
 
-    <path d="M500 150
-             L800 320
-             L800 680
-             L500 850
-             L200 680
-             L200 320
-             Z"
-          fill="rgba(0,0,0,0.10)"
-          stroke="rgba(255,255,255,0.12)"
-          stroke-width="3"
-          stroke-linejoin="round"/>
-  </g>
+  <path d="${wave}" fill="none" stroke="${tone}" stroke-width="6" opacity="0.18" filter="url(#glow)"/>
+  <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="2.2" opacity="0.72"/>
 
-  <!-- Title block -->
-  <g>
-    <text x="500" y="420" text-anchor="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Inter, Arial"
-          font-size="18"
-          letter-spacing="0.16em"
-          fill="rgba(255,255,255,0.62)"
-          font-weight="800">SIGIL MARKETS</text>
-
-    <text x="500" y="460" text-anchor="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Inter, Arial"
-          font-size="34"
-          letter-spacing="0.08em"
-          fill="rgba(255,255,255,0.92)"
-          font-weight="950">${sanitizeText(header)}</text>
-
-    <text x="500" y="505" text-anchor="middle"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-          font-size="16"
-          letter-spacing="0.02em"
-          fill="rgba(255,255,255,0.70)"
-          font-weight="700">${sanitizeText(sub)}</text>
-
-    <text x="500" y="552" text-anchor="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Inter, Arial"
-          font-size="14"
-          fill="rgba(255,255,255,0.62)">${sanitizeText(q)}</text>
-
-    <text x="500" y="615" text-anchor="middle"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-          font-size="12"
-          fill="rgba(255,255,255,0.52)">owner ${sanitizeText(owner)}</text>
-
-    <text x="500" y="640" text-anchor="middle"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-          font-size="12"
-          fill="rgba(255,255,255,0.46)">opened p ${payload.openedAt.pulse}</text>
-  </g>
-
-  <!-- Corner stamps -->
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-     font-size="12" fill="rgba(255,255,255,0.50)">
-    <text x="92" y="120">${sanitizeText(payload.v)}</text>
-    <text x="908" y="120" text-anchor="end">${sanitizeText(side)}</text>
-    <text x="92" y="900">${sanitizeText(payload.venue)}</text>
-    <text x="908" y="900" text-anchor="end">lock ${sanitizeText(short(payload.lockId as unknown as string, 10, 6))}</text>
+     fill="rgba(255,255,255,0.72)" font-size="22">
+    <text x="70" y="90">SM-POS-1</text>
+    <text x="70" y="125">SIDE: ${esc(payload.side)}</text>
+    <text x="70" y="160">STAKE μΦ: ${esc(payload.lockedStakeMicro as unknown as string)}</text>
+    <text x="70" y="195">SHARES μ: ${esc(payload.sharesMicro as unknown as string)}</text>
+
+    <text x="70" y="930">p${esc(String(payload.openedAt.pulse))} • ${esc(payload.marketId as unknown as string).slice(0, 20)}…</text>
   </g>
 </svg>`;
 };
 
-const makeBlobUrl = (svgText: string): string => {
-  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-  return URL.createObjectURL(blob);
-};
+export type MintPositionSigilResult =
+  | Readonly<{ ok: true; sigil: PositionSigilArtifact; svgText: string }>
+  | Readonly<{ ok: false; error: string }>;
 
-export const mintPositionSigil = async (req: MintPositionSigilRequest): Promise<MintPositionSigilResult> => {
-  const stakeMicro = dec(req.lock.lockedStakeMicro as unknown as bigint);
-  const sharesMicro = dec(req.entry.sharesMicro as unknown as bigint);
-  const avgPriceMicro = dec(req.entry.avgPriceMicro as unknown as bigint);
-  const worstPriceMicro = dec(req.entry.worstPriceMicro as unknown as bigint);
-  const feeMicro = dec(req.entry.feeMicro as unknown as bigint);
-  const totalCostMicro = dec(req.entry.totalCostMicro as unknown as bigint);
+export const mintPositionSigil = async (pos: PositionRecord, vault: VaultRecord): Promise<MintPositionSigilResult> => {
+  try {
+    const payload = makePayload(pos, vault);
 
-  const payload: PositionSigilPayloadV1 = {
-    v: "SM-POS-1",
-    kind: "position",
-    userPhiKey: req.userPhiKey,
-    kaiSignature: req.kaiSignature,
-    marketId: req.marketId,
-    positionId: req.positionId,
-    side: req.entry.side,
-    lockedStakeMicro: stakeMicro,
-    sharesMicro,
-    avgPriceMicro,
-    worstPriceMicro,
-    feeMicro,
-    totalCostMicro,
-    vaultId: req.lock.vaultId,
-    lockId: req.lock.lockId,
-    openedAt: req.entry.openedAt,
-    venue: req.entry.venue,
-    marketDefinitionHash: req.entry.marketDefinitionHash,
-    label: req.label,
-    note: req.note,
-  };
+    // Seed hash from deterministic inputs (position + lock)
+    const seed = await sha256Hex(`SM:POS:SEED:${pos.id}:${pos.lock.lockId}:${vault.owner.userPhiKey}`);
 
-  const svgText = buildPositionSigilSvg(payload);
-  const svgHashHex = await sha256Hex(svgText);
-  const svgHash = asSvgHash(svgHashHex) as SvgHash;
+    const svgText = buildSvg(payload, seed);
+    const svgHashHex = await sha256Hex(svgText);
+    const svgHash = asSvgHash(svgHashHex);
 
-  const sigilId = await derivePositionSigilId({
-    positionId: req.positionId,
-    ref: svgHashHex,
-  });
+    const sigilId = await derivePositionSigilId({ positionId: pos.id, ref: svgHashHex.slice(0, 24) });
 
-  const url = makeBlobUrl(svgText);
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
 
-  const sigil: PositionSigilArtifact = {
-    sigilId: asPositionSigilId(sigilId as unknown as string),
-    svgHash,
-    url,
-    payload,
-  };
-
-  return { sigil };
-};
-
-/**
- * Optional helper: finalize a Position Sigil with a resolution snapshot (remint).
- * (Useful if you want a "final receipt" artifact after claim.)
- */
-export const mintFinalizedPositionSigil = async (args: Readonly<{
-  base: PositionSigilPayloadV1;
-  resolution: Readonly<{
-    outcome: "YES" | "NO" | "VOID";
-    resolvedPulse: KaiPulse;
-    status: "claimed" | "refunded" | "lost";
-    creditedMicro?: MicroDecimalString;
-    debitedMicro?: MicroDecimalString;
-  }>;
-}>): Promise<Readonly<{ sigil: PositionSigilArtifact }>> => {
-  const payload: PositionSigilPayloadV1 = {
-    ...args.base,
-    resolution: {
-      outcome: args.resolution.outcome,
-      resolvedPulse: args.resolution.resolvedPulse,
-      status: args.resolution.status as any,
-      creditedMicro: args.resolution.creditedMicro,
-      debitedMicro: args.resolution.debitedMicro,
-    },
-  };
-
-  const svgText = buildPositionSigilSvg(payload);
-  const svgHashHex = await sha256Hex(svgText);
-  const svgHash = asSvgHash(svgHashHex) as SvgHash;
-
-  const sigilId = await derivePositionSigilId({
-    positionId: args.base.positionId,
-    ref: svgHashHex,
-  });
-
-  const url = makeBlobUrl(svgText);
-
-  return {
-    sigil: {
-      sigilId: asPositionSigilId(sigilId as unknown as string),
+    const sigil: PositionSigilArtifact = {
+      sigilId,
       svgHash,
       url,
       payload,
-    },
-  };
+    };
+
+    return { ok: true, sigil, svgText };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "mint failed";
+    return { ok: false, error: msg };
+  }
+};
+
+/** Optional UI component wrapper (drop-in) */
+export type PositionSigilMintProps = Readonly<{
+  position: PositionRecord;
+  vault: VaultRecord;
+  now: KaiMoment;
+  onMinted?: (sigil: PositionSigilArtifact) => void;
+}>;
+
+export const PositionSigilMint = (props: PositionSigilMintProps) => {
+  const { actions: ui } = useSigilMarketsUi();
+  const { actions: posStore } = useSigilMarketsPositionStore();
+
+  const [busy, setBusy] = useState(false);
+
+  const can = useMemo(() => !props.position.sigil, [props.position.sigil]);
+
+  const run = useCallback(async () => {
+    if (!can) return;
+
+    setBusy(true);
+    const res = await mintPositionSigil(props.position, props.vault);
+    if (!res.ok) {
+      ui.toast("error", "Mint failed", res.error, { atPulse: props.now.pulse });
+      setBusy(false);
+      return;
+    }
+
+    posStore.attachSigil(props.position.id, res.sigil, props.now.pulse);
+    ui.toast("success", "Minted", "Position sigil ready", { atPulse: props.now.pulse });
+
+    if (props.onMinted) props.onMinted(res.sigil);
+
+    setBusy(false);
+  }, [can, posStore, props, ui]);
+
+  return (
+    <Button
+      variant="primary"
+      onClick={run}
+      disabled={!can || busy}
+      loading={busy}
+      leftIcon={<Icon name="spark" size={14} tone="gold" />}
+    >
+      {props.position.sigil ? "Minted" : "Mint sigil"}
+    </Button>
+  );
 };

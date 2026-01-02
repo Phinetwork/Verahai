@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import type { KaiMoment, Market, MarketQuote, MarketQuoteRequest, MarketSide, PhiMicro } from "../../types/marketTypes";
+import type { KaiMoment, Market, MarketQuote, MarketQuoteRequest, MarketSide, PhiMicro, PriceMicro } from "../../types/marketTypes";
 import { ONE_PHI_MICRO } from "../../types/marketTypes";
 
 import { Card, CardContent } from "../../ui/atoms/Card";
@@ -45,7 +45,7 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
   const sfx = useSfx();
 
   const yesPriceMicro = props.market.state.pricesMicro.yes;
-  const noPriceMicro = (deriveNoPriceMicro(yesPriceMicro as unknown as bigint) as unknown) as any;
+  const noPriceMicro = (deriveNoPriceMicro(yesPriceMicro as unknown as bigint) as unknown) as PriceMicro;
 
   const [side, setSide] = useState<MarketSide>("YES");
   const [stakeMicro, setStakeMicro] = useState<PhiMicro>(0n as PhiMicro);
@@ -76,13 +76,12 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
       return;
     }
 
-    // Quote locally by executing a dry-run trade.
     const req: MarketQuoteRequest = {
       marketId: props.market.def.id,
       side: nextSide,
       orderType: "market",
       stakeMicro: nextStake,
-      maxSlippageBps: 400, // 4% default guard (tune later)
+      maxSlippageBps: 400,
     };
 
     const res = await executeLocalTrade({
@@ -90,7 +89,7 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
       vault: activeVault,
       now: props.now,
       request: req,
-      nonce: "quote", // deterministic
+      nonce: "quote",
     });
 
     if (!res.ok) {
@@ -131,7 +130,6 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
 
     setLoading(true);
 
-    // Execute "real" trade using a fresh nonce
     const req: MarketQuoteRequest = {
       marketId: props.market.def.id,
       side,
@@ -155,7 +153,6 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
       return;
     }
 
-    // 1) Open lock in vault store (escrow)
     vaultActions.openLock({
       vaultId: res.lock.vaultId,
       lockId: res.lock.lockId,
@@ -168,7 +165,6 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
       note: `Stake ${side}`,
     });
 
-    // 2) Add position record
     const opened = posActions.openPosition({
       id: res.position.id,
       marketId: res.position.marketId,
@@ -178,7 +174,6 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
       updatedPulse: res.position.updatedPulse,
     });
 
-    // 3) Append market activity
     feedActions.appendMarketActivity({
       marketId: res.activity.marketId,
       events: [
@@ -269,11 +264,6 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
         onClose={() => setMintOpen(false)}
         now={props.now}
         position={pendingPosition}
-        onMint={() => {
-          // actual minting implemented in sigils/PositionSigilMint.tsx later
-          ui.toast("info", "Minting not wired yet", "Next file will wire PositionSigilMint.");
-        }}
-        loading={false}
       />
     </div>
   );

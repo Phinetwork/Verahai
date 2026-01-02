@@ -2268,3 +2268,158 @@
 
 .sm-res-sigil-meta .k{ color: rgba(255,255,255,0.62); }
 .sm-res-sigil-meta .v{ color: rgba(255,255,255,0.90); font-weight: 900; }
+/* Add these styles to SigilMarkets/styles/sigilMarkets.css */
+
+.sm-inhale{
+  display: grid;
+  gap: 12px;
+}
+
+.sm-inhale-pick{
+  display: grid;
+  gap: 8px;
+}
+
+.sm-inhale-err{
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,104,104,0.22);
+  background: rgba(255,104,104,0.10);
+  color: rgba(255,255,255,0.86);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-inhale-proof{
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  display: grid;
+  gap: 10px;
+}
+
+.sm-inhale-proof-top{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.sm-inhale-proof-title{
+  font-size: 13px;
+  font-weight: 950;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: rgba(255,255,255,0.86);
+}
+
+.sm-inhale-line{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.sm-inhale-line .k{
+  color: rgba(255,255,255,0.62);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.sm-inhale-line .v{
+  color: rgba(255,255,255,0.90);
+  font-weight: 900;
+}
+/* Add these styles to SigilMarkets/styles/sigilMarkets.css */
+
+.sm-scan{
+  margin-top: 12px;
+}
+
+.sm-scan-head{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.sm-scan-title{
+  font-size: 13px;
+  font-weight: 950;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: rgba(255,255,255,0.86);
+}
+
+.sm-scan-err{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,104,104,0.22);
+  background: rgba(255,104,104,0.10);
+  color: rgba(255,255,255,0.86);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-scan-meta{
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sm-scan-meta .row{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.sm-scan-fields{
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sm-scan-field{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.sm-scan-field .k{
+  color: rgba(255,255,255,0.62);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.sm-scan-field .v{
+  color: rgba(255,255,255,0.90);
+  font-weight: 900;
+}
+
+.sm-scan-json{
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sm-scan-pre{
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.16);
+  color: rgba(255,255,255,0.82);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: auto;
+}

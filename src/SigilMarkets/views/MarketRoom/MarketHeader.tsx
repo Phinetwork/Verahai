@@ -4,7 +4,7 @@
 import React, { useMemo } from "react";
 import type { KaiMoment, Market } from "../../types/marketTypes";
 import { Card, CardContent } from "../../ui/atoms/Card";
-import { Chip } from "../../ui/atoms/Chip";
+import { Chip, type ChipTone } from "../../ui/atoms/Chip";
 import { Icon } from "../../ui/atoms/Icon";
 import { MarketCountdown } from "./MarketCountdown";
 import { useSigilMarketsUi } from "../../state/uiStore";
@@ -13,6 +13,15 @@ export type MarketHeaderProps = Readonly<{
   market: Market;
   now: KaiMoment;
 }>;
+
+type CountdownStatus = "open" | "closed" | "resolving" | "resolved";
+
+const countdownStatus = (status: string): CountdownStatus => {
+  if (status === "resolved" || status === "voided" || status === "canceled") return "resolved";
+  if (status === "resolving") return "resolving";
+  if (status === "closed") return "closed";
+  return "open";
+};
 
 export const MarketHeader = (props: MarketHeaderProps) => {
   const { actions } = useSigilMarketsUi();
@@ -38,7 +47,7 @@ export const MarketHeader = (props: MarketHeaderProps) => {
     return status;
   }, [status]);
 
-  const statusTone = useMemo(() => {
+  const statusTone = useMemo<ChipTone>(() => {
     if (status === "resolved") return "success";
     if (status === "voided" || status === "canceled") return "danger";
     if (status === "resolving" || status === "closed") return "gold";
@@ -56,7 +65,11 @@ export const MarketHeader = (props: MarketHeaderProps) => {
           </div>
 
           <div className="sm-mkt-header-right">
-            <MarketCountdown now={props.now} closePulse={closePulse} status={status as any} />
+            <MarketCountdown
+              now={props.now}
+              closePulse={closePulse}
+              status={countdownStatus(status)}
+            />
           </div>
         </div>
 
@@ -81,7 +94,7 @@ export const MarketHeader = (props: MarketHeaderProps) => {
             Resolution
           </Chip>
 
-          <Chip size="sm" selected={false} tone={statusTone as any} variant="outline">
+          <Chip size="sm" selected={false} tone={statusTone} variant="outline">
             status • {statusLabel}
           </Chip>
         </div>

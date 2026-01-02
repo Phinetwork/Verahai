@@ -1,219 +1,330 @@
 // SigilMarkets/sigils/InhaleGlyphGate.tsx
 "use client";
 
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+
+/**
+ * InhaleGlyphGate
+ *
+ * UX:
+ * - User uploads/selects their Identity Sigil (SVG)
+ * - We extract: userPhiKey + kaiSignature + svgHash
+ * - We derive vaultId deterministically and activate it in vaultStore
+ *
+ * Notes:
+ * - MVP supports SVG best. (PNG support comes with SigilExport embedding + scanner.)
+ * - This component is designed to be rendered inside a Sheet by a future SheetHost.
+ */
+
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import type { KaiMoment } from "../types/marketTypes";
-import { asVaultId, type VaultId } from "../types/marketTypes";
-import { deriveVaultId, sha256Hex } from "../utils/ids";
+import type { KaiMoment, MarketId, VaultId } from "../types/marketTypes";
 import { Sheet } from "../ui/atoms/Sheet";
 import { Button } from "../ui/atoms/Button";
 import { Divider } from "../ui/atoms/Divider";
 import { Icon } from "../ui/atoms/Icon";
+import { Chip } from "../ui/atoms/Chip";
+import { shortHash } from "../utils/format";
+
+import { deriveVaultId, sha256Hex } from "../utils/ids";
 import { useSigilMarketsUi } from "../state/uiStore";
 import { useSigilMarketsVaultStore } from "../state/vaultStore";
-import { asKaiSignature, asSvgHash, asUserPhiKey, type KaiSignature, type SvgHash, type UserPhiKey } from "../types/vaultTypes";
 
-type MetaLoose = Readonly<Record<string, unknown>>;
+import type { KaiSignature, SvgHash, UserPhiKey } from "../types/vaultTypes";
+import { asKaiSignature, asSvgHash, asUserPhiKey } from "../types/vaultTypes";
+import type { PhiMicro } from "../types/marketTypes";
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+type InhaleReason = "auth" | "trade" | "vault";
+
+export type InhaleGlyphGateProps = Readonly<{
+  open: boolean;
+  onClose: () => void;
+
+  now: KaiMoment;
+
+  reason: InhaleReason;
+  marketId?: MarketId;
+
+  /**
+   * Optional: initial deposit when first creating a vault (local MVP).
+   * Default: 0.
+   */
+  initialSpendableMicro?: PhiMicro;
+}>;
+
+type ParsedIdentity = Readonly<{
+  rawSvg: string;
+  svgHash: SvgHash;
+  userPhiKey: UserPhiKey;
+  kaiSignature: KaiSignature;
+
+  pulse?: number;
+  chakraDay?: string;
+}>;
+
 const isString = (v: unknown): v is string => typeof v === "string";
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
-const extractBetween = (text: string, re: RegExp): string | null => {
-  const m = re.exec(text);
-  if (!m) return null;
-  const g = m[1];
-  return typeof g === "string" && g.trim().length > 0 ? g.trim() : null;
-};
-
-const parseEmbeddedJson = (svgText: string): MetaLoose | null => {
-  // Try <metadata>...</metadata>
-  const metaRaw =
-    extractBetween(svgText, /<metadata[^>]*>([\s\S]*?)<\/metadata>/i) ??
-    extractBetween(svgText, /<desc[^>]*>([\s\S]*?)<\/desc>/i);
-
-  if (metaRaw) {
-    // Some generators wrap JSON in CDATA
-    const cleaned = metaRaw.replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "").trim();
-    try {
-      const parsed: unknown = JSON.parse(cleaned);
-      if (isRecord(parsed)) return parsed;
-    } catch {
-      // ignore
-    }
-  }
-
-  // Try data-* attributes commonly used
-  const userPhiKey =
-    extractBetween(svgText, /data-user-phikey="([^"]+)"/i) ??
-    extractBetween(svgText, /data-userPhiKey="([^"]+)"/i) ??
-    extractBetween(svgText, /userPhiKey":"([^"]+)"/i);
-
-  const kaiSignature =
-    extractBetween(svgText, /data-kai-signature="([^"]+)"/i) ??
-    extractBetween(svgText, /data-kaiSignature="([^"]+)"/i) ??
-    extractBetween(svgText, /kaiSignature":"([^"]+)"/i);
-
-  if (userPhiKey || kaiSignature) {
-    return {
-      userPhiKey: userPhiKey ?? undefined,
-      kaiSignature: kaiSignature ?? undefined,
-    };
-  }
-
-  return null;
-};
-
-const pickString = (m: MetaLoose | null, keys: readonly string[]): string | null => {
-  if (!m) return null;
-  for (const k of keys) {
-    const v = m[k];
-    if (isString(v) && v.trim().length > 0) return v.trim();
-  }
-  return null;
-};
-
-const readFileAsText = (file: File): Promise<string> =>
+const readFileText = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const r = new FileReader();
+    r.onload = () => resolve(String(r.result ?? ""));
     r.onerror = () => reject(new Error("Failed to read file"));
-    r.onload = () => resolve(typeof r.result === "string" ? r.result : "");
     r.readAsText(file);
   });
 
-export type InhaleGlyphGateProps = Readonly<{
-  now: KaiMoment;
-}>;
+const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as ArrayBuffer);
+    r.onerror = () => reject(new Error("Failed to read file"));
+    r.readAsArrayBuffer(file);
+  });
+
+const bytesToHex = (bytes: Uint8Array): string => {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 1) out += bytes[i].toString(16).padStart(2, "0");
+  return out;
+};
+
+const sha256HexBytes = async (buf: ArrayBuffer): Promise<string> => {
+  try {
+    if (typeof crypto !== "undefined" && crypto.subtle && typeof crypto.subtle.digest === "function") {
+      const digest = await crypto.subtle.digest("SHA-256", buf);
+      return bytesToHex(new Uint8Array(digest));
+    }
+  } catch {
+    // ignore
+  }
+  // fallback: hash the byte string with sha256Hex (string-based); not cryptographically ideal but functional
+  const bytes = new Uint8Array(buf);
+  return sha256Hex(bytesToHex(bytes));
+};
+
+const tryJson = (s: string): unknown | null => {
+  const t = s.trim();
+  if (!t) return null;
+  try {
+    return JSON.parse(t) as unknown;
+  } catch {
+    return null;
+  }
+};
+
+const extractFirstString = (obj: unknown, paths: readonly string[]): string | null => {
+  if (!isRecord(obj)) return null;
+
+  for (const p of paths) {
+    const parts = p.split(".");
+    let cur: unknown = obj;
+    let ok = true;
+
+    for (const key of parts) {
+      if (!isRecord(cur) || !(key in cur)) {
+        ok = false;
+        break;
+      }
+      cur = (cur as Record<string, unknown>)[key];
+    }
+
+    if (ok && isString(cur) && cur.trim().length > 0) return cur.trim();
+  }
+
+  return null;
+};
+
+const extractAttr = (el: Element, names: readonly string[]): string | null => {
+  for (const n of names) {
+    const v = el.getAttribute(n);
+    if (v && v.trim().length > 0) return v.trim();
+  }
+  return null;
+};
+
+const parseIdentityFromSvg = async (rawSvg: string): Promise<ParsedIdentity> => {
+  // Compute svgHash from raw bytes (stable)
+  const buf = new TextEncoder().encode(rawSvg).buffer;
+  const h = await sha256HexBytes(buf);
+  const svgHash = asSvgHash(h);
+
+  // Parse DOM
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(rawSvg, "image/svg+xml");
+  const svg = doc.documentElement;
+
+  if (!svg || svg.nodeName.toLowerCase() !== "svg") {
+    throw new Error("Not a valid SVG file");
+  }
+
+  // 1) Prefer data-* attributes (your existing KaiSigil pattern)
+  const userPhiKey =
+    extractAttr(svg, ["data-phikey", "data-phi-key", "data-user-phikey", "data-user-phi-key", "data-phiKey", "data-userPhiKey"]) ??
+    "";
+  const kaiSignature =
+    extractAttr(svg, ["data-kai-signature", "data-kaisignature", "data-kaiSignature", "data-kaisig", "data-kai-sig"]) ??
+    "";
+
+  // Optional UI fields
+  const pulseStr = extractAttr(svg, ["data-pulse", "data-kai-pulse", "data-kaipulse"]);
+  const chakraDay = extractAttr(svg, ["data-chakra-day", "data-chakraDay", "data-chakraday"]) ?? undefined;
+
+  let pulse: number | undefined;
+  if (pulseStr && /^\d+$/.test(pulseStr)) {
+    const n = Number(pulseStr);
+    if (Number.isFinite(n)) pulse = Math.max(0, Math.floor(n));
+  }
+
+  // 2) If missing, scan <metadata> and <desc> for JSON payloads
+  let userPhiKey2 = userPhiKey;
+  let kaiSignature2 = kaiSignature;
+
+  if (!userPhiKey2 || !kaiSignature2) {
+    const metaEl = doc.getElementsByTagName("metadata")?.[0] ?? null;
+    const descEl = doc.getElementsByTagName("desc")?.[0] ?? null;
+
+    const metaText = metaEl?.textContent ?? "";
+    const descText = descEl?.textContent ?? "";
+
+    const metaJson = tryJson(metaText);
+    const descJson = tryJson(descText);
+
+    const candidates = [metaJson, descJson].filter((x) => x !== null);
+
+    for (const cand of candidates) {
+      if (!userPhiKey2) {
+        const k =
+          extractFirstString(cand, [
+            "userPhiKey",
+            "phiKey",
+            "phikey",
+            "proofCapsule.phiKey",
+            "proofCapsule.userPhiKey",
+            "capsule.userPhiKey",
+          ]) ?? "";
+        if (k) userPhiKey2 = k;
+      }
+      if (!kaiSignature2) {
+        const s =
+          extractFirstString(cand, [
+            "kaiSignature",
+            "kaiSig",
+            "proofCapsule.kaiSignature",
+            "capsule.kaiSignature",
+          ]) ?? "";
+        if (s) kaiSignature2 = s;
+      }
+    }
+  }
+
+  if (!userPhiKey2) throw new Error("Missing userPhiKey / phiKey in glyph");
+  if (!kaiSignature2) throw new Error("Missing kaiSignature in glyph");
+
+  return {
+    rawSvg,
+    svgHash,
+    userPhiKey: asUserPhiKey(userPhiKey2),
+    kaiSignature: asKaiSignature(kaiSignature2),
+    pulse,
+    chakraDay,
+  };
+};
 
 export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
-  const { state: ui, actions: uiActions } = useSigilMarketsUi();
-  const { actions: vaultActions } = useSigilMarketsVaultStore();
+  const { actions: ui } = useSigilMarketsUi();
+  const { actions: vault } = useSigilMarketsVaultStore();
 
-  const top = ui.sheets.length > 0 ? ui.sheets[ui.sheets.length - 1].payload : null;
-  const open = top?.id === "inhale-glyph";
-
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [fileName, setFileName] = useState<string>("");
-  const [svgHash, setSvgHash] = useState<SvgHash | null>(null);
-
-  const [userPhiKey, setUserPhiKey] = useState<string>("");
-  const [kaiSignature, setKaiSignature] = useState<string>("");
+  const [parsed, setParsed] = useState<ParsedIdentity | null>(null);
+  const [vaultId, setVaultId] = useState<VaultId | null>(null);
 
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
 
-  const reset = useCallback(() => {
+  const reset = (): void => {
     setFileName("");
-    setSvgHash(null);
-    setUserPhiKey("");
-    setKaiSignature("");
+    setParsed(null);
+    setVaultId(null);
     setErr(null);
     setBusy(false);
-    if (fileRef.current) fileRef.current.value = "";
-  }, []);
+    if (inputRef.current) inputRef.current.value = "";
+  };
 
-  const close = useCallback(() => {
-    uiActions.popSheet();
+  const close = (): void => {
     reset();
-  }, [reset, uiActions]);
+    props.onClose();
+  };
 
-  const onPickFile = useCallback(async (f: File | null) => {
+  const onPick = async (f: File): Promise<void> => {
     setErr(null);
-    setSvgHash(null);
-
-    if (!f) return;
+    setBusy(true);
+    setParsed(null);
+    setVaultId(null);
     setFileName(f.name);
 
     try {
-      const text = await readFileAsText(f);
-      const h = await sha256Hex(text);
-      const hash = asSvgHash(h);
+      const type = (f.type || "").toLowerCase();
 
-      const meta = parseEmbeddedJson(text);
-      const pk = pickString(meta, ["userPhiKey", "user_phikey", "userPhi", "phiKey", "phikey", "userPhiKey"]);
-      const ks = pickString(meta, ["kaiSignature", "kai_signature", "kaiSig", "signature", "kaiSignature"]);
+      if (type.includes("svg") || f.name.toLowerCase().endsWith(".svg")) {
+        const raw = await readFileText(f);
+        const p = await parseIdentityFromSvg(raw);
+        const vid = await deriveVaultId({ userPhiKey: p.userPhiKey, identitySvgHash: p.svgHash });
 
-      setSvgHash(hash);
-      if (pk && userPhiKey.trim().length === 0) setUserPhiKey(pk);
-      if (ks && kaiSignature.trim().length === 0) setKaiSignature(ks);
+        setParsed(p);
+        setVaultId(vid);
+        setBusy(false);
+        return;
+      }
+
+      // For now: PNG/JPG unsupported here (wired later via SigilScanner + embedded payload)
+      throw new Error("Please inhale an SVG glyph (PNG scanning wires next).");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to inhale";
+      const msg = e instanceof Error ? e.message : "Failed to parse glyph";
       setErr(msg);
-    }
-  }, [kaiSignature, userPhiKey]);
-
-  const canInhale = useMemo(() => {
-    if (!svgHash) return false;
-    if (userPhiKey.trim().length === 0) return false;
-    if (kaiSignature.trim().length === 0) return false;
-    return true;
-  }, [kaiSignature, svgHash, userPhiKey]);
-
-  const inhale = useCallback(async () => {
-    if (!svgHash) return;
-    const pk = userPhiKey.trim();
-    const ks = kaiSignature.trim();
-    if (pk.length === 0 || ks.length === 0) return;
-
-    setBusy(true);
-    setErr(null);
-
-    try {
-      const vaultId = await deriveVaultId({
-        userPhiKey: asUserPhiKey(pk) as UserPhiKey,
-        identitySvgHash: svgHash as SvgHash,
-      });
-
-      vaultActions.createOrActivateVault({
-        vaultId,
-        owner: {
-          userPhiKey: asUserPhiKey(pk),
-          kaiSignature: asKaiSignature(ks),
-          identitySigil: { svgHash, url: undefined },
-        },
-        initialSpendableMicro: 0n,
-        createdPulse: props.now.pulse,
-      });
-
-      uiActions.toast("success", "Glyph inhaled", `Vault activated`, { atPulse: props.now.pulse });
-      uiActions.popSheet();
-      reset();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Inhale failed";
-      setErr(msg);
-    } finally {
       setBusy(false);
     }
-  }, [props.now.pulse, reset, svgHash, uiActions, userPhiKey, kaiSignature, vaultActions]);
+  };
 
-  // If sheet opens fresh, reset stale state
-  React.useEffect(() => {
-    if (open) {
-      // keep current state if already open
-      return;
-    }
-    reset();
-  }, [open, reset]);
+  const onConfirm = (): void => {
+    if (!parsed || !vaultId) return;
+
+    // Create or activate vault
+    vault.createOrActivateVault({
+      vaultId,
+      owner: {
+        userPhiKey: parsed.userPhiKey,
+        kaiSignature: parsed.kaiSignature,
+        identitySigil: { svgHash: parsed.svgHash, url: undefined },
+      },
+      initialSpendableMicro: props.initialSpendableMicro ?? (0n as PhiMicro),
+      createdPulse: props.now.pulse,
+    });
+
+    vault.setActiveVault(vaultId);
+
+    ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: props.now.pulse });
+    close();
+  };
+
+  const subtitle = useMemo(() => {
+    if (props.reason === "trade") return "Inhale your identity glyph to lock Φ into a position.";
+    if (props.reason === "vault") return "Inhale your identity glyph to activate your Vault.";
+    return "Inhale your identity glyph to enter Sigil Markets.";
+  }, [props.reason]);
 
   return (
     <Sheet
-      open={open}
+      open={props.open}
       onClose={close}
       title="Inhale Glyph"
-      subtitle="Upload your Identity Sigil to unlock your Vault for trading, prophecy, and claiming."
+      subtitle={subtitle}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <Button variant="ghost" onClick={close} disabled={busy}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            onClick={inhale}
-            disabled={!canInhale || busy}
-            loading={busy}
-            leftIcon={<Icon name="scan" size={14} tone="cyan" />}
-          >
-            Inhale
+          <Button variant="primary" onClick={onConfirm} disabled={!parsed || !vaultId || busy} leftIcon={<Icon name="check" size={14} tone="gold" />}>
+            Activate
           </Button>
         </div>
       }
@@ -221,52 +332,78 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
       <div className="sm-inhale">
         <div className="sm-inhale-pick">
           <input
-            ref={fileRef}
+            ref={inputRef}
             type="file"
             accept=".svg,image/svg+xml"
-            onChange={(e) => onPickFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onPick(f);
+            }}
             style={{ display: "none" }}
           />
-          <Button variant="primary" onClick={() => fileRef.current?.click()} leftIcon={<Icon name="export" size={14} tone="dim" />}>
-            Choose SVG
+
+          <Button
+            variant="primary"
+            onClick={() => inputRef.current?.click()}
+            loading={busy}
+            leftIcon={<Icon name="scan" size={14} tone="cyan" />}
+          >
+            Choose glyph (SVG)
           </Button>
-          <div className="sm-small" style={{ opacity: 0.9 }}>
-            {fileName ? `Selected: ${fileName}` : "No file selected"}
-          </div>
-        </div>
 
-        <Divider />
-
-        <div className="sm-inhale-fields">
-          <label className="sm-inhale-label">
-            <span className="sm-inhale-k">userPhiKey</span>
-            <input className="sm-input" value={userPhiKey} onChange={(e) => setUserPhiKey(e.target.value)} placeholder="Your Φ key" />
-          </label>
-
-          <label className="sm-inhale-label">
-            <span className="sm-inhale-k">kaiSignature</span>
-            <input className="sm-input" value={kaiSignature} onChange={(e) => setKaiSignature(e.target.value)} placeholder="Kai signature" />
-          </label>
-
-          <div className="sm-small">
-            {svgHash ? (
-              <>
-                svgHash: <span className="mono">{(svgHash as unknown as string).slice(0, 18)}…</span>
-              </>
-            ) : (
-              "svgHash: —"
-            )}
-          </div>
+          {fileName ? <div className="sm-small">Selected: {fileName}</div> : <div className="sm-small">Upload your KaiSigil SVG.</div>}
         </div>
 
         {err ? (
-          <div className="sm-lock-warn" style={{ marginTop: 12 }}>
+          <div className="sm-inhale-err">
             <Icon name="warning" size={14} tone="danger" /> {err}
           </div>
         ) : null}
 
-        <div className="sm-small" style={{ marginTop: 12 }}>
-          Your Identity Sigil is never consumed. Only Position Sigils become inert on loss.
+        {parsed && vaultId ? (
+          <>
+            <Divider />
+            <div className="sm-inhale-proof sm-breathe-soft">
+              <div className="sm-inhale-proof-top">
+                <div className="sm-inhale-proof-title">
+                  <Icon name="vault" size={14} tone="gold" /> Identity found
+                </div>
+                <Chip size="sm" selected={false} variant="outline" tone="gold">
+                  pulse {props.now.pulse}
+                </Chip>
+              </div>
+
+              <div className="sm-inhale-line">
+                <span className="k">userPhiKey</span>
+                <span className="v mono">{shortHash(parsed.userPhiKey as unknown as string, 12, 8)}</span>
+              </div>
+              <div className="sm-inhale-line">
+                <span className="k">kaiSignature</span>
+                <span className="v mono">{shortHash(parsed.kaiSignature as unknown as string, 12, 8)}</span>
+              </div>
+              <div className="sm-inhale-line">
+                <span className="k">svgHash</span>
+                <span className="v mono">{shortHash(parsed.svgHash as unknown as string, 12, 8)}</span>
+              </div>
+              <div className="sm-inhale-line">
+                <span className="k">vaultId</span>
+                <span className="v mono">{shortHash(vaultId as unknown as string, 14, 10)}</span>
+              </div>
+
+              {parsed.chakraDay ? (
+                <div className="sm-inhale-line">
+                  <span className="k">chakraDay</span>
+                  <span className="v">{parsed.chakraDay}</span>
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+
+        <Divider />
+
+        <div className="sm-small">
+          This binds your identity to a deterministic VaultId. Your identity glyph stays usable forever; positions are separate artifacts.
         </div>
       </div>
     </Sheet>

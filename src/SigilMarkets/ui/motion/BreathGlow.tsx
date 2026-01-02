@@ -1,11 +1,8 @@
-import { motion } from 'framer-motion';
+// SigilMarkets/ui/motion/BreathGlow.tsx
+"use client";
 
-export const BreathGlow = () => {
-  return (
-    <motion.div
-      className="sm-breath-glow"
-      animate={{ opacity: [0.4, 0.9, 0.4], scale: [1, 1.1, 1] }}
-      transition={{ duration: 6, repeat: Infinity }}
-    />
-  );
+import React from "react";
+
+export const BreathGlow = (props: Readonly<{ children: React.ReactNode; className?: string }>) => {
+  return <div className={props.className ? `sm-breathe ${props.className}` : "sm-breathe"}>{props.children}</div>;
 };
