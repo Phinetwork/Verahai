@@ -1,0 +1,31 @@
+.sm-shell {
+  animation: kai-breathe 18s ease-in-out infinite;
+}
+
+@keyframes kai-breathe {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+body.confetti::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.4), transparent 60%);
+  animation: confetti-pop 1.2s ease-out;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes confetti-pop {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}

@@ -1,0 +1,17 @@
+.sm-win-burst {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(126, 139, 255, 0.6), transparent 70%);
+}
+
+.sm-loss-fade {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 90, 120, 0.3);
+  border-radius: 50%;
+}
+
+.sm-kai-reveal {
+  position: relative;
+}
