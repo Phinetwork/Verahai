@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import { useKaiTicker } from "../hooks/useKaiTicker";
 import { momentFromUTC } from "../utils/kai_pulse";
 import { DEFAULT_ISSUANCE_POLICY, quotePhiForUsd } from "../utils/phi-issuance";
 import type { SigilMetadataLite } from "../utils/valuation";
@@ -22,7 +23,11 @@ export default function HomePriceTickerFallback({
   title = "Value Index",
   onActivate,
 }: Props): React.JSX.Element {
-  const [pulse] = useState(() => momentFromUTC(new Date()).pulse);
+  const { pulse: livePulse } = useKaiTicker();
+  const pulse = useMemo(() => {
+    if (typeof livePulse === "number" && Number.isFinite(livePulse)) return livePulse;
+    return momentFromUTC(new Date()).pulse;
+  }, [livePulse]);
 
   const priceNow = useMemo(() => {
     const usdSample = Math.max(1, Math.round(Number.isFinite(ctaAmountUsd) ? ctaAmountUsd : 1));
