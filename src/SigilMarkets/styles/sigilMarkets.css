@@ -957,6 +957,215 @@ body{
   gap: 12px;
 }
 
+/* LIVE indicator (top right) */
+.topbar-live{
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 8px 12px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(0, 255, 160, 0.22);
+  background: rgba(10, 14, 24, 0.45);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  cursor: pointer;
+  text-align: left;
+  user-select: none;
+
+  transform: translateZ(0);
+}
+.topbar-live:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14),
+    0 0 0 6px rgba(120, 220, 255, 0.1);
+}
+
+/* Topbar time tint inputs (set via style vars) */
+.topbar-live{
+  --kai-chakra: var(--chakra-ink-3);
+  --kai-ark: var(--chakra-ark-3);
+  --kai-month: var(--chakra-ink-2);
+}
+
+/* Fine-grained time styling */
+.kai-tag,
+.kai-sep{
+  color: rgba(245, 247, 255, 0.62);
+}
+
+.kai-num{
+  font-variant-numeric: tabular-nums;
+}
+
+.kai-num--chakra{
+  color: var(--kai-chakra);
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.55);
+}
+
+.kai-num--ark{
+  color: var(--kai-ark);
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.55);
+}
+
+.kai-num--month{
+  color: var(--kai-month);
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.55);
+}
+
+/* PERF: glow via pseudo-element; animate opacity/scale only */
+.live-orb{
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(0, 255, 160, 0.95);
+  box-shadow: 0 0 10px rgba(0, 255, 160, 0.55);
+  transform: translateZ(0);
+}
+.live-orb::after{
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(0, 255, 160, 0.55),
+    transparent 62%
+  );
+  opacity: 0.55;
+  transform: scale(0.92);
+  animation: liveOrbBreath var(--breath-s) ease-in-out infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+@keyframes liveOrbBreath{
+  0%,
+  100%{
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  50%{
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
+}
+
+.live-text{
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+.live-title{
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.live-meta{
+  opacity: 0.9;
+  font-size: 12px;
+}
+
+/* KAI PILL: ALWAYS ONE LINE (auto-shrink on small) */
+.topbar-live{
+  min-width: 0 !important;
+  width: max-content;
+  max-width: 76vw;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  padding: clamp(4px, 1.2vw, 6px) clamp(8px, 2.2vw, 12px);
+  gap: clamp(6px, 1.8vw, 12px);
+  min-height: 38px;
+}
+
+.live-scroll{
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  padding-bottom: 2px;
+}
+.live-scroll::-webkit-scrollbar{
+  height: 6px;
+}
+.live-scroll::-webkit-scrollbar-thumb{
+  background: rgba(120, 220, 255, 0.35);
+  border-radius: 999px;
+}
+.live-scroll::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+.live-orb{
+  flex: 0 0 auto;
+}
+
+.live-text{
+  display: inline-flex;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: clamp(6px, 1.8vw, 12px);
+
+  white-space: nowrap;
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.live-title,
+.live-meta{
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  white-space: nowrap;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "SF Mono", Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.live-title{
+  font-size: clamp(10px, 2.2vw, 13px);
+  letter-spacing: clamp(0.08em, 0.6vw, 0.14em);
+}
+
+.live-meta{
+  font-size: clamp(9px, 2vw, 12px);
+  letter-spacing: clamp(0.06em, 0.55vw, 0.12em);
+  opacity: 0.86;
+}
+
+@media (max-width: 560px){
+  .topbar-live{ max-width: 84vw; }
+  .live-scroll{ margin-right: -2px; }
+}
+
+.live-meta{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 420px){
+  .topbar-live{ max-width: 70vw; }
+  .topbar-live{ gap: 8px; }
+  .live-text{ gap: 8px; }
+}
+
 .sm-topbar-kai{
   appearance: none;
   border: 1px solid rgba(255,255,255,0.16);
