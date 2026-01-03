@@ -7,10 +7,10 @@ import {
   createKaiNowClock,
   kaiMomentFromMicroPulses,
   MICRO_PER_PULSE,
-  MICRO_PULSES_PER_MS,
   type KaiNowClock,
   type KaiNowSource,
 } from "./useKaiNow";
+import { msUntilNextPulseBoundary } from "../../utils/kai_pulse";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -63,12 +63,12 @@ const pulseFromMicro = (micro: bigint): KaiPulse => {
 };
 
 const msUntilNextPulse = (micro: bigint): number => {
-  const rem = micro % MICRO_PER_PULSE; // < 1_000_000
-  const left = rem === 0n ? MICRO_PER_PULSE : MICRO_PER_PULSE - rem; // <= 1_000_000
-  const ms = Number(left) / MICRO_PULSES_PER_MS;
-  // Clamp to sane bounds; we will re-check if we missed the boundary.
+  const timeSource = {
+    nowMicroPulses: () => micro,
+    nowPulse: () => pulseFromMicro(micro),
+  };
+  const ms = msUntilNextPulseBoundary(undefined, timeSource as unknown as { nowMicroPulses: () => bigint });
   if (!Number.isFinite(ms) || ms < 0) return 1;
-  // Ensure we don't schedule 0ms loops.
   return Math.max(1, Math.min(60_000, Math.ceil(ms)));
 };
 

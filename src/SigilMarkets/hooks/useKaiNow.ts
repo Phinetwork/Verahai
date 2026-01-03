@@ -3,29 +3,14 @@
 
 import { useMemo } from "react";
 import type { KaiMoment, KaiPulse } from "../types/marketTypes";
-import { getKaiTimeSource } from "../../utils/kai_pulse";
+import { getKaiTimeSource, microPulsesSinceGenesis } from "../../utils/kai_pulse";
 
 type UnknownRecord = Record<string, unknown>;
 
 export type KaiNowSource = "global-fn" | "build-anchor" | "klock-engine" | "date-bridge";
 
-/**
- * Canonical breath length (bridge only).
- * T = 3 + √5 seconds (φ-exact breath unit).
- */
-export const PHI_BREATH_SECONDS = 3 + Math.sqrt(5);
-
-/** micro-pulses per millisecond (bridge only). */
-export const MICRO_PULSES_PER_MS = 1000 / PHI_BREATH_SECONDS;
-
 /** 1 pulse = 1,000,000 micro-pulses. */
 export const MICRO_PER_PULSE = 1_000_000n;
-
-/**
- * KKS v1.0 genesis anchor (UTC).
- * Pulse 0 is defined at the solar flare anchor.
- */
-const GENESIS_EPOCH_MS = Date.parse("2024-05-10T06:45:41.888Z");
 
 /** Grid constants for beat/step indexing (KKS indexing). */
 const PULSES_PER_STEP = 11;
@@ -77,13 +62,6 @@ const dateNowMs = (): number => {
   return Number.isFinite(out) ? out : 0;
 };
 
-const microFromEpochMs = (epochMs: number): bigint => {
-  if (!Number.isFinite(epochMs)) return 0n;
-  const deltaMs = Math.max(0, epochMs - GENESIS_EPOCH_MS);
-  const micro = Math.floor(deltaMs * MICRO_PULSES_PER_MS);
-  return micro > 0 ? BigInt(micro) : 0n;
-};
-
 export type KaiNowClock = Readonly<{
   microNow: () => bigint;
   source: KaiNowSource;
@@ -116,12 +94,15 @@ export const createKaiNowClock = (): KaiNowClock => {
 
   const anchor = toBigIntSafe(g["__KAI_ANCHOR_MICRO__"]);
   if (anchor !== null) {
+    const baseEpochMs = dateNowMs();
+    const baseMicro = microPulsesSinceGenesis(BigInt(baseEpochMs));
     const t0 = perfNowMs();
     return {
       microNow: () => {
         const dtMs = perfNowMs() - t0;
-        const add = BigInt(Math.max(0, Math.floor(dtMs * MICRO_PULSES_PER_MS)));
-        return anchor + add;
+        const epochMs = baseEpochMs + (Number.isFinite(dtMs) ? dtMs : 0);
+        const microNow = microPulsesSinceGenesis(BigInt(Math.round(epochMs)));
+        return anchor + (microNow - baseMicro);
       },
       source: "build-anchor",
       isSeeded: true,
@@ -141,7 +122,7 @@ export const createKaiNowClock = (): KaiNowClock => {
   // (This keeps pulse counts stable across refreshes, even in standalone/demo contexts.)
   return {
     microNow: () => {
-      return microFromEpochMs(dateNowMs());
+      return microPulsesSinceGenesis(BigInt(dateNowMs()));
     },
     source: "date-bridge",
     isSeeded: true,
