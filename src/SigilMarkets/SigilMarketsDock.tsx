@@ -129,7 +129,7 @@ export const SigilMarketsDock = (props: SigilMarketsDockProps) => {
       {/* subtle Kai moment hint */}
       <div className="sm-dock-kai" aria-hidden="true">
         <span className="sm-dock-kai-dot" />
-        <span className="sm-dock-kai-text">pulse {props.now.pulse}</span>
+        <span className="sm-dock-kai-text">☤KAI {props.now.pulse}</span>
       </div>
     </div>
   );
