@@ -33,6 +33,8 @@ import type { KaiSignature, SvgHash, UserPhiKey } from "../types/vaultTypes";
 import { asKaiSignature, asSvgHash, asUserPhiKey } from "../types/vaultTypes";
 import type { PhiMicro } from "../types/marketTypes";
 import { computeIntrinsicUnsigned, type SigilMetadataLite } from "../../utils/valuation";
+import { extractEmbeddedMetaFromSvg, extractProofBundleMetaFromSvg } from "../../utils/sigilMetadata";
+import { resolveGlyphPhi } from "../../utils/glyphValue";
 import { validateMeta as verifierValidateMeta } from "../../verifier/validator";
 import { ETERNAL_STEPS_PER_BEAT } from "../../SovereignSolar";
 import { makeSigilUrlLoose, type SigilSharePayloadLoose } from "../../utils/sigilUrl";
@@ -318,7 +320,10 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
 
           if (sigilMeta) {
             const { unsigned } = computeIntrinsicUnsigned(sigilMeta, now.pulse);
-            valuePhi = unsigned.valuePhi;
+            const embeddedMeta = extractEmbeddedMetaFromSvg(raw);
+            const embeddedProof = extractProofBundleMetaFromSvg(raw);
+            const resolved = resolveGlyphPhi([embeddedMeta.raw, embeddedProof?.raw], unsigned.valuePhi);
+            valuePhi = resolved.valuePhi ?? undefined;
 
             const pulse =
               typeof sigilMeta.pulse === "number"
