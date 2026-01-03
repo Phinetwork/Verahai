@@ -4,8 +4,9 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { KaiMoment } from "../../types/marketTypes";
-import { DAYS_PER_MONTH, DAYS_PER_YEAR, MONTHS_PER_YEAR, momentFromPulse, type ChakraDay } from "../../../utils/kai_pulse";
+import { DAY_TO_CHAKRA, WEEKDAYS, type ChakraDay } from "../../../utils/kai_pulse";
 import { fmt2, formatPulse, modPos, readNum } from "../../../utils/kaiTimeDisplay";
+import { beatIndexFromPulse, kaiCalendarFromPulse, stepIndexFromPulse } from "../../../SovereignSolar";
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useStickyHeader } from "../../hooks/useStickyHeader";
 import { useBodyScrollLock } from "../../../hooks/useBodyScrollLock";
@@ -29,9 +30,6 @@ export type TopBarProps = Readonly<{
 
 const cx = (...parts: Array<string | false | null | undefined>): string => parts.filter(Boolean).join(" ");
 
-const BEATS_PER_DAY = 36;
-const STEPS_PER_BEAT = 44;
-const STEPS_PER_DAY = BEATS_PER_DAY * STEPS_PER_BEAT;
 const PULSES_PER_DAY = 17_491.270421;
 
 const ARK_COLORS: readonly string[] = [
@@ -70,43 +68,26 @@ type BeatStepDMY = {
   day: number;
   month: number;
   year: number;
+  chakraDay: ChakraDay;
 };
 
-function computeBeatStepDMY(m: { pulse?: number }): BeatStepDMY {
-  const pulse = readNum(m, "pulse") ?? 0;
+function computeBeatStepDMY(pulse: number): BeatStepDMY {
+  const pulseSafe = Number.isFinite(pulse) ? Math.max(0, Math.floor(pulse)) : 0;
+  const beat = beatIndexFromPulse(pulseSafe);
+  const step = stepIndexFromPulse(pulseSafe);
+  const calendar = kaiCalendarFromPulse(pulseSafe);
+  const weekdayIdx = Math.max(0, Math.min(WEEKDAYS.length - 1, calendar.dayOfWeek - 1));
+  const weekday = WEEKDAYS[weekdayIdx] ?? WEEKDAYS[0];
+  const chakraDay = DAY_TO_CHAKRA[weekday] ?? "Heart";
 
-  const pulseInDay = modPos(pulse, PULSES_PER_DAY);
-  const dayFrac = PULSES_PER_DAY > 0 ? pulseInDay / PULSES_PER_DAY : 0;
-
-  const rawStepOfDay = Math.floor(dayFrac * STEPS_PER_DAY);
-  const stepOfDay = Math.min(STEPS_PER_DAY - 1, Math.max(0, rawStepOfDay));
-
-  const beat = Math.min(BEATS_PER_DAY - 1, Math.max(0, Math.floor(stepOfDay / STEPS_PER_BEAT)));
-  const step = Math.min(
-    STEPS_PER_BEAT - 1,
-    Math.max(0, stepOfDay - beat * STEPS_PER_BEAT),
-  );
-
-  const eps = 1e-9;
-  const dayIndex = Math.floor((pulse + eps) / PULSES_PER_DAY);
-
-  const daysPerYear = Number.isFinite(DAYS_PER_YEAR) ? DAYS_PER_YEAR : 336;
-  const daysPerMonth = Number.isFinite(DAYS_PER_MONTH) ? DAYS_PER_MONTH : 42;
-  const monthsPerYear = Number.isFinite(MONTHS_PER_YEAR) ? MONTHS_PER_YEAR : 8;
-
-  const year = Math.floor(dayIndex / daysPerYear);
-  const dayInYear = modPos(dayIndex, daysPerYear);
-
-  let monthIndex = Math.floor(dayInYear / daysPerMonth);
-  if (monthIndex < 0) monthIndex = 0;
-  if (monthIndex > monthsPerYear - 1) monthIndex = monthsPerYear - 1;
-
-  const dayInMonth = dayInYear - monthIndex * daysPerMonth;
-
-  const month = monthIndex + 1;
-  const day = Math.floor(dayInMonth) + 1;
-
-  return { beat, step, day, month, year };
+  return {
+    beat,
+    step,
+    day: calendar.dayInMonth,
+    month: calendar.monthIdx + 1,
+    year: calendar.yearIdx,
+    chakraDay,
+  };
 }
 
 function formatBeatStepLabel(v: BeatStepDMY): string {
@@ -299,10 +280,9 @@ function LiveKaiButton({
   breathsPerDay,
 }: LiveKaiButtonProps): React.JSX.Element {
   const snap = useMemo(() => {
-    const m = momentFromPulse(now.pulse);
-    const pulse = readNum(m, "pulse") ?? 0;
+    const pulse = readNum(now, "pulse") ?? 0;
     const pulseStr = Number.isFinite(pulse) ? pulse.toLocaleString("en-US") : formatPulse(pulse);
-    const bsd = computeBeatStepDMY({ pulse });
+    const bsd = computeBeatStepDMY(pulse);
 
     return {
       pulse,
@@ -310,7 +290,7 @@ function LiveKaiButton({
       beatStepDMY: bsd,
       beatStepLabel: formatBeatStepLabel(bsd),
       dmyLabel: formatDMYLabel(bsd),
-      chakraDay: m.chakraDay,
+      chakraDay: bsd.chakraDay,
     };
   }, [now.pulse]);
 
