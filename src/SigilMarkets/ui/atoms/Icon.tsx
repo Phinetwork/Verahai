@@ -7,6 +7,7 @@ export type IconName =
   | "hex"
   | "spark"
   | "vault"
+  | "user"
   | "positions"
   | "prophecy"
   | "yes"
@@ -42,6 +43,8 @@ const glyph = (name: IconName): string => {
       return "✶";
     case "vault":
       return "Φ";
+    case "user":
+      return "👤";
     case "positions":
       return "◎";
     case "prophecy":
