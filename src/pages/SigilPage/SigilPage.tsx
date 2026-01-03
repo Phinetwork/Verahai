@@ -32,7 +32,6 @@ import SigilConflictBanner from "../../components/SigilConflictBanner";
 import ValueHistoryModal from "../../components/ValueHistoryModal";
 import { useValueHistory } from "../../hooks/useValueHistory";
 import GlyphImportModal from "../../components/GlyphImportModal";
-import type { Glyph } from "../../glyph/types";
 /* ——— App-level Kai math ——— */
 import {
   ETERNAL_STEPS_PER_BEAT as STEPS_PER_BEAT,
@@ -57,13 +56,7 @@ import {
 } from "../../utils/provenance";
 import { ensureLink, setJsonLd, setMeta } from "../../utils/domHead";
 import { validateSvgForVerifier, putMetadata } from "../../utils/svgMeta";
-import {
-  decodeSigilHistory,
-  extractPayloadFromUrl,
-  makeSigilUrl,
-  makeSigilUrlLoose,
-  type SigilSharePayloadLoose,
-} from "../../utils/sigilUrl";
+import { decodeSigilHistory, extractPayloadFromUrl, makeSigilUrl } from "../../utils/sigilUrl";
 import { registerSigilUrl } from "../../utils/sigilRegistry";
 import { recordSigilTransferMovement } from "../../utils/sigilTransferRegistry";
 import { enqueueInhaleKrystal, flushInhaleQueue } from "../../components/SigilExplorer/inhaleQueue";
@@ -199,34 +192,6 @@ const toAbsUrl = (pathOrUrl: string): string => {
   } catch {
     return pathOrUrl;
   }
-};
-
-const buildExplorerPayloadFromGlyph = (
-  hash: string,
-  meta: SigilMetadataLite & Record<string, unknown>
-): SigilSharePayloadLoose | null => {
-  const pulse =
-    typeof meta.pulse === "number"
-      ? meta.pulse
-      : typeof meta.kaiPulse === "number"
-      ? meta.kaiPulse
-      : null;
-  const beat = typeof meta.beat === "number" ? meta.beat : null;
-  const stepIndex = typeof meta.stepIndex === "number" ? meta.stepIndex : null;
-  const chakraDay = typeof meta.chakraDay === "string" ? meta.chakraDay : null;
-  if (pulse == null || beat == null || stepIndex == null || !chakraDay) return null;
-
-  return {
-    pulse,
-    beat,
-    stepIndex,
-    chakraDay,
-    stepsPerBeat: typeof meta.stepsPerBeat === "number" ? meta.stepsPerBeat : STEPS_PER_BEAT,
-    canonicalHash: hash,
-    kaiSignature: typeof meta.kaiSignature === "string" ? meta.kaiSignature : undefined,
-    userPhiKey: typeof meta.userPhiKey === "string" ? meta.userPhiKey : undefined,
-    exportedAtPulse: typeof meta.exportedAtPulse === "number" ? meta.exportedAtPulse : undefined,
-  };
 };
 
 const acquireSendLock = (
@@ -2348,20 +2313,7 @@ const ensureParentTokenActive = useCallback(
   const [sendAmount, setSendAmount] = useState<number>(0);
   const [depositOpen, setDepositOpen] = useState(false);
 
-  const handleRegisterGlyphForExplorer = useCallback(
-    (glyph: Glyph) => {
-      const hash = typeof glyph.hash === "string" ? glyph.hash.toLowerCase() : "";
-      const meta = (glyph.meta || {}) as SigilMetadataLite & Record<string, unknown>;
-      if (!hash) return;
-      const payload = buildExplorerPayloadFromGlyph(hash, meta);
-      if (!payload) return;
-      const url = makeSigilUrlLoose(hash, payload);
-      registerSigilUrl(url);
-      enqueueInhaleKrystal(url, payload);
-      void flushInhaleQueue();
-    },
-    [enqueueInhaleKrystal, flushInhaleQueue, registerSigilUrl, makeSigilUrlLoose]
-  );
+  const handleDepositImport = useCallback(() => {}, []);
 
   const handleDepositPhi = useCallback(
     (amountPhi: number) => {
@@ -2890,6 +2842,8 @@ useEffect(() => {
             verified={toMetaVerifyState(verified)}
             showSkeleton={showSkeleton}
             showError={showError}
+            balancePhi={displayedChipPhi ?? 0}
+            balanceUsd={chipUsd ?? 0}
             stage={stageNode}
           />{/* Breath Proof overlay (portal) */}
           {proofOpen && breathProof &&
@@ -3551,7 +3505,7 @@ useEffect(() => {
       <GlyphImportModal
         open={depositOpen}
         onClose={() => setDepositOpen(false)}
-        onImport={handleRegisterGlyphForExplorer}
+        onImport={handleDepositImport}
         onCreditPhi={handleDepositPhi}
       />
 
