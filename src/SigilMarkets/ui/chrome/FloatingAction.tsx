@@ -1,7 +1,7 @@
 // SigilMarkets/ui/chrome/SearchBar.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Icon } from "../atoms/Icon";
 
 export type SearchBarProps = Readonly<{
