@@ -8,6 +8,10 @@ type Props = {
   phaseColor: string;
   outerRingText: string;
   innerRingText: string;
+  verified: boolean;
+  zkScheme?: string;
+  zkPoseidonHash?: string;
+  proofPresent: boolean;
   animate: boolean;
   prefersReduce: boolean;
 };
@@ -18,6 +22,10 @@ const ZKGlyph: React.FC<Props> = ({
   phaseColor,
   outerRingText,
   innerRingText,
+  verified,
+  zkScheme,
+  zkPoseidonHash,
+  proofPresent,
   animate,
   prefersReduce,
 }) => {
@@ -80,6 +88,8 @@ const ZKGlyph: React.FC<Props> = ({
 
   const outerFont = Math.max(8, (size ?? 240) * 0.026);
   const innerFont = Math.max(7, (size ?? 240) * 0.022);
+  const statusFont = Math.max(10, (size ?? 240) * 0.042);
+  const metaFont = Math.max(8, (size ?? 240) * 0.024);
 
   const approxCharW = (fs: number) => fs * 0.62; // good mono approximation
   const maxCharsForRadius = (radius: number, fs: number) => {
@@ -163,6 +173,15 @@ const ZKGlyph: React.FC<Props> = ({
       </g>
     );
   };
+
+  const statusLabel = verified ? "VERIFIED" : proofPresent ? "PROOF PRESENT" : "UNVERIFIED";
+  const schemeLabel = (zkScheme || "groth16-poseidon").toUpperCase();
+  const poseidonLabel = zkPoseidonHash
+    ? `POSEIDON ${String(zkPoseidonHash).slice(0, 16)}…`
+    : "POSEIDON";
+  const statusY = CENTER - statusFont / PHI;
+  const schemeY = CENTER + statusFont / PHI;
+  const poseidonY = schemeY + metaFont / PHI;
 
   return (
     <g
@@ -270,6 +289,44 @@ const ZKGlyph: React.FC<Props> = ({
           "#00FFD0",
           0.28
         )}
+
+      <g
+        aria-label={`ZK status ${statusLabel.toLowerCase()}`}
+        fontFamily={uiSans}
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
+        <text
+          x={CENTER}
+          y={statusY}
+          fontSize={statusFont}
+          fill={verified ? "#00FFD0" : "#99a9b4"}
+          letterSpacing="0.12em"
+          opacity={0.92}
+        >
+          {statusLabel}
+        </text>
+        <text
+          x={CENTER}
+          y={schemeY}
+          fontSize={metaFont}
+          fill={phaseColor}
+          letterSpacing="0.18em"
+          opacity={0.75}
+        >
+          {schemeLabel}
+        </text>
+        <text
+          x={CENTER}
+          y={poseidonY}
+          fontSize={metaFont * 0.92}
+          fill="#00FFD0"
+          letterSpacing="0.1em"
+          opacity={0.65}
+        >
+          {poseidonLabel}
+        </text>
+      </g>
     </g>
   );
 };

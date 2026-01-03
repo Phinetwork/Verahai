@@ -58,6 +58,8 @@ import {
   clean,
 } from "./KaiSigil/utils";
 
+import { stepIndexFromPulse } from "../utils/kaiMath";
+
 import {
   base58CheckEncode,
   bytesToHex,
@@ -136,6 +138,28 @@ function deriveKksV1FromPulse(pulse: number): KksV1 {
   };
 }
 
+type ZkDisplayState = {
+  verified: boolean;
+  scheme: string;
+  poseidonHash: string;
+  proofPresent: boolean;
+};
+
+function isZkProofLike(proof: unknown): boolean {
+  if (!isRecord(proof)) return false;
+  const piA = proof["pi_a"];
+  const piB = proof["pi_b"];
+  const piC = proof["pi_c"];
+  return (
+    Array.isArray(piA) &&
+    Array.isArray(piB) &&
+    Array.isArray(piC) &&
+    piA.length >= 2 &&
+    piB.length >= 2 &&
+    piC.length >= 2
+  );
+}
+
 /**
  * KaiSigil
  * - Deterministic KKS v1.0: beat/stepIndex/stepPct derived ONLY from pulse.
@@ -177,9 +201,11 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
 
   // Pulse is the ONLY runtime source of truth.
   const pulse = coerceInt(pulseProp);
+  const pulseDisplay = pulse;
 
   // Deterministic lattice from pulse only.
   const kks = useMemo(() => deriveKksV1FromPulse(pulse), [pulse]);
+  const beatDisplay = Number.isFinite(beatProp) ? coerceInt(beatProp) : kks.beat;
 
   // Chakra/day visuals (still supplied via prop; step lattice is independent).
   const chakraDayKey = normalizeChakraDayKey(chakraDay);
@@ -202,8 +228,9 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
 
     if (stepIndexProp != null) {
       const callerStep = coerceInt(stepIndexProp);
-      if (callerStep !== kks.stepIndex) {
-        problems.push(`stepIndexProp(${callerStep}) != pulseStepIndex(${kks.stepIndex})`);
+      const derivedStep = stepIndexFromPulse(pulse, kks.stepsPerBeat);
+      if (callerStep !== derivedStep) {
+        problems.push(`stepIndexProp(${callerStep}) != pulseStepIndex(${derivedStep})`);
       }
     }
 
@@ -603,9 +630,11 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
 
   /* Prefer the built snapshot for display (DOM/summary), otherwise use live canon */
   const displayStepIndex = useMemo(() => {
+    if (Number.isFinite(stepIndexProp)) return coerceInt(stepIndexProp);
     const b = built;
-    return b && b.createdFor.stateKey === stateKey ? b.createdFor.stepIndex : canon.stepIndex;
-  }, [built, stateKey, canon.stepIndex]);
+    if (b && b.createdFor.stateKey === stateKey) return b.createdFor.stepIndex;
+    return stepIndexFromPulse(pulseDisplay, kks.stepsPerBeat);
+  }, [built, stateKey, stepIndexProp, pulseDisplay, kks.stepsPerBeat]);
 
   const displayFrequencyHz = useMemo(() => {
     const b = built;
@@ -637,15 +666,15 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
     getStrField(kaiData, "kairos_seal");
 
   const summaryDisplay = useMemo(
-    () => makeSummary(eternalSeal, canon.beat, displayStepIndex, canon.pulse),
-    [eternalSeal, canon.beat, displayStepIndex, canon.pulse]
+    () => makeSummary(eternalSeal, beatDisplay, displayStepIndex, pulseDisplay),
+    [eternalSeal, beatDisplay, displayStepIndex, pulseDisplay]
   );
 
   const summaryForAttrs = useMemo(() => {
     const stepForAttrs =
       built && built.createdFor.stateKey === stateKey ? built.createdFor.stepIndex : displayStepIndex;
-    return makeSummary(eternalSeal, canon.beat, stepForAttrs, canon.pulse);
-  }, [built, stateKey, eternalSeal, canon.beat, displayStepIndex, canon.pulse]);
+    return makeSummary(eternalSeal, beatDisplay, stepForAttrs, pulseDisplay);
+  }, [built, stateKey, eternalSeal, beatDisplay, displayStepIndex, pulseDisplay]);
 
   const summaryB64 = useMemo(() => toSummaryB64(summaryForAttrs), [summaryForAttrs]);
 
@@ -829,8 +858,8 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
     stateKeyOk,
     chakraDayKey,
     frequencyHz,
-    canon.pulse,
-    canon.beat,
+    pulseDisplay,
+    beatDisplay,
     displayStepIndex,
     zkPoseidonHash
   );
@@ -871,6 +900,42 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
     () => precomputeLedgerDht(stateKeyOk ? built?.embeddedMetaJson : undefined),
     [built, stateKeyOk]
   );
+
+  const zkDisplay = useMemo<ZkDisplayState>(() => {
+    const baseScheme = zkScheme ?? "groth16-poseidon";
+    const basePoseidon = zkPoseidonHash ?? "";
+    const base: ZkDisplayState = {
+      verified: false,
+      scheme: baseScheme,
+      poseidonHash: basePoseidon,
+      proofPresent: false,
+    };
+    if (!stateKeyOk || !embeddedMetaJson) return base;
+    try {
+      const parsed = JSON.parse(embeddedMetaJson) as Record<string, unknown>;
+      const proofHints = isRecord(parsed.proofHints) ? parsed.proofHints : null;
+      const scheme =
+        (proofHints && typeof proofHints.scheme === "string" && proofHints.scheme) || baseScheme;
+      const poseidonHash =
+        typeof parsed.zkPoseidonHash === "string" ? parsed.zkPoseidonHash : basePoseidon;
+      const zkPublicInputs = Array.isArray(parsed.zkPublicInputs)
+        ? parsed.zkPublicInputs.map((entry) => String(entry))
+        : [];
+      const proofPresent = isZkProofLike(parsed.zkProof);
+      const hasPoseidon = !!poseidonHash && poseidonHash !== "0x";
+      const inputsMatch = !zkPublicInputs.length || zkPublicInputs[0] === poseidonHash;
+      const schemeOk = /groth16/i.test(scheme);
+      return {
+        verified: proofPresent && hasPoseidon && inputsMatch && schemeOk,
+        scheme,
+        poseidonHash,
+        proofPresent,
+      };
+    } catch (err) {
+      console.debug("[KaiSigil] Failed to parse ZK metadata", err);
+      return base;
+    }
+  }, [embeddedMetaJson, stateKeyOk, zkPoseidonHash, zkScheme]);
 
   /* Imperative API */
   useImperativeHandle(
@@ -929,8 +994,8 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
           cursor: shareUrlForRender ? "pointer" : "default",
         } as React.CSSProperties
       }
-      data-pulse={String(canon.pulse)}
-      data-beat={String(canon.beat)}
+      data-pulse={String(pulseDisplay)}
+      data-beat={String(beatDisplay)}
       data-step-index={String(displayStepIndex)}
       data-step-pct={String(canon.visualClamped)}              // percentIntoStep (0..1)
       data-step-pct-to-next={String(canon.stepPctToNext)}      // (1 - percentIntoStep)
@@ -1046,7 +1111,7 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
             chakraSides={CHAKRAS[chakraDayKey].sides}
             binaryForRender={binaryForRender}
             summary={summaryDisplay}
-            pulse={canon.pulse}
+            pulse={pulseDisplay}
           />
         </g>
       </Wrapper>
@@ -1059,6 +1124,10 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
           phaseColor={phaseColor}
           outerRingText={outerRingText}
           innerRingText={stateKeyOk ? built?.innerRingText ?? "initializing…" : "initializing…"}
+          verified={zkDisplay.verified}
+          zkScheme={zkDisplay.scheme}
+          zkPoseidonHash={zkDisplay.poseidonHash}
+          proofPresent={zkDisplay.proofPresent}
           animate={animate}
           prefersReduce={prefersReduce}
         />
