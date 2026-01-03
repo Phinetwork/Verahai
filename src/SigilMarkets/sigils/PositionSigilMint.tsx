@@ -251,6 +251,11 @@ const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string): string 
 </svg>`;
 };
 
+export const buildPositionSigilSvgFromPayload = async (payload: PositionSigilPayloadV1): Promise<string> => {
+  const seed = await sha256Hex(`SM:POS:SEED:${payload.positionId}:${payload.lockId}:${payload.userPhiKey}`);
+  return buildSvg(payload, seed);
+};
+
 export type MintPositionSigilResult =
   | Readonly<{ ok: true; sigil: PositionSigilArtifact; svgText: string }>
   | Readonly<{ ok: false; error: string }>;
@@ -260,9 +265,7 @@ export const mintPositionSigil = async (pos: PositionRecord, vault: VaultRecord)
     const payload = makePayload(pos, vault);
 
     // Seed hash from deterministic inputs (position + lock)
-    const seed = await sha256Hex(`SM:POS:SEED:${pos.id}:${pos.lock.lockId}:${vault.owner.userPhiKey}`);
-
-    const svgText = buildSvg(payload, seed);
+    const svgText = await buildPositionSigilSvgFromPayload(payload);
     const svgHashHex = await sha256Hex(svgText);
     const svgHash = asSvgHash(svgHashHex);
 
