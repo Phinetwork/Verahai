@@ -29,7 +29,9 @@ const cx = (...parts: Array<string | false | null | undefined>): string => parts
 
 const BEATS_PER_DAY = 36;
 const STEPS_PER_BEAT = 44;
-const STEPS_PER_DAY = BEATS_PER_DAY * STEPS_PER_BEAT;
+const PULSES_PER_STEP = 11;
+const PULSES_PER_BEAT = PULSES_PER_STEP * STEPS_PER_BEAT;
+const PULSES_PER_DAY_GRID = PULSES_PER_BEAT * BEATS_PER_DAY;
 const PULSES_PER_DAY = 17_491.270421;
 
 const ARK_COLORS: readonly string[] = [
@@ -72,21 +74,18 @@ type BeatStepDMY = {
 
 function computeBeatStepDMY(m: { pulse?: number }): BeatStepDMY {
   const pulse = readNum(m, "pulse") ?? 0;
+  const pulseInt = Number.isFinite(pulse) ? Math.floor(pulse) : 0;
 
-  const pulseInDay = modPos(pulse, PULSES_PER_DAY);
-  const dayFrac = PULSES_PER_DAY > 0 ? pulseInDay / PULSES_PER_DAY : 0;
-
-  const rawStepOfDay = Math.floor(dayFrac * STEPS_PER_DAY);
-  const stepOfDay = Math.min(STEPS_PER_DAY - 1, Math.max(0, rawStepOfDay));
-
-  const beat = Math.min(BEATS_PER_DAY - 1, Math.max(0, Math.floor(stepOfDay / STEPS_PER_BEAT)));
+  const inDay = modPos(pulseInt, PULSES_PER_DAY_GRID);
+  const beat = Math.min(BEATS_PER_DAY - 1, Math.max(0, Math.floor(inDay / PULSES_PER_BEAT)));
+  const inBeat = inDay - beat * PULSES_PER_BEAT;
   const step = Math.min(
     STEPS_PER_BEAT - 1,
-    Math.max(0, stepOfDay - beat * STEPS_PER_BEAT),
+    Math.max(0, Math.floor(inBeat / PULSES_PER_STEP)),
   );
 
   const eps = 1e-9;
-  const dayIndex = Math.floor((pulse + eps) / PULSES_PER_DAY);
+  const dayIndex = Math.floor((pulseInt + eps) / PULSES_PER_DAY);
 
   const daysPerYear = Number.isFinite(DAYS_PER_YEAR) ? DAYS_PER_YEAR : 336;
   const daysPerMonth = Number.isFinite(DAYS_PER_MONTH) ? DAYS_PER_MONTH : 42;
