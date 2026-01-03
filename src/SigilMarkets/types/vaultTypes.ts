@@ -113,6 +113,10 @@ export type VaultRecord = Readonly<{
       sigilId?: IdentitySigilId;
       svgHash: SvgHash;
       url?: string;
+      canonicalHash?: string;
+      valuePhiMicro?: PhiMicro;
+      availablePhiMicro?: PhiMicro;
+      lastValuedPulse?: KaiPulse;
     }>;
   }>;
 
@@ -157,6 +161,10 @@ export type SerializedVaultRecord = Readonly<{
       sigilId?: IdentitySigilId;
       svgHash: SvgHash;
       url?: string;
+      canonicalHash?: string;
+      valuePhiMicro?: MicroDecimalString;
+      availablePhiMicro?: MicroDecimalString;
+      lastValuedPulse?: KaiPulse;
     }>;
   }>;
 

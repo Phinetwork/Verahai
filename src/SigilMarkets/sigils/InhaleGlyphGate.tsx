@@ -23,7 +23,7 @@ import { Button } from "../ui/atoms/Button";
 import { Divider } from "../ui/atoms/Divider";
 import { Icon } from "../ui/atoms/Icon";
 import { Chip } from "../ui/atoms/Chip";
-import { shortHash } from "../utils/format";
+import { parsePhiToMicro, shortHash } from "../utils/format";
 
 import { deriveVaultId, sha256Hex } from "../utils/ids";
 import { useSigilMarketsUi } from "../state/uiStore";
@@ -32,6 +32,12 @@ import { useSigilMarketsVaultStore } from "../state/vaultStore";
 import type { KaiSignature, SvgHash, UserPhiKey } from "../types/vaultTypes";
 import { asKaiSignature, asSvgHash, asUserPhiKey } from "../types/vaultTypes";
 import type { PhiMicro } from "../types/marketTypes";
+import { computeIntrinsicUnsigned, type SigilMetadataLite } from "../../utils/valuation";
+import { validateMeta as verifierValidateMeta } from "../../verifier/validator";
+import { ETERNAL_STEPS_PER_BEAT } from "../../SovereignSolar";
+import { makeSigilUrlLoose, type SigilSharePayloadLoose } from "../../utils/sigilUrl";
+import { registerSigilUrl } from "../../utils/sigilRegistry";
+import { enqueueInhaleKrystal, flushInhaleQueue } from "../../components/SigilExplorer/inhaleQueue";
 
 type InhaleReason = "auth" | "trade" | "vault";
 
@@ -59,6 +65,11 @@ type ParsedIdentity = Readonly<{
 
   pulse?: number;
   chakraDay?: string;
+  canonicalHash?: string;
+  sigilMeta?: SigilMetadataLite;
+  sigilPayload?: SigilSharePayloadLoose;
+  sigilUrl?: string;
+  valuePhi?: number;
 }>;
 
 const isString = (v: unknown): v is string => typeof v === "string";
@@ -226,6 +237,12 @@ const parseIdentityFromSvg = async (rawSvg: string, precomputedSvgHash?: SvgHash
   };
 };
 
+const toPhiMicro = (valuePhi?: number): PhiMicro | undefined => {
+  if (valuePhi === undefined || !Number.isFinite(valuePhi)) return undefined;
+  const parsed = parsePhiToMicro(valuePhi.toFixed(6));
+  return parsed.ok ? (parsed.micro as PhiMicro) : undefined;
+};
+
 export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
   const { open, onClose, now, reason, initialSpendableMicro } = props;
 
@@ -274,8 +291,70 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
           const raw = await readFileText(f);
           const p = await parseIdentityFromSvg(raw, bytesHash);
           const vid = await deriveVaultId({ userPhiKey: p.userPhiKey, identitySvgHash: p.svgHash });
+          let sigilMeta: SigilMetadataLite | undefined;
+          let canonicalHash: string | undefined;
+          let sigilPayload: SigilSharePayloadLoose | undefined;
+          let sigilUrl: string | undefined;
+          let valuePhi: number | undefined;
 
-          setParsed(p);
+          try {
+            const res = await verifierValidateMeta(raw);
+            if (res.ok) {
+              sigilMeta = res.meta;
+              canonicalHash = res.canonical;
+            }
+          } catch {
+            // ignore validation errors for inhale flow
+          }
+
+          if (!sigilMeta) {
+            sigilMeta = {
+              pulse: p.pulse ?? now.pulse,
+              kaiSignature: p.kaiSignature,
+              userPhiKey: p.userPhiKey,
+              chakraDay: p.chakraDay,
+            };
+          }
+
+          if (sigilMeta) {
+            const { unsigned } = computeIntrinsicUnsigned(sigilMeta, now.pulse);
+            valuePhi = unsigned.valuePhi;
+
+            const pulse =
+              typeof sigilMeta.pulse === "number"
+                ? sigilMeta.pulse
+                : typeof sigilMeta.kaiPulse === "number"
+                ? sigilMeta.kaiPulse
+                : null;
+            const beat = typeof sigilMeta.beat === "number" ? sigilMeta.beat : null;
+            const stepIndex = typeof sigilMeta.stepIndex === "number" ? sigilMeta.stepIndex : null;
+            const chakraDay = typeof sigilMeta.chakraDay === "string" ? sigilMeta.chakraDay : null;
+
+            if (pulse != null && beat != null && stepIndex != null && chakraDay && canonicalHash) {
+              const exportedAtPulse = (sigilMeta as { exportedAtPulse?: number }).exportedAtPulse;
+              sigilPayload = {
+                pulse,
+                beat,
+                stepIndex,
+                chakraDay,
+                stepsPerBeat: typeof sigilMeta.stepsPerBeat === "number" ? sigilMeta.stepsPerBeat : ETERNAL_STEPS_PER_BEAT,
+                canonicalHash,
+                kaiSignature: typeof sigilMeta.kaiSignature === "string" ? sigilMeta.kaiSignature : undefined,
+                userPhiKey: typeof sigilMeta.userPhiKey === "string" ? sigilMeta.userPhiKey : undefined,
+                exportedAtPulse: typeof exportedAtPulse === "number" ? exportedAtPulse : undefined,
+              };
+              sigilUrl = makeSigilUrlLoose(canonicalHash, sigilPayload);
+            }
+          }
+
+          setParsed({
+            ...p,
+            canonicalHash,
+            sigilMeta,
+            sigilPayload,
+            sigilUrl,
+            valuePhi,
+          });
           setVaultId(vid);
           setBusy(false);
           return;
@@ -289,11 +368,12 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
         setBusy(false);
       }
     },
-    [],
+    [now.pulse],
   );
 
   const onConfirm = useCallback((): void => {
     if (!parsed || !vaultId) return;
+    const valuePhiMicro = toPhiMicro(parsed.valuePhi);
 
     // Create or activate vault
     vault.createOrActivateVault({
@@ -301,7 +381,14 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
       owner: {
         userPhiKey: parsed.userPhiKey,
         kaiSignature: parsed.kaiSignature,
-        identitySigil: { svgHash: parsed.svgHash, url: undefined },
+        identitySigil: {
+          svgHash: parsed.svgHash,
+          url: parsed.sigilUrl,
+          canonicalHash: parsed.canonicalHash,
+          valuePhiMicro,
+          availablePhiMicro: valuePhiMicro,
+          lastValuedPulse: valuePhiMicro !== undefined ? now.pulse : undefined,
+        },
       },
       initialSpendableMicro: initialSpendableMicro ?? (0n as PhiMicro),
       createdPulse: now.pulse,
@@ -309,9 +396,15 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
 
     vault.setActiveVault(vaultId);
 
+    if (parsed.sigilUrl && parsed.sigilPayload) {
+      registerSigilUrl(parsed.sigilUrl);
+      enqueueInhaleKrystal(parsed.sigilUrl, parsed.sigilPayload);
+      void flushInhaleQueue();
+    }
+
     ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: now.pulse });
     close();
-  }, [close, initialSpendableMicro, now.pulse, parsed, ui, vault, vaultId]);
+  }, [close, enqueueInhaleKrystal, flushInhaleQueue, initialSpendableMicro, now.pulse, parsed, registerSigilUrl, ui, vault, vaultId]);
 
   const subtitle = useMemo(() => {
     if (reason === "trade") return "Inhale your identity glyph to lock Φ into a position.";

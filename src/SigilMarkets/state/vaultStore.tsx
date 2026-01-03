@@ -194,6 +194,16 @@ const decodeSerializedVaultRecord: Decoder<SerializedVaultRecord> = (v: unknown)
           sigilId: isString(identitySigilRaw["sigilId"]) ? asIdentitySigilId(identitySigilRaw["sigilId"]) : undefined,
           svgHash: asSvgHash(identitySigilRaw["svgHash"]),
           url: isString(identitySigilRaw["url"]) ? identitySigilRaw["url"] : undefined,
+          canonicalHash: isString(identitySigilRaw["canonicalHash"]) ? identitySigilRaw["canonicalHash"] : undefined,
+          valuePhiMicro: (() => {
+            const parsed = parseBigIntDec(identitySigilRaw["valuePhiMicro"]);
+            return parsed === null ? undefined : biToDec(parsed);
+          })(),
+          availablePhiMicro: (() => {
+            const parsed = parseBigIntDec(identitySigilRaw["availablePhiMicro"]);
+            return parsed === null ? undefined : biToDec(parsed);
+          })(),
+          lastValuedPulse: isNumber(identitySigilRaw["lastValuedPulse"]) ? Math.max(0, Math.floor(identitySigilRaw["lastValuedPulse"])) : undefined,
         }
       : undefined;
 
@@ -287,6 +297,16 @@ const deserializeVaultRecord = (v: SerializedVaultRecord): VaultRecord => {
             sigilId: v.owner.identitySigil.sigilId,
             svgHash: v.owner.identitySigil.svgHash,
             url: v.owner.identitySigil.url,
+            canonicalHash: v.owner.identitySigil.canonicalHash,
+            valuePhiMicro:
+              v.owner.identitySigil.valuePhiMicro !== undefined
+                ? normalizePhi(parseBigIntDec(v.owner.identitySigil.valuePhiMicro) ?? 0n)
+                : undefined,
+            availablePhiMicro:
+              v.owner.identitySigil.availablePhiMicro !== undefined
+                ? normalizePhi(parseBigIntDec(v.owner.identitySigil.availablePhiMicro) ?? 0n)
+                : undefined,
+            lastValuedPulse: v.owner.identitySigil.lastValuedPulse,
           }
         : undefined,
     },
@@ -304,7 +324,22 @@ const serializeVaultRecord = (v: VaultRecord): SerializedVaultRecord => {
   const lockedMicro = calcLockedMicro(v.locks);
   return {
     vaultId: v.vaultId,
-    owner: v.owner,
+    owner: {
+      ...v.owner,
+      identitySigil: v.owner.identitySigil
+        ? {
+            sigilId: v.owner.identitySigil.sigilId,
+            svgHash: v.owner.identitySigil.svgHash,
+            url: v.owner.identitySigil.url,
+            canonicalHash: v.owner.identitySigil.canonicalHash,
+            valuePhiMicro:
+              v.owner.identitySigil.valuePhiMicro !== undefined ? biToDec(v.owner.identitySigil.valuePhiMicro) : undefined,
+            availablePhiMicro:
+              v.owner.identitySigil.availablePhiMicro !== undefined ? biToDec(v.owner.identitySigil.availablePhiMicro) : undefined,
+            lastValuedPulse: v.owner.identitySigil.lastValuedPulse,
+          }
+        : undefined,
+    },
     status: v.status,
     spendableMicro: biToDec(v.spendableMicro),
     lockedMicro: biToDec(lockedMicro),
@@ -416,7 +451,15 @@ export type CreateOrActivateVaultInput = Readonly<{
     userPhiKey: UserPhiKey;
     kaiSignature: KaiSignature;
     zkProofRef?: ZkProofRef;
-    identitySigil?: Readonly<{ sigilId?: IdentitySigilId; svgHash: SvgHash; url?: string }>;
+    identitySigil?: Readonly<{
+      sigilId?: IdentitySigilId;
+      svgHash: SvgHash;
+      url?: string;
+      canonicalHash?: string;
+      valuePhiMicro?: PhiMicro;
+      availablePhiMicro?: PhiMicro;
+      lastValuedPulse?: KaiPulse;
+    }>;
   }>;
 
   /** If absent, vault starts at 0. */
@@ -697,10 +740,28 @@ export const SigilMarketsVaultProvider = (props: Readonly<{ children: ReactNode 
             return prev;
           }
 
+          let nextIdentitySigil = v.owner.identitySigil;
+          if (req.kind === "deposit") {
+            const available = v.owner.identitySigil?.availablePhiMicro;
+            if (available === undefined) {
+              err = "glyph balance unavailable";
+              return prev;
+            }
+            if (available < amt) {
+              err = "insufficient glyph balance";
+              return prev;
+            }
+            nextIdentitySigil = { ...v.owner.identitySigil, availablePhiMicro: normalizePhi(available - amt) };
+          }
+
           const nextSpendable = req.kind === "deposit" ? normalizePhi(spendable + amt) : normalizePhi(spendable - amt);
 
           const next: VaultRecord = {
             ...v,
+            owner: {
+              ...v.owner,
+              identitySigil: nextIdentitySigil,
+            },
             spendableMicro: nextSpendable,
             lockedMicro: calcLockedMicro(v.locks),
             updatedPulse: Math.max(v.updatedPulse, req.atPulse),
