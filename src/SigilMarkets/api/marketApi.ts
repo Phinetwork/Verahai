@@ -682,15 +682,23 @@ export const seedDemoMarkets = (nowPulse: KaiPulse): readonly Market[] => {
   ): Market => {
     const base = makeEmptyBinaryMarket({ id, slug, question, nowPulse });
 
-    // Optional: tighten demo market timing a bit so seeded “next/today/week” feel real.
     const closeIn = typeof opts.closeInPulses === "number" && Number.isFinite(opts.closeInPulses) ? opts.closeInPulses : undefined;
     const timing = closeIn
-      ? ({
-          ...base.def.timing,
-          createdPulse: nowPulse,
-          openPulse: nowPulse,
-          closePulse: (nowPulse + Math.max(1, Math.floor(closeIn))) as KaiPulse,
-        } as MarketTiming)
+      ? (() => {
+          const period = Math.max(1, Math.floor(closeIn));
+          const anchoredNow = Math.max(0, Math.floor(nowPulse));
+          const cycleIndex = Math.floor(anchoredNow / period);
+          const openPulse = (cycleIndex * period) as KaiPulse;
+          const closePulse = (openPulse + period) as KaiPulse;
+
+          return {
+            ...base.def.timing,
+            // Anchor to genesis pulse so cycles are stable across reloads.
+            createdPulse: openPulse,
+            openPulse,
+            closePulse,
+          } as MarketTiming;
+        })()
       : base.def.timing;
 
     return {
