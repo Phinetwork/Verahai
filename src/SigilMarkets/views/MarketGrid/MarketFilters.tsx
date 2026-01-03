@@ -4,14 +4,13 @@
 import type { KaiMoment, MarketCategory, MarketId } from "../../types/marketTypes";
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useMarketGrid } from "../../hooks/useMarketGrid";
+import { MARKET_CATEGORIES, labelForCategory } from "../../constants/marketCategories";
 import { Chip } from "../../ui/atoms/Chip";
 import { Icon } from "../../ui/atoms/Icon";
 
 export type MarketFiltersProps = Readonly<{
   now: KaiMoment;
 }>;
-
-const CATS: readonly MarketCategory[] = ["weather", "sports", "finance", "crypto", "tech", "world", "culture", "other"];
 
 export const MarketFilters = (props: MarketFiltersProps) => {
   const { state, actions } = useSigilMarketsUi();
@@ -83,9 +82,9 @@ export const MarketFilters = (props: MarketFiltersProps) => {
       </div>
 
       <div className="sm-grid-cat-row">
-        {CATS.map((c) => (
+        {MARKET_CATEGORIES.map((c) => (
           <Chip key={c} size="sm" selected={active.includes(c)} tone={toneFor(c)} onClick={() => toggleCat(c)}>
-            {c}
+            {labelForCategory(c)}
           </Chip>
         ))}
       </div>

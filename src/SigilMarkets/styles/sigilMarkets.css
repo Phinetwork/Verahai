@@ -41,6 +41,7 @@ body{
   --sm-dock-h: 70px;
   --sm-topbar-h: 60px;
   --sm-dock-clearance: 18px;
+  --sm-scroll-gap: 28px;
  
   --sm-gap: 12px;
   --sm-pad: 14px;
@@ -81,13 +82,13 @@ body{
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(var(--sm-dock-h) + var(--sm-dock-clearance) + env(safe-area-inset-bottom));
-  scroll-padding-bottom: calc(var(--sm-dock-h) + var(--sm-dock-clearance) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--sm-dock-h) + var(--sm-dock-clearance) + var(--sm-scroll-gap) + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(var(--sm-dock-h) + var(--sm-dock-clearance) + var(--sm-scroll-gap) + env(safe-area-inset-bottom));
 }
 
 .sm-routes{
   min-height: 100%;
-  padding-bottom: calc(var(--sm-dock-h) + var(--sm-dock-clearance) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--sm-dock-h) + var(--sm-dock-clearance) + var(--sm-scroll-gap) + env(safe-area-inset-bottom));
 }
 
 /* Dock */
@@ -940,6 +941,70 @@ body{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.sm-market-sections{
+  display: grid;
+  gap: 16px;
+}
+
+.sm-market-section{
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+
+.sm-market-section-toggle{
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--sm-text);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sm-market-section-toggle:active{
+  transform: translateY(1px);
+}
+
+.sm-market-section-title{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-market-section-count{
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sm-market-section-icon{
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.72);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sm-market-section-body{
+  padding: 6px 14px 14px;
 }
 
 .sm-grid{
