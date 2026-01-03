@@ -362,6 +362,25 @@ body{
     top: 2px;
     right: 6px;
   }
+  .sm-grid-cat-row{
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .sm-grid-cat-row::-webkit-scrollbar{
+    display: none;
+  }
+  .sm-grid-cat-row .sm-chip-sm{
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+}
+@media (max-width: 360px){
+  .sm-grid-cat-row .sm-chip-sm{
+    font-size: 10px;
+    padding: 4px 7px;
+  }
 }
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css (near .sm-btn) */
 
