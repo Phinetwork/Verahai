@@ -1,13 +1,15 @@
 // SigilMarkets/ui/chrome/TopBar.tsx
 "use client";
 
-import React, { useCallback, useMemo, type CSSProperties } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import type { KaiMoment } from "../../types/marketTypes";
 import { DAYS_PER_MONTH, DAYS_PER_YEAR, MONTHS_PER_YEAR, momentFromPulse, type ChakraDay } from "../../../utils/kai_pulse";
 import { fmt2, formatPulse, modPos, readNum } from "../../../utils/kaiTimeDisplay";
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useStickyHeader } from "../../hooks/useStickyHeader";
+import { useBodyScrollLock } from "../../../hooks/useBodyScrollLock";
+import { useVisualViewportSize } from "../../../hooks/useVisualViewportSize";
 import { Icon } from "../atoms/Icon";
 import { Chip } from "../atoms/Chip";
 import { ToastHost } from "../atoms/Toast";
@@ -113,6 +115,172 @@ function formatBeatStepLabel(v: BeatStepDMY): string {
 
 function formatDMYLabel(v: BeatStepDMY): string {
   return `D${v.day}/M${v.month}/Y${v.year}`;
+}
+
+const EternalKlockLazy = React.lazy(() => import("../../../components/EternalKlock"));
+
+type KlockPopoverStyle = CSSProperties & {
+  ["--klock-breath"]?: string;
+  ["--klock-border"]?: string;
+  ["--klock-border-strong"]?: string;
+  ["--klock-ring"]?: string;
+  ["--klock-scale"]?: string;
+};
+
+function isFixedSafeHost(el: HTMLElement): boolean {
+  const cs = window.getComputedStyle(el);
+  const backdropFilter = (cs as unknown as { backdropFilter?: string }).backdropFilter;
+  const willChange = cs.willChange || "";
+
+  const risky =
+    (cs.transform && cs.transform !== "none") ||
+    (cs.perspective && cs.perspective !== "none") ||
+    (cs.filter && cs.filter !== "none") ||
+    (backdropFilter && backdropFilter !== "none") ||
+    (cs.contain && cs.contain !== "none") ||
+    willChange.includes("transform") ||
+    willChange.includes("perspective") ||
+    willChange.includes("filter");
+
+  return !risky;
+}
+
+function getPortalHost(): HTMLElement {
+  const shell = document.querySelector(".sm-shell");
+  if (shell instanceof HTMLElement) {
+    try {
+      if (isFixedSafeHost(shell)) return shell;
+    } catch {
+      /* ignore */
+    }
+  }
+  return document.body;
+}
+
+type KlockPopoverProps = Readonly<{
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}>;
+
+function KlockPopover({ open, onClose, children }: KlockPopoverProps): React.JSX.Element | null {
+  const isClient = typeof document !== "undefined";
+  const vvSize = useVisualViewportSize();
+
+  const portalHost = useMemo<HTMLElement | null>(() => {
+    if (!isClient) return null;
+    return getPortalHost();
+  }, [isClient]);
+
+  useBodyScrollLock(open && isClient);
+
+  useEffect(() => {
+    if (!open || !isClient) return;
+
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose, isClient]);
+
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    window.requestAnimationFrame(() => closeBtnRef.current?.focus());
+  }, [open]);
+
+  const overlayStyle = useMemo<KlockPopoverStyle | undefined>(() => {
+    if (!open || !isClient) return undefined;
+
+    const h = vvSize.height;
+    const w = vvSize.width;
+
+    return {
+      position: "fixed",
+      inset: 0,
+      pointerEvents: "auto",
+      height: h > 0 ? `${h}px` : undefined,
+      width: w > 0 ? `${w}px` : undefined,
+
+      ["--klock-breath"]: "5.236s",
+      ["--klock-border"]: "rgba(255, 216, 120, 0.26)",
+      ["--klock-border-strong"]: "rgba(255, 231, 160, 0.55)",
+      ["--klock-ring"]:
+        "0 0 0 2px rgba(255, 225, 150, 0.22), 0 0 0 6px rgba(255, 210, 120, 0.10)",
+      ["--klock-scale"]: "5",
+    };
+  }, [open, isClient, vvSize]);
+
+  const onBackdropPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>): void => {
+      if (e.target === e.currentTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    [],
+  );
+
+  const onBackdropClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>): void => {
+      if (e.target === e.currentTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
+  const onClosePointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  if (!open || !isClient || !portalHost) return null;
+
+  return createPortal(
+    <div
+      className="klock-pop"
+      style={overlayStyle}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Eternal KaiKlok"
+      onPointerDown={onBackdropPointerDown}
+      onClick={onBackdropClick}
+    >
+      <div className="klock-pop__panel" role="document" data-klock-size="xl">
+        <button
+          ref={closeBtnRef}
+          type="button"
+          className="klock-pop__close kx-x"
+          onPointerDown={onClosePointerDown}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }}
+          aria-label="Close Eternal KaiKlok"
+          title="Close (Esc)"
+        >
+          ×
+        </button>
+
+        <div className="klock-pop__body">
+          <div className="klock-stage" role="presentation" data-klock-stage="1">
+            <div className="klock-stage__inner">{children}</div>
+          </div>
+        </div>
+
+        <div className="sr-only" aria-live="polite">
+          Eternal KaiKlok portal open
+        </div>
+      </div>
+    </div>,
+    portalHost,
+  );
 }
 
 type LiveKaiButtonProps = {
@@ -255,10 +423,10 @@ function LiveKaiButton({
 
 export const TopBar = (props: TopBarProps) => {
   const { actions, state } = useSigilMarketsUi();
-  const navigate = useNavigate();
   const BREATH_S = 3 + Math.sqrt(5);
   const BREATH_MS = BREATH_S * 1000;
   const BREATHS_PER_DAY = 17_491.270421;
+  const [klockOpen, setKlockOpen] = useState(false);
 
   const sticky = useStickyHeader(
     props.scrollMode === "container"
@@ -272,16 +440,29 @@ export const TopBar = (props: TopBarProps) => {
   const canSeal = true;
 
   const handleOpenKlock = useCallback(() => {
-    navigate("/klock", { state: { openDetails: true } });
-  }, [navigate]);
+    setKlockOpen(true);
+  }, []);
+
+  const handleCloseKlock = useCallback(() => {
+    setKlockOpen(false);
+  }, []);
 
   const handleSeal = useCallback(() => {
     actions.pushSheet({ id: "seal-prediction", marketId: currentMarketId ?? undefined });
   }, [actions, currentMarketId]);
 
+  useEffect(() => {
+    void import("../../../components/EternalKlock");
+  }, []);
+
   return (
     <>
       <ToastHost />
+      <KlockPopover open={klockOpen} onClose={handleCloseKlock}>
+        <Suspense fallback={null}>
+          <EternalKlockLazy />
+        </Suspense>
+      </KlockPopover>
       <div className={cls} style={sticky.headerStyle}>
         <div className="sm-topbar-row">
           <div className="sm-topbar-left">

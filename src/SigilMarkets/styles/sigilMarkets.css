@@ -3074,3 +3074,243 @@ body{
 .sm-search-in::placeholder{
   color: rgba(255,255,255,0.45);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Eternal KaiKlok Popover — fullscreen overlay
+   ───────────────────────────────────────────────────────────── */
+
+.klock-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: grid;
+  place-items: stretch;
+  padding: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  background: radial-gradient(
+      1400px 900px at 18% 8%,
+      rgba(255, 220, 140, 0.18),
+      transparent 64%
+    ),
+    radial-gradient(
+      1200px 820px at 82% 16%,
+      rgba(120, 220, 255, 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      900px 700px at 50% 110%,
+      rgba(190, 130, 255, 0.1),
+      transparent 60%
+    ),
+    rgba(2, 4, 8, 0.72);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  overscroll-behavior: contain;
+  isolation: isolate;
+
+  contain: layout paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+@supports (height: 100dvh) {
+  .klock-pop {
+    height: 100dvh;
+  }
+}
+
+.klock-pop__panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  box-shadow: inset 0 0 0 1px rgba(255, 216, 120, 0.1),
+    inset 0 0 0 2px rgba(120, 220, 255, 0.06), 0 40px 120px rgba(0, 0, 0, 0.55);
+
+  background: radial-gradient(
+      1600px 900px at 12% 6%,
+      rgba(255, 210, 120, 0.16),
+      transparent 68%
+    ),
+    radial-gradient(
+      1400px 900px at 88% 10%,
+      rgba(120, 220, 255, 0.12),
+      transparent 66%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+
+  contain: layout paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.klock-pop__panel::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background: radial-gradient(
+      closest-side at 30% 30%,
+      rgba(255, 231, 160, 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      closest-side at 70% 40%,
+      rgba(120, 220, 255, 0.12),
+      transparent 60%
+    );
+  pointer-events: none;
+  opacity: 0.9;
+  transform: translateZ(0);
+  animation: klock-breathe var(--klock-breath, var(--breath-s)) ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.klock-pop__panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background: linear-gradient(transparent, rgba(255, 255, 255, 0.05)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 44px);
+  mix-blend-mode: overlay;
+}
+
+@keyframes klock-breathe {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.82;
+  }
+  50% {
+    transform: translate3d(0, -1.2%, 0) scale(1.03);
+    opacity: 0.98;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.86;
+  }
+}
+
+.klock-pop__close {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+
+  display: grid;
+  place-items: center;
+
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 225, 150, 0.12);
+
+  border: 1px solid var(--klock-border-strong, rgba(255, 231, 160, 0.62));
+  background: rgba(8, 12, 20, 0.46);
+  color: rgba(240, 246, 255, 0.96);
+
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  z-index: 50;
+  transform: translateZ(0);
+}
+.klock-pop__close:focus-visible {
+  outline: none;
+  box-shadow: var(--klock-ring, 0 0 0 2px rgba(255, 225, 150, 0.22)),
+    0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+.klock-pop__body {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.klock-stage {
+  height: 100%;
+  width: 100%;
+  display: grid;
+  place-items: center;
+
+  padding: calc(18px + env(safe-area-inset-top, 0px))
+    calc(18px + env(safe-area-inset-right, 0px))
+    calc(18px + env(safe-area-inset-bottom, 0px))
+    calc(18px + env(safe-area-inset-left, 0px));
+}
+
+.klock-stage__inner {
+  width: min(98vmin, 1280px);
+  height: min(98vmin, 1280px);
+  aspect-ratio: 1 / 1;
+
+  display: grid;
+  place-items: center;
+
+  margin: 0 auto;
+
+  filter: drop-shadow(0 30px 90px rgba(0, 0, 0, 0.55));
+}
+
+.klock-stage__inner > * {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+.klock-stage__inner :where(svg, canvas, img) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: block;
+}
+.klock-stage__inner :where(.wrap, .container, .root) {
+  height: 100% !important;
+}
+
+@media (max-width: 720px) {
+  .klock-stage {
+    padding: calc(12px + env(safe-area-inset-top, 0px))
+      calc(12px + env(safe-area-inset-right, 0px))
+      calc(12px + env(safe-area-inset-bottom, 0px))
+      calc(12px + env(safe-area-inset-left, 0px));
+  }
+  .klock-stage__inner {
+    width: min(98vmin, 1280px);
+    height: min(98vmin, 1280px);
+  }
+}
+
+.klock-pop .kai-klock-shell {
+  max-width: none;
+  width: clamp(360px, 88vmin, 1400px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .klock-pop__panel::before {
+    animation: none;
+  }
+}
