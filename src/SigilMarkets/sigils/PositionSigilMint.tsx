@@ -26,6 +26,7 @@ import { Icon } from "../ui/atoms/Icon";
 import { useSigilMarketsPositionStore } from "../state/positionStore";
 import { useSigilMarketsUi } from "../state/uiStore";
 import { DEFAULT_ISSUANCE_POLICY, quotePhiForUsd, usdValueFromPhi } from "../../utils/phi-issuance";
+import { momentFromPulse } from "../../utils/kai_pulse";
 import type { SigilMetadataLite } from "../../utils/valuation";
 /** local compat brand */
 type MicroDecimalString = string & { readonly __brand: "MicroDecimalString" };
@@ -48,14 +49,10 @@ const clamp01 = (n: number): number => (n < 0 ? 0 : n > 1 ? 1 : n);
 const coerceKaiMoment = (v: unknown): KaiMoment => {
   if (!isRecord(v)) return { pulse: 0, beat: 0, stepIndex: 0 };
   const p = v["pulse"];
-  const b = v["beat"];
-  const s = v["stepIndex"];
-
-  const pulse = typeof p === "number" && Number.isFinite(p) ? Math.floor(p) : 0;
-  const beat = typeof b === "number" && Number.isFinite(b) ? Math.floor(b) : 0;
-  const stepIndex = typeof s === "number" && Number.isFinite(s) ? Math.floor(s) : 0;
-
-  return { pulse: pulse < 0 ? 0 : pulse, beat: beat < 0 ? 0 : beat, stepIndex: stepIndex < 0 ? 0 : stepIndex };
+  const pulseRaw = typeof p === "number" && Number.isFinite(p) ? Math.floor(p) : 0;
+  const pulse = pulseRaw < 0 ? 0 : pulseRaw;
+  const derived = momentFromPulse(pulse);
+  return { pulse, beat: derived.beat, stepIndex: derived.stepIndex };
 };
 
 /** Tiny deterministic PRNG (xorshift32) from hex seed */
