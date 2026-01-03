@@ -157,6 +157,14 @@ const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<stri
 
 const hashBytes = async (bytes: Uint8Array): Promise<string> => blake3Hex(bytes);
 
+const safeJsonLike = (value: unknown): JSONLike | null => {
+  try {
+    return toJSONLike(value);
+  } catch {
+    return null;
+  }
+};
+
 const parsePulseNumber = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) return Math.floor(value);
   if (typeof value === "string" && value.trim()) {
@@ -206,6 +214,7 @@ const manifestFromSigil = async (opts: {
   const svgHash = await hashBytes(svgBytes);
   const pngHash = await hashBytes(new Uint8Array(await opts.pngBlob.arrayBuffer()));
 
+  const sigilPayload = safeJsonLike(payload);
   const manifestPayload = {
     manifestVersion: "SM-SIGIL-3",
     filenameBase: opts.filenameBase,
@@ -216,10 +225,14 @@ const manifestFromSigil = async (opts: {
     zkPoseidonHash: typeof payload.zkPoseidonHash === "string" ? payload.zkPoseidonHash : null,
     zkPublicInputs: Array.isArray(payload.zkPublicInputs) ? payload.zkPublicInputs : null,
     proofHints: isRecord(payload.proofHints) ? payload.proofHints : null,
-    sigilPayload: payload,
+    sigilPayload,
   };
 
-  const manifestHash = await hashBytes(canonicalize(toJSONLike(manifestPayload)));
+  const manifestForHash: Record<string, JSONLike> = {
+    ...manifestPayload,
+    sigilPayload: sigilPayload ?? null,
+  };
+  const manifestHash = await hashBytes(canonicalize(manifestForHash));
 
   return { manifestHash, ...manifestPayload };
 };
