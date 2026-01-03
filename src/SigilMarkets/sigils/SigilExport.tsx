@@ -215,6 +215,8 @@ const manifestFromSigil = async (opts: {
   const pngHash = await hashBytes(new Uint8Array(await opts.pngBlob.arrayBuffer()));
 
   const sigilPayload = safeJsonLike(payload);
+  const proofHints = isRecord(payload.proofHints) ? payload.proofHints : null;
+  const proofHintsJson = proofHints ? safeJsonLike(proofHints) : null;
   const manifestPayload = {
     manifestVersion: "SM-SIGIL-3",
     filenameBase: opts.filenameBase,
@@ -224,7 +226,7 @@ const manifestFromSigil = async (opts: {
     pngHash,
     zkPoseidonHash: typeof payload.zkPoseidonHash === "string" ? payload.zkPoseidonHash : null,
     zkPublicInputs: Array.isArray(payload.zkPublicInputs) ? payload.zkPublicInputs : null,
-    proofHints: isRecord(payload.proofHints) ? payload.proofHints : null,
+    proofHints: proofHintsJson,
     sigilPayload,
   };
 
