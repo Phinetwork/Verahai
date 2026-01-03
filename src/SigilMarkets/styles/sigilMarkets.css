@@ -378,25 +378,6 @@ body{
     top: 2px;
     right: 6px;
   }
-  .sm-grid-cat-row{
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-  }
-  .sm-grid-cat-row::-webkit-scrollbar{
-    display: none;
-  }
-  .sm-grid-cat-row .sm-chip-sm{
-    font-size: 11px;
-    padding: 5px 8px;
-  }
-}
-@media (max-width: 360px){
-  .sm-grid-cat-row .sm-chip-sm{
-    font-size: 10px;
-    padding: 4px 7px;
-  }
 }
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css (near .sm-btn) */
 
@@ -1319,6 +1300,30 @@ body{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+@media (max-width: 520px){
+  .sm-grid-cat-row{
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sm-grid-cat-row::-webkit-scrollbar{
+    display: none;
+  }
+  .sm-grid-cat-row .sm-chip-sm{
+    font-size: clamp(10px, 2.8vw, 12px);
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 360px){
+  .sm-grid-cat-row .sm-chip-sm{
+    font-size: clamp(9px, 3.2vw, 11px);
+    padding: 3px 7px;
+  }
 }
 
 .sm-market-sections{
