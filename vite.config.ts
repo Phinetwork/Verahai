@@ -1,10 +1,10 @@
+import { createRequire } from 'node:module';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-async function loadSigilProofHandler() {
-  const mod = await import('./api/proof/sigil.js');
-  return mod.default;
-}
+
+const require = createRequire(import.meta.url);
+const sigilProofHandlerPath = new URL('./api/proof/sigil.js', import.meta.url).pathname;
 
 function sigilProofApi() {
   const handler = async (req: unknown, res: unknown, next: () => void) => {
@@ -23,7 +23,10 @@ function sigilProofApi() {
     }
 
     try {
-      const sigilProofHandler = await loadSigilProofHandler();
+      const sigilProofHandler = require(sigilProofHandlerPath).default as (
+        req: typeof reqAny,
+        res: typeof resAny
+      ) => Promise<void>;
       await sigilProofHandler(reqAny, resAny);
       if (!resAny.writableEnded && typeof next === 'function') next();
     } catch (error) {
@@ -71,6 +74,6 @@ export default defineConfig(({ command }) => ({
         ]
       }
     }),
-    sigilProofApi()
+    ...(command === 'serve' || command === 'preview' ? [sigilProofApi()] : [])
   ]
 }));
