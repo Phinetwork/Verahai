@@ -6,7 +6,7 @@ import type { KaiMoment } from "../../types/marketTypes";
 import type { VaultRecord } from "../../types/vaultTypes";
 import { Card, CardContent } from "../../ui/atoms/Card";
 import { Button } from "../../ui/atoms/Button";
-import { Icon } from "../../ui/atoms/Icon";
+import { PhiIcon } from "../../ui/atoms/PhiIcon";
 import { formatPhiMicro, formatPhiMicroCompact } from "../../utils/format";
 
 export type VaultActionsProps = Readonly<{
@@ -49,14 +49,14 @@ export const VaultActions = (props: VaultActionsProps) => {
       <CardContent>
         <div className="sm-vault-actions-head">
           <div className="sm-vault-actions-title">
-            <Icon name="vault" size={14} tone="gold" /> Actions
+            <PhiIcon size={14} /> Actions
           </div>
           <div className="sm-small">pulse {props.now.pulse}</div>
         </div>
 
         <div className="sm-vault-actions-badges">
           <span className="sm-pill">
-            <Icon name="vault" size={14} tone="dim" /> spendable {spendableLabel}
+            <PhiIcon size={14} /> spendable {spendableLabel}
           </span>
           <span className="sm-pill">
             <Icon name="positions" size={14} tone="dim" /> locked {lockedLabel}

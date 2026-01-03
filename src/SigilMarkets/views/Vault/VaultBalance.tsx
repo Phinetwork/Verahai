@@ -5,7 +5,7 @@ import React, { useMemo } from "react";
 import type { VaultRecord } from "../../types/vaultTypes";
 import type { PhiMicro } from "../../types/marketTypes";
 import { Card, CardContent } from "../../ui/atoms/Card";
-import { Icon } from "../../ui/atoms/Icon";
+import { PhiIcon } from "../../ui/atoms/PhiIcon";
 import { formatPhiMicro, formatPhiMicroCompact } from "../../utils/format";
 
 export type VaultBalanceProps = Readonly<{
@@ -36,7 +36,7 @@ export const VaultBalance = (props: VaultBalanceProps) => {
       <CardContent>
         <div className="sm-vault-bal-head">
           <div className="sm-vault-bal-title">
-            <Icon name="vault" size={14} tone="gold" /> Balance
+            <PhiIcon size={14} /> Balance
           </div>
           <div className="sm-vault-bal-total">{totalLabel}</div>
         </div>

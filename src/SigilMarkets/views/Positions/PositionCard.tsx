@@ -8,7 +8,7 @@ import { useSigilMarketsUi } from "../../state/uiStore";
 import { useMarketById } from "../../state/marketStore";
 import { Card, CardContent } from "../../ui/atoms/Card";
 import { Chip } from "../../ui/atoms/Chip";
-import { Icon } from "../../ui/atoms/Icon";
+import { PhiIcon } from "../../ui/atoms/PhiIcon";
 import { formatPhiMicro, formatSharesMicro } from "../../utils/format";
 
 export type PositionCardProps = Readonly<{
@@ -80,7 +80,7 @@ export const PositionCard = (props: PositionCardProps) => {
             <span className={`sm-pos-side ${p.entry.side === "YES" ? "is-yes" : "is-no"}`}>{p.entry.side}</span>
 
             <span className="sm-pos-mono">
-              <Icon name="vault" size={12} tone="dim" /> {stakeLabel}
+              <PhiIcon size={12} /> {stakeLabel}
             </span>
 
             <span className="sm-pos-mono">

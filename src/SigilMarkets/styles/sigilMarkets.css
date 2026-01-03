@@ -1252,7 +1252,7 @@ body{
   white-space: nowrap;
   line-height: 1.1;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .live-line{
@@ -1268,7 +1268,7 @@ body{
 }
 
 .live-line--kai{
-  font-size: clamp(9px, 1.8vw, 11px);
+  font-size: clamp(8px, 1.6vw, 11px);
   opacity: 0.9;
   letter-spacing: 0.04em;
 }
@@ -1309,7 +1309,7 @@ body{
 }
 
 .live-meta{
-  font-size: clamp(9px, 2vw, 12px);
+  font-size: clamp(8px, 1.6vw, 12px);
   letter-spacing: clamp(0.06em, 0.55vw, 0.12em);
   opacity: 0.86;
 }
@@ -1321,8 +1321,14 @@ body{
 
 .live-meta{
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+}
+
+.sm-phi-icon{
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
 }
 
 .live-meta--pulse{

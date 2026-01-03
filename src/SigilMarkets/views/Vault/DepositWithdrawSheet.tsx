@@ -8,7 +8,7 @@ import type { VaultRecord } from "../../types/vaultTypes";
 import { Sheet } from "../../ui/atoms/Sheet";
 import { Button } from "../../ui/atoms/Button";
 import { Divider } from "../../ui/atoms/Divider";
-import { Icon } from "../../ui/atoms/Icon";
+import { PhiIcon } from "../../ui/atoms/PhiIcon";
 import { parsePhiToMicro, formatPhiMicro } from "../../utils/format";
 import { useVaultActions } from "../../hooks/useVault";
 import { useGlyphBalance } from "../../hooks/useGlyphBalance";
@@ -212,7 +212,7 @@ export const DepositWithdrawSheet = (props: DepositWithdrawSheetProps) => {
             variant="primary"
             onClick={() => void apply()}
             disabled={amt.trim().length === 0 || (props.mode === "deposit" && glyphAvailableMicro === undefined) || proofBusy}
-            leftIcon={<Icon name="vault" size={14} tone="gold" />}
+            leftIcon={<PhiIcon size={14} />}
           >
             Apply
           </Button>
