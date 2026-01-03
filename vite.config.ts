@@ -47,6 +47,11 @@ function sigilProofApi() {
 }
 
 export default defineConfig(({ command }) => ({
+  resolve: {
+    alias: {
+      html2canvas: '/src/shims/html2canvas.ts'
+    }
+  },
   server: USE_EXTERNAL_PROOF_API
     ? {
         proxy: {
