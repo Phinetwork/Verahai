@@ -80,7 +80,7 @@ export const MarketGrid = (props: MarketGridProps) => {
       availableCategories.forEach((cat) => next.add(cat));
     }
     setOpenCategories(next);
-  }, [openKey, availableCategories, filters.categories]);
+  }, [openKey]);
 
   const toggleCategory = (cat: MarketCategory): void => {
     setOpenCategories((prev) => {
