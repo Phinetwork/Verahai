@@ -37,8 +37,8 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
   const [svgText, setSvgText] = useState<string | null>(null);
 
   const subtitle = useMemo(() => {
-    if (!hasSigil) return "Mint your Position Sigil first. Export downloads both SVG + PNG.";
-    return "Export your Position Sigil as SVG + PNG (portable proof with embedded metadata).";
+    if (!hasSigil) return "Mint your Position Sigil first. Export downloads a ZIP with SVG, PNG, and manifest.";
+    return "Export your Position Sigil as a ZIP (SVG + PNG + manifest for offline verification).";
   }, [hasSigil]);
 
   const filenameBase = useMemo(() => {
@@ -102,7 +102,13 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
           </Button>
 
           {hasSigil ? (
-            <SigilExportButton filenameBase={filenameBase} svgUrl={p.sigil?.url} svgText={svgText ?? undefined} />
+            <SigilExportButton
+              filenameBase={filenameBase}
+              svgUrl={p.sigil?.url}
+              svgText={svgText ?? undefined}
+              pngSizePx={2048}
+              mode="zip"
+            />
           ) : (
             <Button
               variant="primary"

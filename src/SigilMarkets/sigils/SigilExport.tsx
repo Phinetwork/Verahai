@@ -25,6 +25,7 @@ import { computeZkPoseidonHash } from "../../utils/kai";
 import { buildProofHints, generateZkProofFromPoseidonHash } from "../../utils/zkProof";
 import type { SigilProofHints } from "../../types/sigil";
 import { loadJSZip } from "../../pages/SigilPage/utils";
+import { momentFromPulse, momentFromUTC } from "../../utils/kai_pulse";
 
 type ExportResult = Readonly<{ ok: true } | { ok: false; error: string }>;
 
@@ -156,10 +157,54 @@ const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<stri
 
 const hashBytes = async (bytes: Uint8Array): Promise<string> => blake3Hex(bytes);
 
+const safeJsonLike = (value: unknown): JSONLike | null => {
+  try {
+    return toJSONLike(value);
+  } catch {
+    return null;
+  }
+};
+
+const parsePulseNumber = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.floor(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return Math.floor(parsed);
+  }
+  return null;
+};
+
+const pulseMomentFromPulse = (pulse: number | null) => {
+  if (pulse == null) return null;
+  const moment = momentFromPulse(pulse);
+  return {
+    pulse: moment.pulse,
+    beat: moment.beat,
+    stepIndex: moment.stepIndex,
+  };
+};
+
+const collectPulseData = (payload: Record<string, unknown>, exportPulse?: number | null) => {
+  const openedAt = isRecord(payload.openedAt) ? payload.openedAt : null;
+  const openedPulse = openedAt ? parsePulseNumber(openedAt.pulse) : null;
+
+  const resolution = isRecord(payload.resolution) ? payload.resolution : null;
+  const resolvedPulse = resolution ? parsePulseNumber(resolution.resolvedPulse) : null;
+
+  const exportPulseResolved = exportPulse ?? parsePulseNumber(payload.exportedAtPulse);
+
+  return {
+    openedAt: pulseMomentFromPulse(openedPulse),
+    resolvedAt: pulseMomentFromPulse(resolvedPulse),
+    exportedAt: pulseMomentFromPulse(exportPulseResolved),
+  };
+};
+
 const manifestFromSigil = async (opts: {
   svgText: string;
   pngBlob: Blob;
   filenameBase: string;
+  exportPulse?: number | null;
 }) => {
   const payload = extractSigilPayload(opts.svgText);
   if (!payload) throw new Error("Sigil metadata missing; cannot build manifest");
@@ -169,19 +214,25 @@ const manifestFromSigil = async (opts: {
   const svgHash = await hashBytes(svgBytes);
   const pngHash = await hashBytes(new Uint8Array(await opts.pngBlob.arrayBuffer()));
 
+  const sigilPayload = safeJsonLike(payload);
   const manifestPayload = {
-    manifestVersion: "SM-SIGIL-1",
-    createdAt: new Date().toISOString(),
+    manifestVersion: "SM-SIGIL-3",
     filenameBase: opts.filenameBase,
+    pulseData: collectPulseData(payload, opts.exportPulse),
     payloadHash,
     svgHash,
     pngHash,
     zkPoseidonHash: typeof payload.zkPoseidonHash === "string" ? payload.zkPoseidonHash : null,
     zkPublicInputs: Array.isArray(payload.zkPublicInputs) ? payload.zkPublicInputs : null,
     proofHints: isRecord(payload.proofHints) ? payload.proofHints : null,
+    sigilPayload,
   };
 
-  const manifestHash = await hashBytes(canonicalize(toJSONLike(manifestPayload)));
+  const manifestForHash: Record<string, JSONLike> = {
+    ...manifestPayload,
+    sigilPayload: sigilPayload ?? null,
+  };
+  const manifestHash = await hashBytes(canonicalize(manifestForHash));
 
   return { manifestHash, ...manifestPayload };
 };
@@ -373,10 +424,12 @@ export const exportSigilZip = async (opts: SigilZipOptions): Promise<ExportResul
     const svgWithProof = await ensureZkProofInSvg(svgText);
     const size = Math.max(256, Math.min(4096, Math.floor(opts.pngSizePx ?? 1024)));
     const png = await svgToPngBlob(svgWithProof, size);
+    const exportMoment = momentFromUTC(new Date());
     const manifest = await manifestFromSigil({
       svgText: svgWithProof,
       pngBlob: png,
       filenameBase: base,
+      exportPulse: exportMoment.pulse,
     });
 
     const JSZip = await loadJSZip();
@@ -401,6 +454,7 @@ export type SigilExportButtonProps = Readonly<{
   svgText?: string;
   svgUrl?: string;
   pngSizePx?: number;
+  mode?: "pair" | "zip";
   className?: string;
 }>;
 
@@ -409,22 +463,35 @@ export const SigilExportButton = (props: SigilExportButtonProps) => {
   const [busy, setBusy] = useState(false);
 
   const can = useMemo(() => !!props.svgText || !!props.svgUrl, [props.svgText, props.svgUrl]);
+  const mode = props.mode ?? "pair";
 
   const run = useCallback(async () => {
     if (!can) return;
     setBusy(true);
-    const res = await exportSigil({
-      filenameBase: props.filenameBase,
-      svgText: props.svgText,
-      svgUrl: props.svgUrl,
-      pngSizePx: props.pngSizePx ?? 1024,
-      exportSvg: true,
-      exportPng: true,
-    });
+    const res =
+      mode === "zip"
+        ? await exportSigilZip({
+            filenameBase: props.filenameBase,
+            svgText: props.svgText,
+            svgUrl: props.svgUrl,
+            pngSizePx: props.pngSizePx ?? 1400,
+          })
+        : await exportSigil({
+            filenameBase: props.filenameBase,
+            svgText: props.svgText,
+            svgUrl: props.svgUrl,
+            pngSizePx: props.pngSizePx ?? 1024,
+            exportSvg: true,
+            exportPng: true,
+          });
     if (!res.ok) ui.toast("error", "Export failed", res.error);
-    else ui.toast("success", "Exported", "SVG + PNG downloaded");
+    else {
+      const detail =
+        mode === "zip" ? "ZIP includes SVG + PNG + manifest.json" : "SVG + PNG downloaded";
+      ui.toast("success", "Exported", detail);
+    }
     setBusy(false);
-  }, [can, props.filenameBase, props.pngSizePx, props.svgText, props.svgUrl, ui]);
+  }, [can, mode, props.filenameBase, props.pngSizePx, props.svgText, props.svgUrl, ui]);
 
   return (
     <Button
@@ -435,7 +502,7 @@ export const SigilExportButton = (props: SigilExportButtonProps) => {
       leftIcon={<Icon name="export" size={14} tone="dim" />}
       className={props.className}
     >
-      Export SVG + PNG
+      {mode === "zip" ? "Export ZIP" : "Export SVG + PNG"}
     </Button>
   );
 };
