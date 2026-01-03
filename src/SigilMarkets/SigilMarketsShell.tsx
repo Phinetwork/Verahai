@@ -16,6 +16,7 @@ import { SigilMarketsRoutes } from "./SigilMarketsRoutes";
 
 import { usePulseTicker } from "./hooks/usePulseTicker";
 import { useSfx } from "./hooks/useSfx";
+import { useVisualViewportSize } from "../hooks/useVisualViewportSize";
 
 import { defaultMarketApiConfig, fetchMarkets, type SigilMarketsMarketApiConfig } from "./api/marketApi";
 import type { KaiMoment, KaiPulse, Market, MarketOutcome } from "./types/marketTypes";
@@ -253,9 +254,14 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
 
 export const SigilMarketsShell = (props: SigilMarketsShellProps) => {
   const windowScroll = props.windowScroll ?? false;
+  const vvSize = useVisualViewportSize();
+  const rootStyle = useMemo<React.CSSProperties>(() => {
+    const height = vvSize.height > 0 ? `${vvSize.height}px` : undefined;
+    return { ...props.style, ["--sm-vh-px"]: height };
+  }, [props.style, vvSize.height]);
 
   return (
-    <div className={props.className} style={props.style} data-sm-root="1">
+    <div className={props.className} style={rootStyle} data-sm-root="1">
       <SigilMarketsUiProvider>
         <SigilMarketsMarketProvider>
           <SigilMarketsVaultProvider>

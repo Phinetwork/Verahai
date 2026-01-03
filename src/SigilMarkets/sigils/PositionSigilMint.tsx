@@ -986,7 +986,6 @@ const buildSvg = async (
   const frac = mm ? mm[2] : "000000";
 
   // Amount layout (currency-lock): deterministic left edge + Φ prefix
-  const AMT_WHOLE_PX = 96;
   const AMT_FRAC_PX = 58;
 
   // Monospace glyph width ≈ 0.60em (tuned for SFMono/Menlo/Consolas)
