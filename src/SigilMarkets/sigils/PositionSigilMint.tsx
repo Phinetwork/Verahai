@@ -985,27 +985,30 @@ const buildSvg = async (
   const whole = mm ? mm[1] : stakePhiDec6;
   const frac = mm ? mm[2] : "000000";
 
-// Amount layout (currency-lock): deterministic left edge + intentional Φ overlap
-const AMT_WHOLE_PX = 96;
-const AMT_FRAC_PX = 58;
+  // Amount layout (currency-lock): deterministic left edge + Φ prefix
+  const AMT_WHOLE_PX = 96;
+  const AMT_FRAC_PX = 58;
 
-// Monospace glyph width ≈ 0.60em (tuned for SFMono/Menlo/Consolas)
-const MONO_EM = 0.60;
+  // Monospace glyph width ≈ 0.60em (tuned for SFMono/Menlo/Consolas)
+  const MONO_EM = 0.60;
 
-const wholeW = whole.length * AMT_WHOLE_PX * MONO_EM;
+  const isZeroWhole = whole === "0";
+  const wholeFontSize = isZeroWhole ? 72 : 96;
+  const wholeW = whole.length * wholeFontSize * MONO_EM;
 const fracW = (1 + frac.length) * AMT_FRAC_PX * MONO_EM; // "." + frac digits
 const amountW = wholeW + fracW;
 
-// Left edge of the full amount block (so Φ can anchor to it)
-const amountLeftX = 500 - amountW / 2;
+  // Left edge of the full amount block (so Φ can anchor to it)
+  const amountLeftX = 500 - amountW / 2;
 
-// Φ logo sizing/placement: overlaps into first digit like real currency
-const phiSize = 54;
-const phiX = amountLeftX - phiSize * 0.42; // overlap amount start
-const phiY = 500 - phiSize / 2 - 8;
+  // Φ logo sizing/placement: sits beside amount like "$"
+  const phiSize = isZeroWhole ? 44 : 48;
+  const phiGap = 6;
+  const phiX = amountLeftX - phiSize - phiGap;
+  const phiY = 494 - phiSize / 2;
 
-// Tighten the join between whole and "." (negative dx pulls "." left)
-const fracDx = -Math.max(8, Math.round(AMT_FRAC_PX * 0.18));
+  // Tighten the join between whole and "." (negative dx pulls "." left)
+  const fracDx = -Math.max(isZeroWhole ? 12 : 8, Math.round(AMT_FRAC_PX * (isZeroWhole ? 0.22 : 0.18)));
 
 
   // Center ring microtext (official feel)
@@ -1319,7 +1322,7 @@ const fracDx = -Math.max(8, Math.round(AMT_FRAC_PX * 0.18));
         letter-spacing="0.25"
         style="paint-order: stroke; stroke: rgba(0,0,0,0.85); stroke-width: 5.0; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       >
-        <tspan font-size="96">${esc(whole)}</tspan>
+        <tspan font-size="${wholeFontSize}">${esc(whole)}</tspan>
        <tspan font-size="58" dx="${fracDx}">.${esc(frac)}</tspan>
       </text>
 
@@ -1334,7 +1337,7 @@ const fracDx = -Math.max(8, Math.round(AMT_FRAC_PX * 0.18));
         letter-spacing="1.1"
         style="paint-order: stroke; stroke: rgba(0,0,0,0.78); stroke-width: 2.6; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       >
-        <tspan font-size="96">${esc(whole)}</tspan>
+        <tspan font-size="${wholeFontSize}">${esc(whole)}</tspan>
         <tspan font-size="58" dx="${fracDx}">.${esc(frac)}</tspan>
       </text>
 
@@ -1349,7 +1352,7 @@ const fracDx = -Math.max(8, Math.round(AMT_FRAC_PX * 0.18));
         letter-spacing="1.1"
         style="paint-order: stroke; stroke: rgba(255,255,255,0.35); stroke-width: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       >
-        <tspan font-size="96">${esc(whole)}</tspan>
+        <tspan font-size="${wholeFontSize}">${esc(whole)}</tspan>
        <tspan font-size="58" dx="${fracDx}">.${esc(frac)}</tspan>
       </text>
     </g>
