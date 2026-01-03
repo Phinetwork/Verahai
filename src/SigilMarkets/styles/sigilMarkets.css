@@ -996,16 +996,28 @@ body{
 }
 
 @media (max-width: 720px){
+  .sm-topbar-sub{
+    font-size: clamp(8px, 2.4vw, 8.4px);
+  }
+
   .sm-topbar-sub--title{
     display: none;
   }
 
   .sm-topbar-sub--seal{
     display: block;
+    max-width: 140px;
   }
 
   .sm-topbar-seal-wrap{
     gap: 4px;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px){
+  .sm-topbar-sub--seal{
+    display: none;
   }
 }
 
