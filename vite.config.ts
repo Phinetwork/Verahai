@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import sigilProofHandler from './api/proof/sigil.js';
 
+const USE_EXTERNAL_PROOF_API = process.env.SIGIL_PROOF_API === 'external';
+const PROOF_API_TARGET = process.env.SIGIL_PROOF_API_URL ?? 'http://localhost:8787';
+
 function sigilProofApi() {
   const handler = async (req: unknown, res: unknown, next: () => void) => {
     const reqAny = req as { method?: string };
@@ -44,6 +47,20 @@ function sigilProofApi() {
 }
 
 export default defineConfig(({ command }) => ({
+  server: USE_EXTERNAL_PROOF_API
+    ? {
+        proxy: {
+          '/api/proof/sigil': PROOF_API_TARGET
+        }
+      }
+    : undefined,
+  preview: USE_EXTERNAL_PROOF_API
+    ? {
+        proxy: {
+          '/api/proof/sigil': PROOF_API_TARGET
+        }
+      }
+    : undefined,
   plugins: [
     react(),
     VitePWA({
@@ -67,6 +84,6 @@ export default defineConfig(({ command }) => ({
         ]
       }
     }),
-    ...(command === 'serve' || command === 'preview' ? [sigilProofApi()] : [])
+    ...(USE_EXTERNAL_PROOF_API || !(command === 'serve' || command === 'preview') ? [] : [sigilProofApi()])
   ]
 }));

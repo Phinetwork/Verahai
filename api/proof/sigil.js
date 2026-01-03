@@ -1,9 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { groth16 } from "snarkjs";
 
-const ROOT_DIR = process.cwd();
-const ARTIFACTS_DIR = path.join(ROOT_DIR, "public", "zk");
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const ARTIFACTS_DIR = path.resolve(MODULE_DIR, "../../public/zk");
 const WASM_PATH = path.join(ARTIFACTS_DIR, "sigil_proof.wasm");
 const ZKEY_PATH = path.join(ARTIFACTS_DIR, "sigil_proof_final.zkey");
 const VKEY_PATH = path.join(ARTIFACTS_DIR, "verification_key.json");
