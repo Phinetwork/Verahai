@@ -25,7 +25,7 @@
  * - ✅ No styled opening: overlay/card explicitly disable animation + transition via inline style
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import "./EternalKlock.css";
 
@@ -746,8 +746,10 @@ export const EternalKlock: React.FC = () => {
   // 🟢 Sovereign Solar (no SunCalc)
   const solarHook = useSovereignSolarClock();
 
-  // Portal target (no state, no effect)
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
+  // Portal target (match surrounding popover when present)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(
+    () => (typeof document !== "undefined" ? document.body : null),
+  );
 
   // Refs (DOM)
   const detailRef = useRef<HTMLDivElement | null>(null);
@@ -755,6 +757,19 @@ export const EternalKlock: React.FC = () => {
   const toggleRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (typeof document === "undefined") return;
+    const host = containerRef.current;
+    if (!host) return;
+    const popoverHost = host.closest(".klock-pop");
+    const panelHost = host.closest(".klock-pop__panel");
+    const resolved =
+      (popoverHost instanceof HTMLElement && popoverHost) ||
+      (panelHost instanceof HTMLElement && panelHost) ||
+      document.body;
+    setPortalTarget(resolved);
+  }, []);
 
   // Anti-sleep + schedulers + solar sync
   const wakeRef = useRef<WakeLockSentinelLike | null>(null);
