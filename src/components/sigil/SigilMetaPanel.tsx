@@ -2,7 +2,6 @@
 import type * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { chakraDayToLabel, type SigilPayload } from "../../types/sigil";
-import { currency, usd } from "../valuation/display";
 import { useFastPress } from "../../hooks/useFastPress";
 
 type PressHandlers = {
@@ -30,8 +29,6 @@ type Props = {
   verified: "checking" | "ok" | "mismatch" | "notfound" | "error";
   showSkeleton: boolean;
   showError: boolean;
-  balancePhi: number;
-  balanceUsd: number;
   stage: React.ReactNode;
 };
 
@@ -136,8 +133,6 @@ export default function SigilMetaPanel({
   remembered,
   copyLinkPress,
   sharePress,
-  balancePhi,
-  balanceUsd,
   stage,
 }: Props) {
   const navigate = useNavigate();
@@ -207,20 +202,6 @@ export default function SigilMetaPanel({
             <div className="epulse-head">
               <div className="epulse-label">Kai ☤</div>
               <div className="epulse-value">{payload.pulse.toLocaleString()}</div>
-            </div>
-            <div className="epulse-balance" aria-label="User balance">
-              <span className="epulse-balance__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    fill="currentColor"
-                    d="M12 12a4.5 4.5 0 1 0-4.5-4.5A4.5 4.5 0 0 0 12 12Zm0 2.5c-4.1 0-7.5 2.2-7.5 4.9v1.1c0 .6.4 1 1 1h13c.6 0 1-.4 1-1v-1.1c0-2.7-3.4-4.9-7.5-4.9Z"
-                  />
-                </svg>
-              </span>
-              <span className="epulse-balance__text">
-                {currency(Number.isFinite(balancePhi) ? balancePhi : 0)} Φ •{" "}
-                {usd(Number.isFinite(balanceUsd) ? balanceUsd : 0)} USD
-              </span>
             </div>
           </div>
         </div>
