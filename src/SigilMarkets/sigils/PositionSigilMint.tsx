@@ -25,7 +25,7 @@ import { Button } from "../ui/atoms/Button";
 import { Icon } from "../ui/atoms/Icon";
 import { useSigilMarketsPositionStore } from "../state/positionStore";
 import { useSigilMarketsUi } from "../state/uiStore";
-import { usdPerPhiAtMint, usdValueFromPhi } from "../../utils/phi-issuance";
+import { DEFAULT_ISSUANCE_POLICY, quotePhiForUsd, usdValueFromPhi } from "../../utils/phi-issuance";
 import type { SigilMetadataLite } from "../../utils/valuation";
 /** local compat brand */
 type MicroDecimalString = string & { readonly __brand: "MicroDecimalString" };
@@ -206,6 +206,8 @@ const formatUsd2 = (usd: number): string => {
   if (!Number.isFinite(usd)) return "0.00";
   return usd.toFixed(2);
 };
+
+const FALLBACK_META = { ip: { expectedCashflowPhi: [] } } as unknown as SigilMetadataLite;
 
 
 
@@ -831,63 +833,49 @@ const buildSvg = async (
   const toneGhost = payload.side === "YES" ? "rgba(185,252,255,0.10)" : "rgba(190,170,255,0.10)";
 
   // Real valuation (STRICT)
-// Value math (REAL, deterministic)
-// stakePhiDec6 already computed from lockedStakeMicro
-const stakePhiDec6 = microDecToPhiDec6(String(payload.lockedStakeMicro));
-const stakePhiNum = phiDec6ToNumber(stakePhiDec6);
+  // Value math (REAL, deterministic)
+  // stakePhiDec6 already computed from lockedStakeMicro
+  const stakePhiDec6 = microDecToPhiDec6(String(payload.lockedStakeMicro));
+  const stakePhiNum = phiDec6ToNumber(stakePhiDec6);
 
-// Minimal meta for issuance surface (deterministic, no placeholders)
-const mintPulse = payload.openedAt.pulse;
-const issuanceMeta: SigilMetadataLite = {
-  kaiPulse: mintPulse,
-  pulse: mintPulse,
-  beat: payload.openedAt.beat,
-  stepIndex: payload.openedAt.stepIndex,
-  stepsPerBeat: 44,
-  seriesSize: 1,
-  quality: "med",
-  creatorVerified: true,
-  creatorRep: 0.5,
-};
+  const mintPulse = payload.openedAt.pulse;
+  const rateQuote = quotePhiForUsd(
+    {
+      meta: FALLBACK_META,
+      nowPulse: Math.floor(mintPulse),
+      usd: 100,
+      currentStreakDays: 0,
+      lifetimeUsdSoFar: 0,
+      plannedHoldBeats: 0,
+    },
+    DEFAULT_ISSUANCE_POLICY,
+  );
 
-// If you have marketPhi + marketUsd available on pos/entry, pass them here.
-// Otherwise issuance will compute deterministically.
-const marketPhi =
-  pos && (pos as unknown as Record<string, unknown>)["marketPhi"] != null
-    ? Number((pos as unknown as Record<string, unknown>)["marketPhi"])
-    : undefined;
+  const usdPerPhi = rateQuote.usdPerPhi ?? 0;
+  const phiPerUsd = rateQuote.phiPerUsd ?? 0;
+  if (!Number.isFinite(usdPerPhi) || usdPerPhi <= 0 || !Number.isFinite(phiPerUsd) || phiPerUsd <= 0) {
+    throw new Error("Issuance produced invalid USD/Φ rate.");
+  }
 
-const marketUsd =
-  pos && (pos as unknown as Record<string, unknown>)["marketUsd"] != null
-    ? Number((pos as unknown as Record<string, unknown>)["marketUsd"])
-    : undefined;
-
-const rate = usdPerPhiAtMint({
-  nowPulse: mintPulse,
-  meta: issuanceMeta,
-  marketPhi,
-  marketUsd,
-});
-
-const stakeUsdNum = usdValueFromPhi(stakePhiNum, rate.usdPerPhi);
-const stakeUsd2 = formatUsd2(stakeUsdNum);
+  const stakeUsdNum = usdValueFromPhi(stakePhiNum, usdPerPhi);
+  const stakeUsd2 = formatUsd2(stakeUsdNum);
 
 
   // Embed φ logo from public/phi.svg
   const phiLogoUrl = await getPhiLogoDataUrlAsync();
 
   // Machine metadata
-const payloadForMeta: Record<string, unknown> = { ...(payload as unknown as Record<string, unknown>) };
-payloadForMeta["canonicalHash"] = seal.canonicalHashHex;     // compatibility for your verifier
-payloadForMeta["canonicalHashHex"] = seal.canonicalHashHex;
-payloadForMeta["zkOk"] = seal.zkOk;
-payloadForMeta["zkPoseidonHashDec"] = seal.zkPoseidonHashDec;
-payloadForMeta["usdPerPhi"] = rate.usdPerPhi;
-payloadForMeta["phiPerUsd"] = rate.phiPerUsd;
-payloadForMeta["usdSource"] = rate.source;
-payloadForMeta["wagerUsd"] = stakeUsd2;
+  const payloadForMeta: Record<string, unknown> = { ...(payload as unknown as Record<string, unknown>) };
+  payloadForMeta["canonicalHash"] = seal.canonicalHashHex; // compatibility for your verifier
+  payloadForMeta["canonicalHashHex"] = seal.canonicalHashHex;
+  payloadForMeta["zkOk"] = seal.zkOk;
+  payloadForMeta["zkPoseidonHashDec"] = seal.zkPoseidonHashDec;
+  payloadForMeta["usdPerPhi"] = usdPerPhi;
+  payloadForMeta["phiPerUsd"] = phiPerUsd;
+  payloadForMeta["usdSource"] = "issuance";
+  payloadForMeta["wagerUsd"] = stakeUsd2;
 
-const payloadJsonRaw = JSON.stringify(payloadForMeta);
+  const payloadJsonRaw = JSON.stringify(payloadForMeta);
 
   const sealJsonRaw = JSON.stringify(seal);
 
