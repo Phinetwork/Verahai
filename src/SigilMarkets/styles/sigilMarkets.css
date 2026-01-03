@@ -964,6 +964,13 @@ body{
   text-overflow: ellipsis;
 }
 
+.sm-topbar-sub--seal{
+  display: none;
+  text-align: center;
+  max-width: 160px;
+  white-space: normal;
+}
+
 .sm-topbar-right{
   display: inline-flex;
   align-items: center;
@@ -986,6 +993,20 @@ body{
   gap: 2px;
   justify-items: center;
   min-width: 0;
+}
+
+@media (max-width: 720px){
+  .sm-topbar-sub--title{
+    display: none;
+  }
+
+  .sm-topbar-sub--seal{
+    display: block;
+  }
+
+  .sm-topbar-seal-wrap{
+    gap: 4px;
+  }
 }
 
 .sm-topbar-glyph{

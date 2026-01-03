@@ -464,7 +464,7 @@ export const TopBar = (props: TopBarProps) => {
               <div className="sm-topbar-title">
                 <span className="sm-topbar-title-core">{props.title}</span>
               </div>
-              {props.subtitle ? <div className="sm-topbar-sub">{props.subtitle}</div> : null}
+              {props.subtitle ? <div className="sm-topbar-sub sm-topbar-sub--title">{props.subtitle}</div> : null}
               <div className="sm-topbar-glyph sm-topbar-glyph--inline" aria-label="Glyph balance">
                 <div className="sm-topbar-glyph-values">
                   <span className="sm-topbar-glyph-phi">
@@ -492,6 +492,7 @@ export const TopBar = (props: TopBarProps) => {
               >
                 Seal
               </Chip>
+              {props.subtitle ? <span className="sm-topbar-sub sm-topbar-sub--seal">{props.subtitle}</span> : null}
               {props.rightSubtitle ? <span className="sm-topbar-right-sub">{props.rightSubtitle}</span> : null}
             </div>
 
