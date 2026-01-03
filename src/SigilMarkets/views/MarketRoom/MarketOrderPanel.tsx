@@ -1,7 +1,7 @@
 // SigilMarkets/views/MarketRoom/MarketOrderPanel.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { KaiMoment, Market, MarketQuote, MarketQuoteRequest, MarketSide, PhiMicro, PriceMicro } from "../../types/marketTypes";
 import { ONE_PHI_MICRO } from "../../types/marketTypes";
 
@@ -139,6 +139,12 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
   const confirmLockAndOpenPosition = async (): Promise<void> => {
     if (!activeVault) return;
     if (!quote) return;
+    if (marketStatus !== "open") {
+      setConfirmOpen(false);
+      ui.toast("error", "Market closed", "Trading is no longer open for this market.", { atPulse: props.now.pulse });
+      sfx.play("error");
+      return;
+    }
 
     setLoading(true);
 
@@ -214,6 +220,12 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    if (marketStatus === "open") return;
+    setConfirmOpen(false);
+  }, [confirmOpen, marketStatus]);
 
   return (
     <div className="sm-order" data-sm="order">

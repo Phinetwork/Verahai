@@ -183,12 +183,6 @@ type PerfClock = { now: () => number; timeOrigin: number };
 
 type SignedPulseSnapshot = { pulse?: number; microPulses?: bigint; capturedMs?: number };
 
-const DEFAULT_SIGNED_SNAPSHOT: SignedPulseSnapshot = {
-  pulse: 0,
-  microPulses: 0n,
-  capturedMs: GENESIS_TS,
-};
-
 const resolvePerfClock = (): PerfClock => {
   const perf = globalThis.performance;
   const now =
@@ -246,7 +240,7 @@ const readSignedSnapshot = (): SignedPulseSnapshot | null => {
   if (snap && (typeof snap.pulse === "number" || typeof snap.microPulses === "bigint")) {
     return snap;
   }
-  return DEFAULT_SIGNED_SNAPSHOT;
+  return null;
 };
 
 export type KaiTimeSourceOptions = {
