@@ -221,10 +221,11 @@ const readOverridePulse = (): number | null => {
     if (parsed !== null) return parsed;
   }
 
-  const envCandidate =
-    typeof process !== "undefined" && process?.env
-      ? process.env.KAI_OVERRIDE_PULSE ?? process.env.OVERRIDE_PULSE
+  const processEnv =
+    typeof globalThis !== "undefined"
+      ? (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
       : undefined;
+  const envCandidate = processEnv?.KAI_OVERRIDE_PULSE ?? processEnv?.OVERRIDE_PULSE;
   const metaEnv =
     typeof import.meta !== "undefined"
       ? (import.meta as { env?: Record<string, string | undefined> }).env

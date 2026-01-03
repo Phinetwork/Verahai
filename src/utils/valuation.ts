@@ -1444,9 +1444,28 @@ export function renderSigilWav(
 function writeStr(a: Uint8Array, off: number, s: string) { for (let i=0;i<s.length;i++) a[off+i] = s.charCodeAt(i); }
 function writeU16LE(a: Uint8Array, off: number, v: number) { a[off] = v & 0xff; a[off+1] = (v>>8)&0xff; }
 function writeU32LE(a: Uint8Array, off: number, v: number) { a[off] = v & 0xff; a[off+1] = (v>>8)&0xff; a[off+2] = (v>>16)&0xff; a[off+3] = (v>>24)&0xff; }
-function base64FromBytes(u8: Uint8Array): string {
-  let s = ""; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
-  return typeof btoa === "function" ? btoa(s) : Buffer.from(s, "binary").toString("base64");
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function base64FromBytes(bytes: Uint8Array): string {
+  let out = "";
+  const len = bytes.length;
+  let i = 0;
+  for (; i + 2 < len; i += 3) {
+    const n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+    out +=
+      B64[(n >>> 18) & 63] +
+      B64[(n >>> 12) & 63] +
+      B64[(n >>> 6) & 63] +
+      B64[n & 63];
+  }
+  const remain = len - i;
+  if (remain === 1) {
+    const n = bytes[i] << 16;
+    out += B64[(n >>> 18) & 63] + B64[(n >>> 12) & 63] + "==";
+  } else if (remain === 2) {
+    const n = (bytes[i] << 16) | (bytes[i + 1] << 8);
+    out += B64[(n >>> 18) & 63] + B64[(n >>> 12) & 63] + B64[(n >>> 6) & 63] + "=";
+  }
+  return out;
 }
 
 /* ------------------------- KAIROS SPIRAL VISUALIZER ------------------------- */
