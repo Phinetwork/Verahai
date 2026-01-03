@@ -834,6 +834,30 @@ body{
   z-index: 60;
   margin-bottom: var(--sm-pad);
   padding-top: env(safe-area-inset-top);
+  isolation: isolate;
+}
+
+.sm-topbar::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255,255,255,0.18), transparent 55%),
+    radial-gradient(circle at 88% 30%, rgba(120,255,200,0.12), transparent 60%),
+    linear-gradient(135deg, rgba(0,0,0,0.05), rgba(255,255,255,0.06));
+  opacity: 0.9;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.sm-topbar::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .sm-topbar-row{
@@ -843,6 +867,8 @@ body{
   justify-content: space-between;
   gap: 12px;
   padding: 10px var(--sm-pad);
+  position: relative;
+  z-index: 1;
 }
 
 .sm-topbar-left{
@@ -861,6 +887,18 @@ body{
   height: 40px;
   display: grid;
   place-items: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.sm-topbar-back:hover{
+  border-color: rgba(255,255,255,0.24);
+  box-shadow: 0 14px 26px rgba(0,0,0,0.22);
+  transform: translateY(-1px);
+}
+
+.sm-topbar-back:active{
+  transform: translateY(0);
 }
 
 .sm-topbar-titles{
@@ -868,12 +906,41 @@ body{
 }
 
 .sm-topbar-title{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 900;
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sm-topbar-title-core{
+  position: relative;
+  background: linear-gradient(120deg, #ffffff 10%, rgba(191,252,255,0.9) 48%, #ffd27a 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 12px rgba(191,252,255,0.45);
+  animation: sm-title-glow 4.6s ease-in-out infinite;
+}
+
+.sm-topbar-title-mark{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.86);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(0,0,0,0.1));
+  box-shadow: inset 0 0 12px rgba(255,255,255,0.1), 0 0 12px rgba(191,252,255,0.22);
+  text-transform: uppercase;
 }
 
 .sm-topbar-sub{
@@ -887,19 +954,37 @@ body{
 .sm-topbar-right{
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .sm-topbar-kai{
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: linear-gradient(135deg, rgba(12,20,30,0.52), rgba(255,255,255,0.06));
+  color: rgba(255,255,255,0.86);
+  font-size: 12px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.72);
-  font-size: 12px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.18), inset 0 0 12px rgba(255,255,255,0.06);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.sm-topbar-kai:hover{
+  border-color: rgba(191,252,255,0.38);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.24), inset 0 0 12px rgba(191,252,255,0.12);
+  transform: translateY(-1px);
+}
+
+.sm-topbar-kai:active{
+  transform: translateY(0) scale(0.98);
+}
+
+.sm-topbar-kai:focus-visible{
+  outline: 2px solid rgba(191,252,255,0.5);
+  outline-offset: 2px;
 }
 
 .sm-topbar-kai-dot{
@@ -908,6 +993,50 @@ body{
   border-radius: 999px;
   background: rgba(191,252,255,0.72);
   box-shadow: 0 0 0 6px rgba(191,252,255,0.10);
+  animation: sm-kai-pulse 2.8s ease-in-out infinite;
+}
+
+.sm-topbar-kai-text{
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sm-topbar-kai-tag{
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.56);
+}
+
+.sm-topbar-seal{
+  box-shadow: 0 12px 26px rgba(0,0,0,0.28), 0 0 18px rgba(255,210,122,0.25);
+  border: 1px solid rgba(255,210,122,0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sm-topbar-seal:hover{
+  box-shadow: 0 14px 30px rgba(0,0,0,0.32), 0 0 22px rgba(255,210,122,0.3);
+}
+
+@keyframes sm-kai-pulse{
+  0%{ box-shadow: 0 0 0 4px rgba(191,252,255,0.12); }
+  50%{ box-shadow: 0 0 0 10px rgba(191,252,255,0.08); }
+  100%{ box-shadow: 0 0 0 4px rgba(191,252,255,0.12); }
+}
+
+@keyframes sm-title-glow{
+  0%{ filter: drop-shadow(0 0 6px rgba(191,252,255,0.3)); }
+  50%{ filter: drop-shadow(0 0 12px rgba(255,210,122,0.45)); }
+  100%{ filter: drop-shadow(0 0 6px rgba(191,252,255,0.3)); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .sm-topbar-title-core,
+  .sm-topbar-kai-dot{
+    animation: none;
+  }
+}
 }
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css */
 

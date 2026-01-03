@@ -1,7 +1,7 @@
 // SigilMarkets/ui/chrome/TopBar.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import type { KaiMoment } from "../../types/marketTypes";
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useStickyHeader } from "../../hooks/useStickyHeader";
@@ -36,7 +36,16 @@ export const TopBar = (props: TopBarProps) => {
   const cls = useMemo(() => cx("sm-topbar", sticky.t > 0.02 && "is-scrolled"), [sticky.t]);
 
   const currentMarketId = state.route.view === "market" ? state.route.marketId : null;
-  const canSeal = Boolean(currentMarketId);
+  const canSeal = true;
+
+  const handleOpenKlock = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.location.assign("/klock");
+  }, []);
+
+  const handleSeal = useCallback(() => {
+    actions.pushSheet({ id: "seal-prediction", marketId: currentMarketId ?? undefined });
+  }, [actions, currentMarketId]);
 
   return (
     <>
@@ -56,7 +65,12 @@ export const TopBar = (props: TopBarProps) => {
             ) : null}
 
             <div className="sm-topbar-titles">
-              <div className="sm-topbar-title">{props.title}</div>
+              <div className="sm-topbar-title">
+                <span className="sm-topbar-title-core">{props.title}</span>
+                <span className="sm-topbar-title-mark" aria-hidden="true">
+                  Φ
+                </span>
+              </div>
               {props.subtitle ? <div className="sm-topbar-sub">{props.subtitle}</div> : null}
             </div>
           </div>
@@ -66,20 +80,27 @@ export const TopBar = (props: TopBarProps) => {
               size="sm"
               selected={false}
               disabled={!canSeal}
-              onClick={() => {
-                if (!currentMarketId) return;
-                actions.pushSheet({ id: "seal-prediction", marketId: currentMarketId });
-              }}
+              onClick={handleSeal}
               title={canSeal ? "Seal a prophecy" : "Open a market to seal a prophecy"}
+              tone="gold"
+              variant="solid"
+              className="sm-topbar-seal"
               left={<Icon name="spark" size={14} tone="gold" />}
             >
-              Seal
+              Seal Prophecy
             </Chip>
 
-            <div className="sm-topbar-kai" title="Kai pulse">
+            <button
+              type="button"
+              className="sm-topbar-kai"
+              title="Open Eternal KaiKlok"
+              aria-label="Open Eternal KaiKlok"
+              onClick={handleOpenKlock}
+            >
               <span className="sm-topbar-kai-dot" aria-hidden="true" />
               <span className="sm-topbar-kai-text">p {props.now.pulse}</span>
-            </div>
+              <span className="sm-topbar-kai-tag">KaiKlok</span>
+            </button>
 
             {props.right}
           </div>

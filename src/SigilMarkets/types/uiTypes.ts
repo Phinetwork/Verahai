@@ -145,7 +145,7 @@ export type SheetPayload =
   | Readonly<{ id: "claim"; positionId: PositionId }>
   | Readonly<{ id: "export-position"; positionId: PositionId }>
   | Readonly<{ id: "transfer-position"; positionId: PositionId }>
-  | Readonly<{ id: "seal-prediction"; marketId: MarketId }>
+  | Readonly<{ id: "seal-prediction"; marketId?: MarketId }>
   | Readonly<{ id: "dispute"; marketId: MarketId }>
   | Readonly<{ id: "share-sigil"; kind: "position" | "resolution" | "vault"; refId: string }>;
 

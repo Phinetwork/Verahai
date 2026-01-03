@@ -231,7 +231,14 @@ const decodeSheetPayload = (v: unknown): PersistResult<SheetPayload> => {
     return { ok: true, value: { id, vaultId: asVaultId(vaultId), mode: m } };
   }
 
-  if (id === "seal-prediction" || id === "dispute") {
+  if (id === "seal-prediction") {
+    const marketId = v["marketId"];
+    const parsedMarketId =
+      isString(marketId) && marketId.length > 0 ? asMarketId(marketId) : undefined;
+    return { ok: true, value: { id, marketId: parsedMarketId } as SheetPayload };
+  }
+
+  if (id === "dispute") {
     const marketId = v["marketId"];
     if (!isString(marketId) || marketId.length === 0) return { ok: false, error: `${id}: marketId` };
     return { ok: true, value: { id, marketId: asMarketId(marketId) } as SheetPayload };

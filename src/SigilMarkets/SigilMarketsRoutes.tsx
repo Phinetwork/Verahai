@@ -40,7 +40,7 @@ const SheetsLayer = (props: Readonly<{ now: KaiMoment }>) => {
   }
 
   if (top.id === "seal-prediction") {
-    return <SealPredictionSheet open onClose={close} now={props.now} initialMarketId={top.marketId} />;
+    return <SealPredictionSheet open onClose={close} now={props.now} initialMarketId={top.marketId ?? null} />;
   }
 
   if (top.id === "share-sigil") {
