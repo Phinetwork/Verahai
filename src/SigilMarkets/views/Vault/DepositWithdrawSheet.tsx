@@ -10,6 +10,7 @@ import { Divider } from "../../ui/atoms/Divider";
 import { Icon } from "../../ui/atoms/Icon";
 import { parsePhiToMicro, formatPhiMicro } from "../../utils/format";
 import { useVaultActions } from "../../hooks/useVault";
+import { useGlyphBalance } from "../../hooks/useGlyphBalance";
 import { recordSigilTransferMovement } from "../../../utils/sigilTransferRegistry";
 
 export type DepositWithdrawSheetProps = Readonly<{
@@ -27,20 +28,16 @@ export const DepositWithdrawSheet = (props: DepositWithdrawSheetProps) => {
   const [err, setErr] = useState<string | null>(null);
 
   const title = props.mode === "deposit" ? "Deposit Φ" : "Withdraw Φ";
+  const glyphBalance = useGlyphBalance(props.vault, props.now);
 
   const spendableLabel = useMemo(
     () => formatPhiMicro(props.vault.spendableMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }),
     [props.vault.spendableMicro],
   );
 
-  const glyphAvailableMicro = props.vault.owner.identitySigil?.availablePhiMicro;
-  const glyphAvailableLabel = useMemo(
-    () =>
-      glyphAvailableMicro !== undefined
-        ? formatPhiMicro(glyphAvailableMicro, { withUnit: true, maxDecimals: 6, trimZeros: true })
-        : "—",
-    [glyphAvailableMicro],
-  );
+  const glyphAvailableMicro = glyphBalance.availableMicro ?? undefined;
+  const glyphAvailableLabel = glyphBalance.availableLabel;
+  const glyphAvailableUsdLabel = glyphBalance.availableUsdLabel;
 
   const glyphHash = (props.vault.owner.identitySigil?.canonicalHash ??
     (props.vault.owner.identitySigil?.svgHash as unknown as string) ??
@@ -67,10 +64,15 @@ export const DepositWithdrawSheet = (props: DepositWithdrawSheetProps) => {
       }
       deposit(props.vault.vaultId, r.micro as PhiMicro, props.now.pulse);
       if (glyphHash) {
+        const amountUsd =
+          Number.isFinite(glyphBalance.usdPerPhi) && glyphBalance.usdPerPhi > 0
+            ? (Number(r.micro) / 1_000_000) * glyphBalance.usdPerPhi
+            : undefined;
         recordSigilTransferMovement({
           hash: glyphHash,
           direction: "send",
           amountPhi: amt,
+          amountUsd,
           sentPulse: props.now.pulse,
         });
       }
@@ -88,7 +90,9 @@ export const DepositWithdrawSheet = (props: DepositWithdrawSheetProps) => {
       onClose={props.onClose}
       title={title}
       subtitle={
-        props.mode === "deposit" ? `Glyph available: ${glyphAvailableLabel}` : `Spendable: ${spendableLabel}`
+        props.mode === "deposit"
+          ? `Glyph available: ${glyphAvailableLabel}${glyphAvailableUsdLabel !== "—" ? ` • ≈ ${glyphAvailableUsdLabel}` : ""}`
+          : `Spendable: ${spendableLabel}`
       }
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
@@ -117,6 +121,12 @@ export const DepositWithdrawSheet = (props: DepositWithdrawSheetProps) => {
         {props.mode === "deposit" ? (
           <div className="sm-small" style={{ marginTop: 8 }}>
             Available on your glyph: <strong>{glyphAvailableLabel}</strong>
+            {glyphAvailableUsdLabel !== "—" ? (
+              <>
+                {" "}
+                <span style={{ opacity: 0.7 }}>≈ {glyphAvailableUsdLabel}</span>
+              </>
+            ) : null}
           </div>
         ) : null}
         {err ? <div className="sm-small" style={{ color: "rgba(255,104,104,0.90)", marginTop: 8 }}>{err}</div> : null}

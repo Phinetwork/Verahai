@@ -742,16 +742,33 @@ export const SigilMarketsVaultProvider = (props: Readonly<{ children: ReactNode 
 
           let nextIdentitySigil = v.owner.identitySigil;
           if (req.kind === "deposit") {
-            const available = v.owner.identitySigil?.availablePhiMicro;
-            if (available === undefined) {
-              err = "glyph balance unavailable";
-              return prev;
-            }
-            if (available < amt) {
+            const identity = v.owner.identitySigil;
+            const available = identity?.availablePhiMicro;
+            const baseValue = identity?.valuePhiMicro;
+            const fallbackAvailable = available ?? baseValue;
+            if (fallbackAvailable !== undefined && fallbackAvailable < amt) {
               err = "insufficient glyph balance";
               return prev;
             }
-            nextIdentitySigil = { ...v.owner.identitySigil, availablePhiMicro: normalizePhi(available - amt) };
+            if (identity) {
+              const nextAvailable =
+                fallbackAvailable !== undefined ? normalizePhi(fallbackAvailable - amt) : identity.availablePhiMicro;
+              nextIdentitySigil = { ...identity, availablePhiMicro: nextAvailable };
+            }
+          }
+
+          if (req.kind === "withdraw") {
+            const identity = v.owner.identitySigil;
+            if (identity) {
+              const baseValue = identity.valuePhiMicro;
+              const available = identity.availablePhiMicro ?? baseValue;
+              if (available !== undefined) {
+                const nextAvailableRaw = normalizePhi(available + amt);
+                const nextAvailable =
+                  baseValue !== undefined && nextAvailableRaw > baseValue ? normalizePhi(baseValue) : nextAvailableRaw;
+                nextIdentitySigil = { ...identity, availablePhiMicro: nextAvailable };
+              }
+            }
           }
 
           const nextSpendable = req.kind === "deposit" ? normalizePhi(spendable + amt) : normalizePhi(spendable - amt);

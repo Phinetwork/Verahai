@@ -14,6 +14,8 @@ import { useVisualViewportSize } from "../../../hooks/useVisualViewportSize";
 import { Icon } from "../atoms/Icon";
 import { Chip } from "../atoms/Chip";
 import { ToastHost } from "../atoms/Toast";
+import { useActiveVault } from "../../state/vaultStore";
+import { useGlyphBalance } from "../../hooks/useGlyphBalance";
 
 type ScrollMode = "window" | "container";
 
@@ -407,6 +409,8 @@ export const TopBar = (props: TopBarProps) => {
   const BREATH_MS = BREATH_S * 1000;
   const BREATHS_PER_DAY = 17_491.270421;
   const [klockOpen, setKlockOpen] = useState(false);
+  const activeVault = useActiveVault();
+  const glyphBalance = useGlyphBalance(activeVault, props.now);
 
   const sticky = useStickyHeader(
     props.scrollMode === "container"
@@ -469,6 +473,21 @@ export const TopBar = (props: TopBarProps) => {
           </div>
 
           <div className="sm-topbar-right">
+            {activeVault ? (
+              <div className="sm-topbar-glyph" aria-label="Glyph balance">
+                <div className="sm-topbar-glyph-title">
+                  <span className="sm-topbar-glyph-dot" aria-hidden="true" />
+                  Glyph
+                </div>
+                <div className="sm-topbar-glyph-values">
+                  <span className="sm-topbar-glyph-phi">{glyphBalance.availableLabel}</span>
+                  <span className="sm-topbar-glyph-usd">
+                    {glyphBalance.availableUsdLabel !== "—" ? `≈ ${glyphBalance.availableUsdLabel}` : "—"}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+
             <Chip
               size="sm"
               selected={false}
