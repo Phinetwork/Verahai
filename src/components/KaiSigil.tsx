@@ -136,6 +136,28 @@ function deriveKksV1FromPulse(pulse: number): KksV1 {
   };
 }
 
+type ZkDisplayState = {
+  verified: boolean;
+  scheme: string;
+  poseidonHash: string;
+  proofPresent: boolean;
+};
+
+function isZkProofLike(proof: unknown): boolean {
+  if (!isRecord(proof)) return false;
+  const piA = proof["pi_a"];
+  const piB = proof["pi_b"];
+  const piC = proof["pi_c"];
+  return (
+    Array.isArray(piA) &&
+    Array.isArray(piB) &&
+    Array.isArray(piC) &&
+    piA.length >= 2 &&
+    piB.length >= 2 &&
+    piC.length >= 2
+  );
+}
+
 /**
  * KaiSigil
  * - Deterministic KKS v1.0: beat/stepIndex/stepPct derived ONLY from pulse.
@@ -872,6 +894,42 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
     [built, stateKeyOk]
   );
 
+  const zkDisplay = useMemo<ZkDisplayState>(() => {
+    const baseScheme = zkScheme ?? "groth16-poseidon";
+    const basePoseidon = zkPoseidonHash ?? "";
+    const base: ZkDisplayState = {
+      verified: false,
+      scheme: baseScheme,
+      poseidonHash: basePoseidon,
+      proofPresent: false,
+    };
+    if (!stateKeyOk || !embeddedMetaJson) return base;
+    try {
+      const parsed = JSON.parse(embeddedMetaJson) as Record<string, unknown>;
+      const proofHints = isRecord(parsed.proofHints) ? parsed.proofHints : null;
+      const scheme =
+        (proofHints && typeof proofHints.scheme === "string" && proofHints.scheme) || baseScheme;
+      const poseidonHash =
+        typeof parsed.zkPoseidonHash === "string" ? parsed.zkPoseidonHash : basePoseidon;
+      const zkPublicInputs = Array.isArray(parsed.zkPublicInputs)
+        ? parsed.zkPublicInputs.map((entry) => String(entry))
+        : [];
+      const proofPresent = isZkProofLike(parsed.zkProof);
+      const hasPoseidon = !!poseidonHash && poseidonHash !== "0x";
+      const inputsMatch = !zkPublicInputs.length || zkPublicInputs[0] === poseidonHash;
+      const schemeOk = /groth16/i.test(scheme);
+      return {
+        verified: proofPresent && hasPoseidon && inputsMatch && schemeOk,
+        scheme,
+        poseidonHash,
+        proofPresent,
+      };
+    } catch (err) {
+      console.debug("[KaiSigil] Failed to parse ZK metadata", err);
+      return base;
+    }
+  }, [embeddedMetaJson, stateKeyOk, zkPoseidonHash, zkScheme]);
+
   /* Imperative API */
   useImperativeHandle(
     ref,
@@ -1059,6 +1117,10 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
           phaseColor={phaseColor}
           outerRingText={outerRingText}
           innerRingText={stateKeyOk ? built?.innerRingText ?? "initializing…" : "initializing…"}
+          verified={zkDisplay.verified}
+          zkScheme={zkDisplay.scheme}
+          zkPoseidonHash={zkDisplay.poseidonHash}
+          proofPresent={zkDisplay.proofPresent}
           animate={animate}
           prefersReduce={prefersReduce}
         />
