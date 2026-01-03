@@ -5,7 +5,7 @@
 
 /* ===== Theme tokens (tweak at will) ===== */
 :root {
-  --seal-z: 9999;
+  --seal-z: 1000005;
   --seal-veil: radial-gradient(1200px 800px at 50% 20%, rgba(0,255,222,.10), transparent 60%),
                radial-gradient(800px 600px at 10% 90%, rgba(0,180,255,.10), transparent 60%),
                radial-gradient(900px 700px at 90% 80%, rgba(175,110,255,.10), transparent 60%);
