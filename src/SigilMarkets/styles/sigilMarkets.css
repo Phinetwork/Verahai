@@ -1081,6 +1081,11 @@ body{
   display: block;
 }
 
+.sm-topbar-glyph-slash{
+  opacity: 0.65;
+  margin: 0 2px;
+}
+
 .sm-topbar-glyph-usd{
   color: rgba(191,252,255,0.82);
   font-size: 11px;

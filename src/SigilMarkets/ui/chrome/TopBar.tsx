@@ -408,12 +408,12 @@ export const TopBar = (props: TopBarProps) => {
     return formatUsd(glyphBalance.usdPerPhi);
   }, [glyphBalance.usdPerPhi]);
   const glyphPhiLabel = useMemo(() => {
-    if (!hasGlyph) return "1";
+    if (!hasGlyph) return "—";
     if (glyphBalance.availableMicro === null) return "—";
     return formatPhiMicro(glyphBalance.availableMicro, { withUnit: false, maxDecimals: 6, trimZeros: true });
   }, [glyphBalance.availableMicro, hasGlyph]);
   const glyphUsdLabel = useMemo(() => {
-    if (!hasGlyph) return `${liveUsdPerPhiLabel} / Φ`;
+    if (!hasGlyph) return "";
     if (!activeVault) return "$ —";
     if (glyphBalance.availableUsdLabel === "—") return "$ —";
     return glyphBalance.availableUsdLabel;
@@ -475,11 +475,19 @@ export const TopBar = (props: TopBarProps) => {
               {props.subtitle ? <div className="sm-topbar-sub sm-topbar-sub--title">{props.subtitle}</div> : null}
               <div className="sm-topbar-glyph sm-topbar-glyph--inline" aria-label="Glyph balance">
                 <div className="sm-topbar-glyph-values">
-                  <span className="sm-topbar-glyph-phi">
-                    <img className="sm-topbar-glyph-phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
-                    {glyphPhiLabel}
-                  </span>
-                  <span className="sm-topbar-glyph-usd">{glyphUsdLabel}</span>
+                  {hasGlyph ? (
+                    <span className="sm-topbar-glyph-phi">
+                      <img className="sm-topbar-glyph-phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
+                      {glyphPhiLabel}
+                    </span>
+                  ) : (
+                    <span className="sm-topbar-glyph-phi sm-topbar-glyph-phi--price">
+                      {liveUsdPerPhiLabel}
+                      <span className="sm-topbar-glyph-slash">/</span>
+                      <img className="sm-topbar-glyph-phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
+                    </span>
+                  )}
+                  {glyphUsdLabel ? <span className="sm-topbar-glyph-usd">{glyphUsdLabel}</span> : null}
                 </div>
               </div>
             </div>
