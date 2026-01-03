@@ -24,6 +24,7 @@ import { blake3Hex } from "../../lib/sigil/hash";
 import { computeZkPoseidonHash } from "../../utils/kai";
 import { buildProofHints, generateZkProofFromPoseidonHash } from "../../utils/zkProof";
 import type { SigilProofHints } from "../../types/sigil";
+import { loadJSZip } from "../../pages/SigilPage/utils";
 
 type ExportResult = Readonly<{ ok: true } | { ok: false; error: string }>;
 
@@ -74,6 +75,21 @@ const stripCdata = (value: string): { text: string; usedCdata: boolean } => {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const extractSigilPayload = (svgText: string): Record<string, unknown> | null => {
+  const metadataRegex = /<metadata(?:\s[^>]*)?>([\s\S]*?)<\/metadata>/i;
+  const match = metadataRegex.exec(svgText);
+  if (!match) return null;
+
+  const { text: stripped } = stripCdata(match[1] ?? "");
+  const decoded = decodeXmlEntities(stripped);
+  try {
+    const parsed = JSON.parse(decoded) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Convert unknown -> JSONLike (and fail fast if non-JSONLike).
@@ -136,6 +152,38 @@ const getPayloadHashHex = async (payload: Record<string, unknown>): Promise<stri
 
   const bytes = canonicalize(payloadForHash);
   return blake3Hex(bytes);
+};
+
+const hashBytes = async (bytes: Uint8Array): Promise<string> => blake3Hex(bytes);
+
+const manifestFromSigil = async (opts: {
+  svgText: string;
+  pngBlob: Blob;
+  filenameBase: string;
+}) => {
+  const payload = extractSigilPayload(opts.svgText);
+  if (!payload) throw new Error("Sigil metadata missing; cannot build manifest");
+
+  const payloadHash = await getPayloadHashHex(payload);
+  const svgBytes = new TextEncoder().encode(opts.svgText);
+  const svgHash = await hashBytes(svgBytes);
+  const pngHash = await hashBytes(new Uint8Array(await opts.pngBlob.arrayBuffer()));
+
+  const manifestPayload = {
+    manifestVersion: "SM-SIGIL-1",
+    createdAt: new Date().toISOString(),
+    filenameBase: opts.filenameBase,
+    payloadHash,
+    svgHash,
+    pngHash,
+    zkPoseidonHash: typeof payload.zkPoseidonHash === "string" ? payload.zkPoseidonHash : null,
+    zkPublicInputs: Array.isArray(payload.zkPublicInputs) ? payload.zkPublicInputs : null,
+    proofHints: isRecord(payload.proofHints) ? payload.proofHints : null,
+  };
+
+  const manifestHash = await hashBytes(canonicalize(toJSONLike(manifestPayload)));
+
+  return { manifestHash, ...manifestPayload };
 };
 
 const ensureZkProofInSvg = async (svgText: string): Promise<string> => {
@@ -272,6 +320,18 @@ export type SigilExportOptions = Readonly<{
   exportPng?: boolean;
 }>;
 
+export type SigilZipOptions = Readonly<{
+  /** Suggested base filename without extension */
+  filenameBase: string;
+
+  /** SVG content or URL */
+  svgText?: string;
+  svgUrl?: string;
+
+  /** PNG size px (square). Default: 1024 */
+  pngSizePx?: number;
+}>;
+
 export const exportSigil = async (opts: SigilExportOptions): Promise<ExportResult> => {
   try {
     const base = (opts.filenameBase ?? "sigil").trim().replace(/\s+/g, "_");
@@ -296,6 +356,37 @@ export const exportSigil = async (opts: SigilExportOptions): Promise<ExportResul
       const png = await svgToPngBlob(svgWithProof, size);
       downloadBlob(png, `${base}.png`);
     }
+
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "export failed";
+    return { ok: false, error: msg };
+  }
+};
+
+export const exportSigilZip = async (opts: SigilZipOptions): Promise<ExportResult> => {
+  try {
+    const base = (opts.filenameBase ?? "sigil").trim().replace(/\s+/g, "_");
+    const svgText = opts.svgText ?? (opts.svgUrl ? await fetchText(opts.svgUrl) : null);
+    if (!svgText) return { ok: false, error: "Missing svgText/svgUrl" };
+
+    const svgWithProof = await ensureZkProofInSvg(svgText);
+    const size = Math.max(256, Math.min(4096, Math.floor(opts.pngSizePx ?? 1024)));
+    const png = await svgToPngBlob(svgWithProof, size);
+    const manifest = await manifestFromSigil({
+      svgText: svgWithProof,
+      pngBlob: png,
+      filenameBase: base,
+    });
+
+    const JSZip = await loadJSZip();
+    const zip = new JSZip();
+    zip.file(`${base}.svg`, svgWithProof);
+    zip.file(`${base}.png`, png);
+    zip.file(`${base}.manifest.json`, JSON.stringify(manifest, null, 2));
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    downloadBlob(zipBlob, `${base}.zip`);
 
     return { ok: true };
   } catch (e) {

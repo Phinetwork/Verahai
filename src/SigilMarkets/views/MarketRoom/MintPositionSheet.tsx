@@ -1,7 +1,7 @@
 // SigilMarkets/views/MarketRoom/MintPositionSheet.tsx
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { KaiMoment } from "../../types/marketTypes";
 import type { PositionRecord } from "../../types/sigilPositionTypes";
 
@@ -16,7 +16,7 @@ import { useActiveVault } from "../../state/vaultStore";
 import { useSigilMarketsPositionStore } from "../../state/positionStore";
 
 import { mintPositionSigil } from "../../sigils/PositionSigilMint";
-import { SigilExportButton } from "../../sigils/SigilExport";
+import { exportSigilZip, SigilExportButton } from "../../sigils/SigilExport";
 
 export type MintPositionSheetProps = Readonly<{
   open: boolean;
@@ -39,6 +39,13 @@ export const MintPositionSheet = (props: MintPositionSheetProps) => {
   const hasSigil = !!p?.sigil?.url;
 
   const title = p ? `Position • ${p.entry.side}` : "Position";
+
+  const filenameBase = useMemo(() => {
+    if (!p) return "position_sigil";
+    const pid = p.id as unknown as string;
+    const pulse = p.entry.openedAt.pulse;
+    return `position_${p.entry.side}_p${pulse}_${pid.slice(0, 10)}`;
+  }, [p]);
 
   const stake = useMemo(
     () => (p ? formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }) : "—"),
@@ -74,8 +81,17 @@ export const MintPositionSheet = (props: MintPositionSheetProps) => {
     posStore.attachSigil(p.id, res.sigil, props.now.pulse);
     ui.toast("success", "Minted", "Position sigil ready", { atPulse: props.now.pulse });
 
+    const zipRes = await exportSigilZip({
+      filenameBase,
+      svgText: res.svgText,
+      pngSizePx: 1400,
+    });
+    if (!zipRes.ok) {
+      ui.toast("error", "Export failed", zipRes.error, { atPulse: props.now.pulse });
+    }
+
     setBusy(false);
-  }, [activeVault, p, posStore, props.now.pulse, ui]);
+  }, [activeVault, filenameBase, p, posStore, props.now.pulse, ui]);
 
   const exportUrl = p?.sigil?.url;
 
