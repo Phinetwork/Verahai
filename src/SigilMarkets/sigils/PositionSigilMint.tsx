@@ -966,9 +966,28 @@ const buildSvg = async (
   const whole = mm ? mm[1] : stakePhiDec6;
   const frac = mm ? mm[2] : "000000";
 
-  const digitCount = whole.length + 1 + frac.length;
-  const approxWidth = digitCount * 28;
-  const iconX = 500 - approxWidth / 2 - 38;
+// Amount layout (currency-lock): deterministic left edge + intentional Φ overlap
+const AMT_WHOLE_PX = 96;
+const AMT_FRAC_PX = 58;
+
+// Monospace glyph width ≈ 0.60em (tuned for SFMono/Menlo/Consolas)
+const MONO_EM = 0.60;
+
+const wholeW = whole.length * AMT_WHOLE_PX * MONO_EM;
+const fracW = (1 + frac.length) * AMT_FRAC_PX * MONO_EM; // "." + frac digits
+const amountW = wholeW + fracW;
+
+// Left edge of the full amount block (so Φ can anchor to it)
+const amountLeftX = 500 - amountW / 2;
+
+// Φ logo sizing/placement: overlaps into first digit like real currency
+const phiSize = 54;
+const phiX = amountLeftX - phiSize * 0.42; // overlap amount start
+const phiY = 500 - phiSize / 2 - 8;
+
+// Tighten the join between whole and "." (negative dx pulls "." left)
+const fracDx = -Math.max(8, Math.round(AMT_FRAC_PX * 0.18));
+
 
   // Center ring microtext (official feel)
   const microSeal = `ΦNET • ${okWord} • ${seal.scheme} • ${openedShort} • ${String(payload.marketId)} •`;
@@ -1254,7 +1273,15 @@ const buildSvg = async (
     <!-- φ logo -->
     ${
       phiLogoUrl
-        ? `<image href="${esc(phiLogoUrl)}" x="${(iconX - 22).toFixed(2)}" y="${(500 - 34).toFixed(2)}" width="48" height="48" opacity="0.96" />`
+        ? `<image
+  href="${esc(phiLogoUrl)}"
+  x="${phiX.toFixed(2)}"
+  y="${phiY.toFixed(2)}"
+  width="${phiSize}"
+  height="${phiSize}"
+  opacity="0.96"
+/>
+`
         : ""
     }
 
@@ -1268,11 +1295,11 @@ const buildSvg = async (
         dominant-baseline="middle"
         font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
         fill="rgba(185,252,255,0.35)"
-        letter-spacing="1.2"
+        letter-spacing="0.25"
         style="paint-order: stroke; stroke: rgba(0,0,0,0.85); stroke-width: 5.0; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       >
         <tspan font-size="96">${esc(whole)}</tspan>
-        <tspan font-size="58">.${esc(frac)}</tspan>
+       <tspan font-size="58" dx="${fracDx}">.${esc(frac)}</tspan>
       </text>
 
       <!-- main face -->
@@ -1287,7 +1314,7 @@ const buildSvg = async (
         style="paint-order: stroke; stroke: rgba(0,0,0,0.78); stroke-width: 2.6; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       >
         <tspan font-size="96">${esc(whole)}</tspan>
-        <tspan font-size="58">.${esc(frac)}</tspan>
+        <tspan font-size="58" dx="${fracDx}">.${esc(frac)}</tspan>
       </text>
 
       <!-- highlight stroke -->
@@ -1302,7 +1329,7 @@ const buildSvg = async (
         style="paint-order: stroke; stroke: rgba(255,255,255,0.35); stroke-width: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       >
         <tspan font-size="96">${esc(whole)}</tspan>
-        <tspan font-size="58">.${esc(frac)}</tspan>
+       <tspan font-size="58" dx="${fracDx}">.${esc(frac)}</tspan>
       </text>
     </g>
 
