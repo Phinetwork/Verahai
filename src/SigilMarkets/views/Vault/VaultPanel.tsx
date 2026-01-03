@@ -72,10 +72,6 @@ export const VaultPanel = (props: VaultPanelProps) => {
     return (av.vaultId as unknown as string) === (vault.vaultId as unknown as string);
   }, [vault, vaultActions.activeVault]);
 
-  const onBack = (): void => {
-    ui.navigate({ view: "grid" });
-  };
-
   if (!vault) {
     return (
       <div className="sm-page" data-sm="vault">
@@ -85,8 +81,6 @@ export const VaultPanel = (props: VaultPanelProps) => {
           now={props.now}
           scrollMode={props.scrollMode}
           scrollRef={props.scrollRef}
-          back
-          onBack={onBack}
         />
 
         <Card variant="glass" className="sm-vault-empty">
@@ -123,8 +117,6 @@ export const VaultPanel = (props: VaultPanelProps) => {
         now={props.now}
         scrollMode={props.scrollMode}
         scrollRef={props.scrollRef}
-        back
-        onBack={onBack}
       />
 
       <div className="sm-vault-stack">

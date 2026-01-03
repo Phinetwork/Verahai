@@ -1005,8 +1005,17 @@ body{
 }
 
 .sm-topbar-glyph-phi{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: rgba(255,255,255,0.95);
   font-variant-numeric: tabular-nums;
+}
+
+.sm-topbar-glyph-phi-icon{
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 .sm-topbar-glyph-usd{
