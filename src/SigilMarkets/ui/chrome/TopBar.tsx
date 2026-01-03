@@ -16,6 +16,7 @@ import { Chip } from "../atoms/Chip";
 import { ToastHost } from "../atoms/Toast";
 import { useActiveVault } from "../../state/vaultStore";
 import { useGlyphBalance } from "../../hooks/useGlyphBalance";
+import { formatPhiMicro } from "../../utils/format";
 
 type ScrollMode = "window" | "container";
 
@@ -399,6 +400,15 @@ export const TopBar = (props: TopBarProps) => {
   const [klockOpen, setKlockOpen] = useState(false);
   const activeVault = useActiveVault();
   const glyphBalance = useGlyphBalance(activeVault, props.now);
+  const glyphPhiLabel = useMemo(() => {
+    if (!activeVault || glyphBalance.availableMicro === null) return "—";
+    return formatPhiMicro(glyphBalance.availableMicro, { withUnit: false, maxDecimals: 6, trimZeros: true });
+  }, [activeVault, glyphBalance.availableMicro]);
+  const glyphUsdLabel = useMemo(() => {
+    if (!activeVault) return "$ —";
+    if (glyphBalance.availableUsdLabel === "—") return "$ —";
+    return glyphBalance.availableUsdLabel;
+  }, [activeVault, glyphBalance.availableUsdLabel]);
 
   const sticky = useStickyHeader(
     props.scrollMode === "container"
@@ -452,9 +462,6 @@ export const TopBar = (props: TopBarProps) => {
             <div className="sm-topbar-titles">
               <div className="sm-topbar-title">
                 <span className="sm-topbar-title-core">{props.title}</span>
-                <span className="sm-topbar-title-mark" aria-hidden="true">
-                  Φ
-                </span>
               </div>
               {props.subtitle ? <div className="sm-topbar-sub">{props.subtitle}</div> : null}
             </div>
@@ -468,14 +475,11 @@ export const TopBar = (props: TopBarProps) => {
               </div>
               <div className="sm-topbar-glyph-values">
                 <span className="sm-topbar-glyph-phi">
-                  {activeVault ? glyphBalance.availableLabel : "Φ —"}
+                  <img className="sm-topbar-glyph-phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
+                  {glyphPhiLabel}
                 </span>
                 <span className="sm-topbar-glyph-usd">
-                  {activeVault
-                    ? glyphBalance.availableUsdLabel === "—"
-                      ? "USD —"
-                      : `USD ${glyphBalance.availableUsdLabel}`
-                    : "USD —"}
+                  {glyphUsdLabel}
                 </span>
               </div>
             </div>
