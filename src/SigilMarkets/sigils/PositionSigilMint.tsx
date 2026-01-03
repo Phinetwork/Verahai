@@ -341,26 +341,6 @@ const lissajousPath = (seedHex: string): string => {
   return d;
 };
 
-const goldenSpiralPath = (): string => {
-  const cx = 500;
-  const cy = 500;
-
-  const b = Math.log(PHI) / (Math.PI / 2);
-  const thetaMax = Math.PI * 4.75;
-  const a = 360 / Math.exp(b * thetaMax);
-
-  const steps = 300;
-  let d = "";
-  for (let i = 0; i <= steps; i += 1) {
-    const t = (i / steps) * thetaMax;
-    const r = a * Math.exp(b * t);
-    const x = cx + r * Math.cos(t);
-    const y = cy + r * Math.sin(t);
-    d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)} ` : `L ${x.toFixed(2)} ${y.toFixed(2)} `;
-  }
-  return d;
-};
-
 const hexRingPath = (): string => {
   const pts: Array<[number, number]> = [];
   const cx = 500;
@@ -754,17 +734,16 @@ const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string, seal: Zk
   const noTone = "rgba(190,170,255,0.98)";
   const tone = payload.side === "YES" ? yesTone : noTone;
 
-  const styleRnd = makeRng(seed32FromHex(`${svgHashSeed}:${payload.side}:STYLE`));
+  const stake = payload.lockedStakeMicro;
+  const shares = payload.sharesMicro;
 
-  const ringOuterOpacity = clamp01(0.08 + styleRnd() * 0.14);
-  const ringInnerOpacity = clamp01(0.22 + styleRnd() * 0.22);
-  const waveGlowOpacity = clamp01(0.10 + styleRnd() * 0.18);
-  const waveCoreOpacity = clamp01(0.62 + styleRnd() * 0.28);
-  const spiralOpacity = clamp01(0.16 + styleRnd() * 0.22);
-  const phiRingOpacity = clamp01(0.18 + styleRnd() * 0.18);
-
-  const glassPlateOpacity = clamp01(0.10 + styleRnd() * 0.10);
-  const hazeOpacity = clamp01(0.08 + styleRnd() * 0.10);
+  // Deterministic style accents (seeded by svgHashSeed + side)
+  const styleRnd = makeRng(seed32FromHex(`${svgHashSeed}:${payload.side}`));
+  const ringOuterOpacity = clamp01(0.12 + styleRnd() * 0.18);
+  const ringToneOpacity = clamp01(0.55 + styleRnd() * 0.35);
+  const waveGlowOpacity = clamp01(0.10 + styleRnd() * 0.20);
+  const waveCoreOpacity = clamp01(0.62 + styleRnd() * 0.30);
+  const labelOpacity = clamp01(0.62 + styleRnd() * 0.20);
 
   const prismShift = styleRnd();
   const noiseSeed = seed32FromHex(`NOISE:${svgHashSeed}`) % 999;
@@ -955,103 +934,23 @@ const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string, seal: Zk
     </clipPath>
   </defs>
 
-  <!-- Signature ring (SEWN IN, not pasted): binary signature from canonical hash -->
-  <g id="signature" pointer-events="none">
-    <text
-      font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
-      font-size="12.6"
-      fill="${tone}"
-      letter-spacing="1.1"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      opacity="0.42"
-      style="paint-order: stroke; stroke: rgba(0,0,0,0.65); stroke-width: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
-    >
-      <textPath href="#${esc(sigPathId)}" startOffset="50%">${esc(binarySig)}</textPath>
-    </text>
-  </g>
+  <rect x="0" y="0" width="1000" height="1000" fill="rgba(8,10,18,1)"/>
+  <rect x="0" y="0" width="1000" height="1000" fill="url(#bg)"/>
 
-  <!-- Subtle hint line (like your Day Seal hint) -->
-  <g id="signature-hint" aria-hidden="true" pointer-events="none" filter="url(#etchStrong)">
-    <text
-      x="60"
-      y="506"
-      font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
-      font-size="12.8"
-      fill="${tone}"
-      opacity="0.14"
-      text-anchor="start"
-      lengthAdjust="spacingAndGlyphs"
-      textLength="520"
-      style="paint-order: stroke; stroke: rgba(0,0,0,0.55); stroke-width: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
-    >${esc(
-      `Market ${String(payload.marketId)} • Position ${String(payload.positionId)} • Side ${payload.side} • Pulse ${payload.openedAt.pulse}`,
-    )}</text>
-  </g>
+  <path d="${ring}" fill="none" stroke="rgba(255,255,255,${ringOuterOpacity.toFixed(3)})" stroke-width="10"/>
+  <path d="${ring}" fill="none" stroke="${tone}" stroke-width="3" opacity="${ringToneOpacity.toFixed(3)}"/>
 
-  <!-- Proof ring (machine-visible) -->
-  <g stroke="url(#prism)" opacity="0.55" pointer-events="none">
-    ${proofRing}
-  </g>
+  <path d="${wave}" fill="none" stroke="${tone}" stroke-width="6" opacity="${waveGlowOpacity.toFixed(3)}" filter="url(#glow)"/>
+  <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="2.2" opacity="${waveCoreOpacity.toFixed(3)}"/>
 
-  <!-- Etherik glass plate (frosted, clipped to hex) -->
-  <g clip-path="url(#hexClip)" filter="url(#frost)" pointer-events="none">
-    <circle cx="500" cy="500" r="520" fill="url(#aurora)" opacity="${(glassPlateOpacity * 0.92).toFixed(3)}"/>
-    <circle cx="500" cy="500" r="520" fill="url(#ether)" opacity="${glassPlateOpacity.toFixed(3)}"/>
-    <circle cx="500" cy="500" r="410" fill="rgba(255,255,255,0.06)" opacity="${hazeOpacity.toFixed(3)}"/>
-  </g>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
+     fill="rgba(255,255,255,${labelOpacity.toFixed(3)})" font-size="22">
+    <text x="70" y="90">SM-POS-1</text>
+    <text x="70" y="125">SIDE: ${esc(payload.side)}</text>
+    <text x="70" y="160">STAKE μΦ: ${esc(payload.lockedStakeMicro as unknown as string)}</text>
+    <text x="70" y="195">SHARES μ: ${esc(payload.sharesMicro as unknown as string)}</text>
 
-  <!-- Cut-glass ring geometry -->
-  <g filter="url(#outerGlow)" pointer-events="none">
-    <path d="${ring}" fill="none" stroke="rgba(255,255,255,${ringOuterOpacity.toFixed(3)})" stroke-width="12"/>
-    <path d="${ring}" fill="none" stroke="url(#edge)" stroke-width="3.6" opacity="${ringInnerOpacity.toFixed(3)}"/>
-    <circle cx="500" cy="500" r="${(432 / PHI).toFixed(2)}" fill="none" stroke="url(#prism)" stroke-width="1.9" opacity="${phiRingOpacity.toFixed(
-      3,
-    )}"/>
-  </g>
-
-  <!-- Sacred geometry core -->
-  <g clip-path="url(#hexClip)" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1.2" opacity="0.85" pointer-events="none">
-    ${flower.join("\n")}
-  </g>
-
-  <!-- Facets -->
-  <g clip-path="url(#hexClip)" pointer-events="none">
-    ${facets
-      .map((d, i) => {
-        const rr = makeRng(seed32FromHex(`FACETSTYLE:${svgHashSeed}:${i}`));
-        const oFill = clamp01(0.02 + rr() * 0.05);
-        const oStroke = clamp01(0.10 + rr() * 0.18);
-        const w = (0.9 + rr() * 1.9).toFixed(2);
-        return `<path d="${d}" fill="rgba(255,255,255,${oFill.toFixed(
-          3,
-        )})" stroke="url(#prism)" stroke-width="${w}" opacity="${oStroke.toFixed(3)}" />`;
-      })
-      .join("\n")}
-  </g>
-
-  <!-- Φ spiral -->
-  <path d="${spiral}" fill="none" stroke="url(#prism)" stroke-width="1.6" opacity="${spiralOpacity.toFixed(3)}" pointer-events="none"/>
-
-  <!-- Wave core -->
-  <g filter="url(#crystalGlow)" pointer-events="none">
-    <path d="${wave}" fill="none" stroke="url(#prism)" stroke-width="8" opacity="${waveGlowOpacity.toFixed(3)}"/>
-    <path d="${wave}" fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.4" opacity="${waveCoreOpacity.toFixed(3)}"/>
-  </g>
-
-  <!-- Header seal (untruncated, embedded) -->
-  <g filter="url(#etchStrong)"
-     font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-     fill="rgba(255,255,255,0.88)"
-     font-size="16"
-     letter-spacing="0.45"
-     pointer-events="none">
-    <text x="95" y="86">${esc(`SM-POS-1 • ${okWord} • zk=${seal.scheme}`)}</text>
-  </g>
-
-  <!-- Etched data panels (part of the art; no truncation) -->
-  <g clip-path="url(#hexClip)" pointer-events="none">
-    ${panelSvg}
+    <text x="70" y="930">p${esc(String(payload.openedAt.pulse))} • ${esc(payload.marketId as unknown as string).slice(0, 20)}…</text>
   </g>
 </svg>`;
 };
