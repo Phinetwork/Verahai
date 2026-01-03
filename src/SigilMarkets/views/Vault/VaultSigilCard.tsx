@@ -96,7 +96,7 @@ export const VaultSigilCard = (props: VaultSigilCardProps) => {
             onClick={() => void copy(vaultId, "VaultId copied")}
             leftIcon={<Icon name="share" size={14} tone="dim" />}
           >
-            Copy vaultId
+            Remember vaultId
           </Button>
 
           <Button
@@ -105,7 +105,7 @@ export const VaultSigilCard = (props: VaultSigilCardProps) => {
             onClick={() => void copy(userKey, "UserPhiKey copied")}
             leftIcon={<Icon name="share" size={14} tone="dim" />}
           >
-            Copy userPhiKey
+            Remember userPhiKey
           </Button>
 
           {svgHash ? (
@@ -115,7 +115,7 @@ export const VaultSigilCard = (props: VaultSigilCardProps) => {
               onClick={() => void copy(svgHash, "Identity svgHash copied")}
               leftIcon={<Icon name="share" size={14} tone="dim" />}
             >
-              Copy svgHash
+              Remember svgHash
             </Button>
           ) : (
             <Button
