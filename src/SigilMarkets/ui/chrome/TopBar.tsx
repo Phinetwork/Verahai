@@ -23,6 +23,7 @@ type ScrollMode = "window" | "container";
 export type TopBarProps = Readonly<{
   title: string;
   subtitle?: string;
+  rightSubtitle?: string;
   now: KaiMoment;
   scrollMode: ScrollMode;
   scrollRef: React.RefObject<HTMLDivElement | null> | null;
@@ -464,39 +465,35 @@ export const TopBar = (props: TopBarProps) => {
                 <span className="sm-topbar-title-core">{props.title}</span>
               </div>
               {props.subtitle ? <div className="sm-topbar-sub">{props.subtitle}</div> : null}
+              <div className="sm-topbar-glyph sm-topbar-glyph--inline" aria-label="Glyph balance">
+                <div className="sm-topbar-glyph-values">
+                  <span className="sm-topbar-glyph-phi">
+                    <img className="sm-topbar-glyph-phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
+                    {glyphPhiLabel}
+                  </span>
+                  <span className="sm-topbar-glyph-usd">{glyphUsdLabel}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="sm-topbar-right">
-            <div className="sm-topbar-glyph" aria-label="Glyph balance">
-              <div className="sm-topbar-glyph-title">
-                <span className="sm-topbar-glyph-dot" aria-hidden="true" />
-                Glyph
-              </div>
-              <div className="sm-topbar-glyph-values">
-                <span className="sm-topbar-glyph-phi">
-                  <img className="sm-topbar-glyph-phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
-                  {glyphPhiLabel}
-                </span>
-                <span className="sm-topbar-glyph-usd">
-                  {glyphUsdLabel}
-                </span>
-              </div>
+            <div className="sm-topbar-seal-wrap">
+              <Chip
+                size="sm"
+                selected={false}
+                disabled={!canSeal}
+                onClick={handleSeal}
+                title={canSeal ? "Seal a prophecy" : "Open a market to seal a prophecy"}
+                tone="gold"
+                variant="solid"
+                className="sm-topbar-seal"
+                left={<Icon name="spark" size={14} tone="gold" />}
+              >
+                Seal
+              </Chip>
+              {props.rightSubtitle ? <span className="sm-topbar-right-sub">{props.rightSubtitle}</span> : null}
             </div>
-
-            <Chip
-              size="sm"
-              selected={false}
-              disabled={!canSeal}
-              onClick={handleSeal}
-              title={canSeal ? "Seal a prophecy" : "Open a market to seal a prophecy"}
-              tone="gold"
-              variant="solid"
-              className="sm-topbar-seal"
-              left={<Icon name="spark" size={14} tone="gold" />}
-            >
-              Seal
-            </Chip>
 
             <LiveKaiButton
               now={props.now}

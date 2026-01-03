@@ -870,7 +870,8 @@ body{
 }
 
 .sm-topbar-row{
-  height: var(--sm-topbar-h);
+  min-height: var(--sm-topbar-h);
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -912,18 +913,21 @@ body{
 
 .sm-topbar-titles{
   min-width: 0;
+  display: grid;
+  gap: 4px;
+  align-items: start;
 }
 
 .sm-topbar-title{
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: clamp(12px, 4.4vw, 15px);
   font-weight: 900;
   letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .sm-topbar-title-core{
@@ -963,7 +967,25 @@ body{
 .sm-topbar-right{
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.sm-topbar-right-sub{
+  font-size: 11px;
+  color: rgba(191,252,255,0.78);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.sm-topbar-seal-wrap{
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  min-width: 0;
 }
 
 .sm-topbar-glyph{
@@ -975,6 +997,26 @@ body{
   background: rgba(12, 16, 28, 0.6);
   box-shadow: inset 0 0 20px rgba(0,0,0,0.18);
   min-width: 92px;
+}
+
+.sm-topbar-glyph--inline{
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sm-topbar-glyph--inline .sm-topbar-glyph-values{
+  gap: 3px;
+}
+
+.sm-topbar-glyph--inline .sm-topbar-glyph-phi{
+  font-size: 12px;
+}
+
+.sm-topbar-glyph--inline .sm-topbar-glyph-usd{
+  font-size: 11px;
 }
 
 .sm-topbar-glyph-title{
