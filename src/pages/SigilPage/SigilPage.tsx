@@ -179,12 +179,6 @@ type DebitLoose = {
   timestamp?: number;
   recipientPhiKey?: string;
 };
-// Allow CSS custom properties in style objects
-type CSSVars = React.CSSProperties & Record<`--${string}`, string | number>;
-
-const verifierVars: CSSVars = {
-  "--phi-url": `url(${import.meta.env.BASE_URL}assets/phi.svg)`,
-};
 /** Absolute URL on current origin (safe for path-only inputs) */
 const toAbsUrl = (pathOrUrl: string): string => {
   try {
@@ -328,7 +322,6 @@ const capDebitsQS = (qs: DebitQS): DebitQS => {
   };
 };
 
-/* ——— Local CSS var typing for the phi.svg mask ——— */
 /* Narrower unit guard (no 'any') */
 const isExpiryUnit = (u: unknown): u is ExpiryUnit => u === "breaths" || u === "steps";
 
@@ -2780,16 +2773,9 @@ useEffect(() => {
               title={`Kai ${valSeal.computedAtPulse} • premium ×${valSeal.premium.toFixed(6)} • ${fmtUsd(usdPerPhi)}/Φ • ${Number.isFinite(phiPerUsd) ? `${phiPerUsd.toFixed(6)} Φ/$` : "—"} • stamp ${valSeal.stamp.slice(0, 12)}…`}
                {...openHistoryPress}
             >
-              {/* Φ rainbow icon — /assets/phi.svg mask */}
-              <span
-                className="phi"
-                aria-hidden="true"
-                style={
-                  {
-                    "--phi-url": `url(${import.meta.env.BASE_URL}assets/phi.svg)`,
-                  } as React.CSSProperties
-                }
-              />
+              <span className="phi" aria-hidden="true">
+                <img className="phi-icon" src="/phi.svg" alt="" aria-hidden="true" />
+              </span>
               <span className="price" aria-label={hasDebitsOrFrozen ? "Available amount" : "Live valuation"}>
                 {currency(displayedChipPhi)}
               </span>
@@ -3095,19 +3081,16 @@ useEffect(() => {
                     Bound by breath. Ankored in Kairos. Forged by pulse.
                   </div>
       {/* Offline Verifier CTA */}
-<div
-  className="verifier-cta"
-  role="group"
-  aria-label="Offline verifier actions"
-  style={verifierVars}
->
+<div className="verifier-cta" role="group" aria-label="Offline verifier actions">
   <button
     type="button"
     className="verifier-btn"
     onClick={() => openVerifier("verifier.html")}
     aria-label="Open Offline Verifier"
   >
-    <span className="icon" aria-hidden="true" />
+    <span className="icon" aria-hidden="true">
+      <img className="icon-img" src="/phi.svg" alt="" aria-hidden="true" />
+    </span>
     <span className="label">
       Open <em>Offline Verifier</em>
       <small>No network • Σ → sha256 → Φ in-browser</small>
@@ -3120,7 +3103,9 @@ useEffect(() => {
     onClick={downloadVerifier}
     aria-label="Download verifier.html"
   >
-    <span className="icon dl" aria-hidden="true" />
+    <span className="icon dl" aria-hidden="true">
+      <img className="icon-img" src="/phi.svg" alt="" aria-hidden="true" />
+    </span>
     <span className="label">
       Download <em>verifier.html</em>
       <small>Single file • Keep forever • Offline</small>

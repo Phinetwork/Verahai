@@ -663,20 +663,19 @@ body.bp-open :where(.sigilpage, .sp-viewport, .sp-shell, .sp-veil, .sp-veil-star
   inline-size: var(--phi-size);
   block-size: var(--phi-size);
   position: relative;
-  -webkit-mask: var(--phi-url) center/contain no-repeat;
-          mask: var(--phi-url) center/contain no-repeat;
-  background:
-    conic-gradient(from 0deg,
-      #ff5a5a 0deg, #ff964d 36deg, #ffe04d 72deg, #5aff77 108deg,
-      #4df2ff 144deg, #6b6bff 180deg, #b84dff 216deg, #ff4dd0 252deg, #ff5a5a 360deg),
-    linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.10));
-  background-blend-mode: normal, screen;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+.sp-price-chip .phi-icon{
+  inline-size: 100%;
+  block-size: 100%;
   filter: saturate(150%) brightness(1.06)
           drop-shadow(0 0 calc(var(--phi-inner-glow)*.9) rgba(255,255,255,.55))
           drop-shadow(0 0 var(--phi-outer-glow) rgba(255,255,255,.35));
   animation: phiPulse var(--live-breath) ease-in-out infinite;
   will-change: filter, transform;
-  isolation:isolate;
 }
 .sp-price-chip .phi::after{
   content:""; position:absolute; inset:-30%; pointer-events:none; border-radius:50%;
@@ -1237,7 +1236,7 @@ body.bp-open :where(.sigilpage, .sp-viewport, .sp-shell, .sp-veil, .sp-veil-star
     opacity: .8;
   }
   
-  /* Icon — Φ glyph orb (uses your /assets/phi.svg mask if provided) */
+  /* Icon — Φ glyph orb (public /phi.svg) */
   .verifier-btn .icon {
     width: 42px;
     height: 42px;
@@ -1255,32 +1254,12 @@ body.bp-open :where(.sigilpage, .sp-viewport, .sp-shell, .sp-veil, .sp-veil-star
       0 0 0 1px rgba(255,255,255,0.10) inset,
       0 6px 14px color-mix(in hsl, hsl(calc(var(--hue) + var(--b-hue)) 100% 60%), transparent 72%);
   }
-  
-  .verifier-btn .icon::before {
-    /* Φ mask */
-    content: "";
+
+  .verifier-btn .icon-img {
     width: 62%;
     height: 62%;
-    mask: var(--phi-url) center / contain no-repeat;
-    -webkit-mask: var(--phi-url) center / contain no-repeat;
-    background:
-      linear-gradient(90deg,
-        color-mix(in hsl, hsl(calc(var(--hue) + var(--b-hue)) 100% 72%), #fff 10%),
-        #fff);
     filter: drop-shadow(0 0 calc(6px + 10px * var(--b-bright))
       color-mix(in hsl, hsl(calc(var(--hue) + var(--b-hue)) 100% 66%), transparent 60%));
-  }
-  
-  .verifier-btn .icon.dl::before {
-    /* subtle “download” tick beneath Φ */
-    mask: none; -webkit-mask: none;
-    width: 56%;
-    height: 56%;
-    background:
-      conic-gradient(from 180deg,
-        color-mix(in hsl, hsl(var(--hue) 100% 70%), transparent 30%) 0 120deg,
-        transparent 0 360deg);
-    border-radius: 999px;
   }
   .verifier-btn .icon.dl::after {
     content: "";

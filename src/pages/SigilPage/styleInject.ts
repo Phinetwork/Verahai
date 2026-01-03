@@ -44,7 +44,8 @@ export function injectSigilPageStyles() {
   
     /* Live Φ price chip */
     .sp-price-chip{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));right:calc(12px + env(safe-area-inset-right));z-index:50;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);font-weight:700;letter-spacing:.01em;transform:translateZ(0);will-change:transform}
-    .sp-price-chip .phi{display:inline-block;width:16px;height:16px;mask-image:var(--phi-url);-webkit-mask-image:var(--phi-url);mask-size:contain;-webkit-mask-size:contain;background:currentColor}
+    .sp-price-chip .phi{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px}
+    .sp-price-chip .phi-icon{width:100%;height:100%}
     .sp-price-chip .price{min-width:8ch;text-align:right}
     .sp-price-chip .live-badge{font-size:10px;opacity:.8;border:1px solid rgba(255,255,255,.18);padding:2px 6px;border-radius:999px;margin-left:4px}
     .sp-price-chip.flash-up{animation:chipUp .45s ease}

@@ -70,7 +70,7 @@ export default defineConfig(({ command }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['verahai-icon.svg'],
+      includeAssets: ['verahai-icon.svg', 'phi.svg'],
       manifest: {
         name: 'Verahai · SigilMarkets',
         short_name: 'Verahai',

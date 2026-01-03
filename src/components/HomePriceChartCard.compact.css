@@ -387,8 +387,8 @@
     transform: scale(1);
   
     /* Mask to /phi.svg */
-    -webkit-mask-image: url("/assets/phi.svg");
-    mask-image: url("/assets/phi.svg");
+    -webkit-mask-image: url("/phi.svg");
+    mask-image: url("/phi.svg");
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
