@@ -475,21 +475,27 @@ const fieldLines = (label: string, value: string, wrap: number): readonly TextLi
   for (const c of chunks) lines.push({ kind: "value", text: c });
   return lines;
 };
-
 const calcTextBlockHeight = (lines: readonly TextLine[]): number => {
   const lineHTitle = 18;
   const lineH = 14.5;
 
-  let dyAcc = 0;
-  for (let i = 0; i < lines.length; i += 1) {
-    const ln = lines[i];
-    const isTitle = ln.kind === "title";
-    const dy = i === 0 ? 0 : isTitle ? lineHTitle : lineH;
-    dyAcc += dy;
+  if (lines.length === 0) return 0;
+
+  const first = lines[0].kind === "title" ? lineHTitle : lineH;
+
+  // We count the remaining lines explicitly (not via dy accumulation),
+  // because dy for the first tspan is 0 but the glyph still needs height.
+  let rest = 0;
+  for (let i = 1; i < lines.length; i += 1) {
+    rest += lines[i].kind === "title" ? lineHTitle : lineH;
   }
-  const tailPad = 6;
-  return dyAcc + tailPad;
+
+  // Extra breathing room for stroke + etch filter + rounding
+  const tailPad = 14;
+
+  return first + rest + tailPad;
 };
+
 
 const renderTextBlock = (x: number, y: number, lines: readonly TextLine[], panelId: string, scale: number): string => {
   const titleSize = 16;
@@ -815,46 +821,52 @@ const buildSvg = (payload: PositionSigilPayloadV1, svgHashSeed: string, seal: Zk
 
   // Build panel SVG here (no separate renderPanel function -> no unused lint)
   const panelSvg = panels
-    .map((p) => {
-      const isTablet = p.id === "zkTablet";
-      const padX = 18;
-      const padY = 22;
+  .map((p) => {
+    const isTablet = p.id === "zkTablet";
 
-      const path = roundedRectPath(p.x, p.y, p.w, p.h, 18);
-      const clipId = `clip_${p.id}`;
-      const glowId = `panelGlow_${p.id}`;
+    // Bottom panels were clipping: give them a bit more room by reducing padding.
+    const padX = isTablet ? 18 : 14;
+    const padY = isTablet ? 22 : 16;
 
-      const lines: TextLine[] = [{ kind: "title", text: p.title }];
-      for (const f of p.fields) lines.push(...fieldLines(f.label, f.value, f.wrap));
+    const path = roundedRectPath(p.x, p.y, p.w, p.h, 18);
+    const clipId = `clip_${p.id}`;
+    const glowId = `panelGlow_${p.id}`;
 
-      const neededH = calcTextBlockHeight(lines);
-      const availH = Math.max(1, p.h - padY * 2);
-      const rawScale = neededH > availH ? availH / neededH : 1;
+    const lines: TextLine[] = [{ kind: "title", text: p.title }];
+    for (const f of p.fields) lines.push(...fieldLines(f.label, f.value, f.wrap));
 
-      const minScale = isTablet ? 0.36 : 0.66;
-      const scale = Math.max(minScale, Math.min(1, rawScale));
+    const neededH = calcTextBlockHeight(lines);
+    const availH = Math.max(1, p.h - padY * 2);
 
-      const textSvg = renderTextBlock(p.x + padX, p.y + padY, lines, p.id, scale);
+    // Safety multiplier prevents edge clipping from stroke/filter
+    const safety = 0.97;
+    const rawScale = neededH > 0 ? (availH / neededH) * safety : 1;
 
-      return (
-        `<defs>` +
-        `<clipPath id="${esc(clipId)}"><path d="${path}"/></clipPath>` +
-        `<filter id="${esc(glowId)}" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">` +
-        `<feGaussianBlur stdDeviation="6" result="b"/>` +
-        `<feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.26 0" result="g"/>` +
-        `<feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>` +
-        `</filter>` +
-        `</defs>` +
-        `<g clip-path="url(#${esc(clipId)})">` +
-        `<path d="${path}" fill="rgba(255,255,255,0.05)" opacity="0.95" filter="url(#panelFrost)"/>` +
-        `<path d="${path}" fill="${toneGhost}" opacity="0.55"/>` +
-        `<path d="${path}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.1"/>` +
-        `<path d="${path}" fill="none" stroke="url(#prism)" stroke-width="0.9" opacity="0.35" filter="url(#${esc(glowId)})"/>` +
-        `<g filter="url(#etchStrong)">${textSvg}</g>` +
-        `</g>`
-      );
-    })
-    .join("\n");
+    // CRITICAL: never clamp scale upward (that reintroduces clipping).
+    const scale = rawScale < 1 ? rawScale : 1;
+
+    const textSvg = renderTextBlock(p.x + padX, p.y + padY, lines, p.id, scale);
+
+    return (
+      `<defs>` +
+      `<clipPath id="${esc(clipId)}"><path d="${path}"/></clipPath>` +
+      `<filter id="${esc(glowId)}" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">` +
+      `<feGaussianBlur stdDeviation="6" result="b"/>` +
+      `<feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.26 0" result="g"/>` +
+      `<feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+      `</filter>` +
+      `</defs>` +
+      `<g clip-path="url(#${esc(clipId)})">` +
+      `<path d="${path}" fill="rgba(255,255,255,0.05)" opacity="0.95" filter="url(#panelFrost)"/>` +
+      `<path d="${path}" fill="${toneGhost}" opacity="0.55"/>` +
+      `<path d="${path}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.1"/>` +
+      `<path d="${path}" fill="none" stroke="url(#prism)" stroke-width="0.9" opacity="0.35" filter="url(#${esc(glowId)})"/>` +
+      `<g filter="url(#etchStrong)">${textSvg}</g>` +
+      `</g>`
+    );
+  })
+  .join("\n");
+
 
   const sigPathIdOuter = `${sigId}-sig-path-outer`;
   const sigPathIdInner = `${sigId}-sig-path-inner`;
