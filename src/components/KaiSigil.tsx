@@ -918,12 +918,22 @@ const KaiSigil = forwardRef<KaiSigilHandle, KaiSigilProps>((props, ref) => {
         (proofHints && typeof proofHints.scheme === "string" && proofHints.scheme) || baseScheme;
       const poseidonHash =
         typeof parsed.zkPoseidonHash === "string" ? parsed.zkPoseidonHash : basePoseidon;
-      const zkPublicInputs = Array.isArray(parsed.zkPublicInputs)
-        ? parsed.zkPublicInputs.map((entry) => String(entry))
-        : [];
+      let zkPublicInputs: string[] = [];
+      if (Array.isArray(parsed.zkPublicInputs)) {
+        zkPublicInputs = parsed.zkPublicInputs.map((entry) => String(entry));
+      } else if (typeof parsed.zkPublicInputs === "string") {
+        try {
+          const parsedInputs = JSON.parse(parsed.zkPublicInputs) as unknown;
+          if (Array.isArray(parsedInputs)) {
+            zkPublicInputs = parsedInputs.map((entry) => String(entry));
+          }
+        } catch (err) {
+          console.debug("[KaiSigil] Failed to parse zkPublicInputs string", err);
+        }
+      }
       const proofPresent = isZkProofLike(parsed.zkProof);
       const hasPoseidon = !!poseidonHash && poseidonHash !== "0x";
-      const inputsMatch = !zkPublicInputs.length || zkPublicInputs[0] === poseidonHash;
+      const inputsMatch = zkPublicInputs.length > 0 && zkPublicInputs[0] === poseidonHash;
       const schemeOk = /groth16/i.test(scheme);
       return {
         verified: proofPresent && hasPoseidon && inputsMatch && schemeOk,
