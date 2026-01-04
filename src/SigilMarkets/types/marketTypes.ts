@@ -104,6 +104,10 @@ export const isMarketStatus = (v: unknown): v is MarketStatus =>
  * Use the known literals for UI grouping; allow custom categories as branded strings.
  */
 export type MarketCategory =
+  | "pulse"
+  | "kai"
+  | "markets"
+  | "calendar"
   | "weather"
   | "sports"
   | "politics"
