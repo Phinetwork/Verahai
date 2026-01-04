@@ -8,11 +8,35 @@ import { Icon } from "./ui/atoms/Icon";
 import { Sheet } from "./ui/atoms/Sheet";
 import { decodeBoolean, loadFromStorage, saveToStorage, SM_HOWTO_DISMISSED_KEY } from "./state/persistence";
 
+// NOTE: this is your current path. Keep it exactly as you wrote it.
+import SigilModal from "../components/SigilModal";
+
+type HowToAction = Readonly<{
+  label: string;
+  hint?: string;
+  onClick: () => void;
+}>;
+
+type HowToStep = Readonly<{
+  title: string;
+  body?: string;
+  bullets?: readonly string[];
+  note?: string;
+  action?: HowToAction;
+}>;
+
 export const SigilHowTo = () => {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+
+  // Step 1 action opens SigilModal (mint window)
+  const [sigilModalOpen, setSigilModalOpen] = useState(false);
+
+  // When SigilModal closes, resume HowTo on Step 2 so the user never gets lost.
+  const resumeStepRef = useRef<number | null>(null);
+
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -20,33 +44,38 @@ export const SigilHowTo = () => {
 
   useEffect(() => {
     const res = loadFromStorage(SM_HOWTO_DISMISSED_KEY, decodeBoolean);
-    if (res.ok && res.value === true) {
-      setDismissed(true);
-    }
+    if (res.ok && res.value === true) setDismissed(true);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!open) return;
+    const id = window.requestAnimationFrame(() => closeRef.current?.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, [open]);
+
+  // When sheet opens, go to resumed step if we have one (otherwise Step 1).
+  useEffect(() => {
+    if (!open) return;
+
+    const resume = resumeStepRef.current;
+    resumeStepRef.current = null;
+
+    const idx = resume ?? 0;
+    setActiveStep(idx);
+
     const id = window.requestAnimationFrame(() => {
-      closeRef.current?.focus();
+      const el = carouselRef.current;
+      if (!el) return;
+      el.scrollTo({ left: el.clientWidth * idx, behavior: "auto" });
     });
+
     return () => window.cancelAnimationFrame(id);
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    setActiveStep(0);
-    if (carouselRef.current) {
-      carouselRef.current.scrollTo({ left: 0 });
-    }
-  }, [open]);
-
-  useEffect(() => {
     return () => {
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
+      if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
@@ -58,41 +87,84 @@ export const SigilHowTo = () => {
   };
 
   const close = (): void => setOpen(false);
-const steps = useMemo(
-  () => [
-    {
-      title: "What is a Sigil-Glyph?",
-      body:
-        "A Sigil-Glyph is a sovereign truth vessel — not an image, but a living seal.\n\nIt is self-contained. It carries, inside the file:\n- The claim you minted\n- The exact Kai-Klok pulse of sealing\n- Your ΦKey (breath-minted identity)\n- Your Kai Signature (authorship + intent)\n- A Zero-Knowledge proof (ZK) that proves validity and integrity without exposing private inputs\n\nThis is not “verified by a platform.” There is no central witness.\nThe vessel *is* the verification: decode it, check the signature, check the pulse, verify the proof.\n\nPortable. Peer-to-peer. Offline.\nA truth object that survives servers, survives accounts, survives empires — because it is sealed in breath and time.",
-    },
-    {
-      title: "What is Verahai?",
-      body:
-        "Verahai is the sovereign prediction market — not a website you trust, but a protocol you carry.\n\nYou do not place a bet *into* a platform.\nYou mint a Position Sigil.\n\nThat Position Sigil is your YES/NO stance, sealed as a Sigil-Glyph:\n- bound to your ΦKey\n- stamped to a Kai-Klok pulse\n- signed by your Kai Signature\n- guarded by Zero-Knowledge validity proofs\n\nSo your position is not a database row.\nIt is a sovereign vessel.\nYou can share it anywhere, verify it anywhere, and redeem it without intermediaries — because the proof travels with the claim.",
-      bullets: [
-        "Inhale: Enter with your Identity Sigil (ΦKey + Kai Signature)",
-        "Lock Φ: Escrow value in your Vault and mint a Position Sigil",
-        "Carry: Share the Sigil-Glyph — it verifies itself, offline",
-      ],
-    },
-    {
-      title: "How settlement works (Kai-Klok × Φ Network)",
-      body:
-        "Kai-Klok governs time: markets open and close on harmonic pulse boundaries — deterministic, universal, unforgeable.\nΦ Network governs value + identity: Vaults, Sigils, and positions are bound to your ΦKey — ownership by breath, not by accounts.\n\nWhen the outcome is sealed, settlement becomes mechanical.\nA Resolution is minted at a precise pulse (YES / NO / VOID), with its own signature and evidence lineage.\nThen each Position Sigil proves what it is, proves when it was minted, proves who minted it, and proves it satisfies the settlement rules — with Zero-Knowledge proofs that reveal nothing but correctness.\n\nNo sync.\nNo platform custody.\nNo server as a judge.\nJust breath-sealed truth resolving at pulse.",
-      bullets: [
-        "Verify: Decode the vessel metadata, Kai Signature, and ZK proof",
-        "Resolve: Outcome is sealed (YES / NO / VOID) precisely at pulse",
-        "Claim: Valid Position Sigils unlock Φ from the Vault (ΦKey-bound)",
-      ],
-      note:
-        "No accounts. No platforms. No trust assumptions.\nThe Sigil-Glyph *is* the position — a sovereign, self-verifying vessel of truth that can be carried, traded, and redeemed anywhere.",
-    },
-  ],
-  [],
-);
 
+  // Step 1 CTA: open SigilModal, then return user to step 2 automatically.
+  const openSigilMintFromStep1 = (): void => {
+    // Close HowTo so the user sees ONE clear action.
+    setOpen(false);
 
+    // When SigilModal closes, bring them back to Step 2 (index 1).
+    resumeStepRef.current = 1;
 
+    setSigilModalOpen(true);
+  };
+
+  const onSigilModalClose = (): void => {
+    setSigilModalOpen(false);
+
+    // Reopen HowTo at Step 2 (index 1) to continue the guided flow.
+    resumeStepRef.current = 1;
+    setOpen(true);
+  };
+
+  const steps: readonly HowToStep[] = useMemo(
+    () => [
+      {
+        title: "Mint your Sigil-Glyph (this is your login + value + memory)",
+        body:
+          "A Sigil-Glyph is not “an image.” It is a proof-file you carry.\n\nIt functions as three things at once:\n\n1) LOGIN (Identity)\n   Your ΦKey + Kai Signature are sealed into the file.\n   You don’t “sign into an account.” You present proof.\n\n2) VALUE (Money)\n   Φ can be locked/unlocked by rules and resolved by proof.\n   The position/claim is not a database row — it’s a redeemable vessel.\n\n3) MEMORY (Receipts)\n   Every seal carries its Kai-Klok pulse (deterministic time) and integrity proof.\n   Anyone can verify it offline. No platform. No permission.\n\nTap the button below to open the Sigil mint window and create your first proof-file.",
+        bullets: [
+          "Tap “Open Sigil Mint” now.",
+          "Export as SVG (or SVG+PNG).",
+          "Save the file — that file IS your login and your proof.",
+        ],
+        note:
+          "This is superior to passwords, accounts, and custodians because the verification lives inside the file. If you have the file, you have the proof. When you close the mint window, you’ll return here automatically to Step 2.",
+        action: {
+          label: "Open Sigil Mint",
+          hint: "Opens Kairos Sigil-Glyph Inhaler (mint + export). Save the SVG — you will use it to Inhale (log in).",
+          onClick: openSigilMintFromStep1,
+        },
+      },
+      {
+        title: "How to log in (Inhale) with a Sigil-Glyph",
+        body:
+          "Logging in with Verahai is not a username/password.\n\nYou Inhale with your Sigil-Glyph:\n\n1) Tap Inhale / Login\n2) Upload or select the Sigil-Glyph file you saved\n3) Verahai verifies locally:\n   - decodes the embedded metadata\n   - checks your Kai Signature against your ΦKey\n   - checks the Kai-Klok pulse stamp\n   - verifies ZK integrity proofs (when present)\n\nIf valid, you are in.\n\nNo password to steal.\nNo account to delete.\nNo platform permission.\nJust proof.",
+        bullets: [
+          "Inhale: Present your Sigil-Glyph file (your ΦKey + Kai Signature).",
+          "Verify: Local, offline-capable verification of signature + pulse + ZK.",
+          "Enter: Your Vault + positions are now bound to the same ΦKey proof lineage.",
+        ],
+        note:
+          "Bridge to what you already know: this is like “Sign in with Apple,” but instead of Apple being the gatekeeper, the file is the credential and verification is self-contained. You carry your login. You carry your receipts. You carry your value.",
+      },
+      {
+        title: "What is Verahai?",
+        body:
+          "Verahai is the sovereign prediction market — not a website you trust, but a protocol you carry.\n\nYou do not place a bet into a platform.\nYou mint a Position Sigil.\n\nThat Position Sigil is your YES/NO stance, sealed as a Sigil-Glyph:\n- bound to your ΦKey\n- stamped to a Kai-Klok pulse\n- signed by your Kai Signature\n- guarded by Zero-Knowledge validity proofs\n\nSo your position is not a database row.\nIt is a sovereign vessel.\nYou can share it anywhere, verify it anywhere, and redeem it without intermediaries — because the proof travels with the claim.",
+        bullets: [
+          "Inhale: Enter with your Identity Sigil (ΦKey + Kai Signature).",
+          "Lock Φ: Escrow value in your Vault and mint a Position Sigil.",
+          "Carry: Share the Sigil-Glyph — it verifies itself, offline.",
+        ],
+        note:
+          "The simple truth: Verahai turns “claims” into portable proof-objects, and turns “settlement” into verification — not platform trust.",
+      },
+      {
+        title: "How settlement works (Kai-Klok × Φ Network)",
+        body:
+          "Kai-Klok governs time: markets open and close on pulse boundaries — deterministic, universal, unforgeable.\n\nΦ Network governs value + identity: Vaults, Sigils, and positions are bound to your ΦKey — ownership by breath, not by accounts.\n\nWhen the outcome is sealed, settlement becomes mechanical.\nA Resolution is minted at a precise pulse (YES / NO / VOID), with its own signature and evidence lineage.\nThen each Position Sigil proves what it is, proves when it was minted, proves who minted it, and proves it satisfies the settlement rules — with Zero-Knowledge proofs that reveal nothing but correctness.\n\nNo sync.\nNo platform custody.\nNo server as judge.\nJust truth resolving at pulse.",
+        bullets: [
+          "Verify: Decode the vessel metadata, Kai Signature, and ZK proof.",
+          "Resolve: Outcome is sealed (YES / NO / VOID) precisely at pulse.",
+          "Claim: Valid Position Sigils unlock Φ from the Vault (ΦKey-bound).",
+        ],
+        note:
+          "No accounts. No platforms. No trust assumptions.\nThe Sigil-Glyph IS the position — a sovereign, self-verifying vessel of truth that can be carried, traded, and redeemed anywhere.",
+      },
+    ],
+    [],
+  );
 
   const updateActiveStep = (): void => {
     if (!carouselRef.current) return;
@@ -104,9 +176,7 @@ const steps = useMemo(
   };
 
   const onCarouselScroll = (): void => {
-    if (rafRef.current !== null) {
-      window.cancelAnimationFrame(rafRef.current);
-    }
+    if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
     rafRef.current = window.requestAnimationFrame(updateActiveStep);
   };
 
@@ -138,7 +208,7 @@ const steps = useMemo(
         open={open}
         onClose={close}
         title="Sigil-Glyphs"
-        subtitle="Portable proof you can share."
+        subtitle="Mint one once. Carry it forever."
         className="vhHowToSheet"
         footer={
           <div className="vhHowToFooter">
@@ -158,8 +228,11 @@ const steps = useMemo(
                     {index + 1} / {steps.length}
                   </span>
                 </div>
+
                 <h3>{step.title}</h3>
-                {step.body ? <p>{step.body}</p> : null}
+
+                {step.body ? <p className="vhHowToBody">{step.body}</p> : null}
+
                 {step.bullets ? (
                   <div className="vhHowToSteps">
                     <ul>
@@ -167,9 +240,19 @@ const steps = useMemo(
                         <li key={bullet}>{bullet}</li>
                       ))}
                     </ul>
-                    {step.note ? <p className="vhHowToNote">{step.note}</p> : null}
                   </div>
                 ) : null}
+
+                {step.action ? (
+                  <div className="vhHowToCta">
+                    <Button variant="primary" size="md" onClick={step.action.onClick} aria-label={step.action.label}>
+                      {step.action.label}
+                    </Button>
+                    {step.action.hint ? <p className="vhHowToCtaHint">{step.action.hint}</p> : null}
+                  </div>
+                ) : null}
+
+                {step.note ? <p className="vhHowToNote">{step.note}</p> : null}
               </section>
             ))}
           </div>
@@ -200,6 +283,9 @@ const steps = useMemo(
           </label>
         </div>
       </Sheet>
+
+      {/* Step 1 opens SigilModal directly */}
+      {sigilModalOpen ? <SigilModal onClose={onSigilModalClose} /> : null}
     </>
   );
 };

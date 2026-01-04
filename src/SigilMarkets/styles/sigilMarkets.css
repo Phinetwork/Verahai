@@ -3711,3 +3711,17 @@ body{
     animation: none;
   }
 }
+.vhHowToBody { white-space: pre-wrap; }
+
+.vhHowToCta{
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.vhHowToCtaHint{
+  font-size: 12px;
+  opacity: .78;
+  line-height: 1.25;
+  margin: 0;
+}
