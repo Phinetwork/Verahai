@@ -150,8 +150,15 @@ const postJsonWithRetry = async (
   const retryDelayMs =
     typeof opts?.retryDelayMs === "number" ? Math.max(0, Math.trunc(opts.retryDelayMs)) : DEFAULT_REQUEST_RETRY_DELAY_MS;
 
-  const bodyString = JSON.stringify(body);
-  const bodyHash = await sha256Hex(stableStringify(body));
+  let bodyString: string;
+  let bodyHash: string;
+  try {
+    bodyString = JSON.stringify(body);
+    bodyHash = await sha256Hex(stableStringify(body));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown error";
+    return { ok: false, error: `oracle request body stringify failed: ${msg}` };
+  }
 
   let lastError = "";
 
