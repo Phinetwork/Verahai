@@ -1,9 +1,9 @@
 // SigilMarkets/views/Positions/ClaimSheet.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { KaiMoment, PhiMicro } from "../../types/marketTypes";
-import type { PositionRecord } from "../../types/sigilPositionTypes";
+import type { ClaimSigilPayloadV1, PositionRecord } from "../../types/sigilPositionTypes";
 import { Sheet } from "../../ui/atoms/Sheet";
 import { Button } from "../../ui/atoms/Button";
 import { Divider } from "../../ui/atoms/Divider";
@@ -16,6 +16,10 @@ import { useActiveVault, useSigilMarketsVaultStore } from "../../state/vaultStor
 import { useSigilMarketsPositionStore } from "../../state/positionStore";
 import { useHaptics } from "../../hooks/useHaptics";
 import { useSfx } from "../../hooks/useSfx";
+import { mintClaimSigil } from "../../sigils/PositionSigilMint";
+import { buildVictoryBundleZip, sanitizeBundleName } from "../../sigils/victoryBundle";
+import { download } from "../../../components/VerifierStamper/files";
+import { recordSigilLedgerEvent } from "../../../utils/sigilLedgerRegistry";
 
 export type ClaimSheetProps = Readonly<{
   open: boolean;
@@ -52,8 +56,79 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
   const payoutLabel = useMemo(() => formatPhiMicro(expectedPayout, { withUnit: true, maxDecimals: 6, trimZeros: true }), [expectedPayout]);
 
   const [loading, setLoading] = useState(false);
+  const [claimSigil, setClaimSigil] = useState<{
+    svgUrl: string;
+    svgText: string;
+    payload: ClaimSigilPayloadV1;
+    svgHash: string;
+    canonicalHashHex: string;
+    zkSeal: Record<string, unknown>;
+  } | null>(null);
+  const [bundleBusy, setBundleBusy] = useState(false);
 
-  const apply = (): void => {
+  useEffect(() => {
+    if (!props.open) {
+      setClaimSigil(null);
+      setLoading(false);
+      setBundleBusy(false);
+    }
+  }, [props.open]);
+
+  useEffect(() => {
+    return () => {
+      if (claimSigil?.svgUrl) {
+        URL.revokeObjectURL(claimSigil.svgUrl);
+      }
+    };
+  }, [claimSigil?.svgUrl]);
+
+  const downloadBundle = async (): Promise<void> => {
+    if (!claimSigil) return;
+    if (bundleBusy) return;
+    setBundleBusy(true);
+    try {
+      const payload = claimSigil.payload;
+      const receipt = {
+        payload,
+        svgHash: claimSigil.svgHash,
+        canonicalPayloadHash: claimSigil.canonicalHashHex,
+        lineageId: payload.lineageId,
+        rootSvgHash: payload.lineageRootSvgHash,
+      };
+      const proof = claimSigil.zkSeal;
+      const readme = [
+        "Verahai Victory Bundle — Offline Verification",
+        "",
+        "1) Hash the root identity sigil SVG and confirm it matches lineageRootSvgHash in receipt.json.",
+        "2) Recompute lineageId from receipt payload fields (marketId, positionId, outcome, kaiMoment).",
+        "3) Derive ΦKey from kaiSignature and confirm it matches userPhiKey in the payload.",
+        "4) Verify ZK proof (if present) using proof.json + public inputs.",
+        "",
+        `Payout: ${payload.payoutPhiDisplay} (microΦ: ${payload.payoutPhiMicro}).`,
+      ].join("\n");
+
+      const base = sanitizeBundleName(
+        `verahai-claim-${String(payload.marketId)}-${String(payload.positionId)}-${String(payload.kaiMoment.pulse)}`,
+      );
+
+      const zip = await buildVictoryBundleZip({
+        svgText: claimSigil.svgText,
+        receipt,
+        proof,
+        readme,
+        filenameBase: base,
+        output: "blob",
+      });
+
+      if (zip.blob) {
+        download(zip.blob, `${base}.zip`);
+      }
+    } finally {
+      setBundleBusy(false);
+    }
+  };
+
+  const apply = async (): Promise<void> => {
     if (!isActionable) return;
     if (!activeVault || activeVault.vaultId !== p.lock.vaultId) {
       ui.toast("error", "Not authorized", "Active vault does not match this position.");
@@ -61,6 +136,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
     }
 
     setLoading(true);
+    setClaimSigil(null);
 
     // Transition lock in vault
     if (canRefund) {
@@ -117,8 +193,52 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
       ui.armConfetti(true);
     }
 
+    const payoutMicro =
+      canRefund ? p.entry.stakeMicro : canClaim ? expectedPayout : (0n as PhiMicro);
+    const claimMoment = props.now;
+
+    const mintRes = await mintClaimSigil(p, activeVault, claimMoment, payoutMicro as unknown as bigint);
+    if (mintRes.ok) {
+      setClaimSigil({
+        svgUrl: mintRes.sigil.url ?? "",
+        svgText: mintRes.svgText,
+        payload: mintRes.sigil.payload,
+        svgHash: String(mintRes.sigil.svgHash),
+        canonicalHashHex: mintRes.canonicalHashHex,
+        zkSeal: mintRes.zkSeal as unknown as Record<string, unknown>,
+      });
+
+      const root = activeVault.owner.identitySigil;
+      if (root) {
+        const resultingBalance = (activeVault.spendableMicro + payoutMicro) as PhiMicro;
+        void recordSigilLedgerEvent({
+          rootSigilId:
+            (root.sigilId as unknown as string | undefined) ??
+            (root.canonicalHash as unknown as string | undefined) ??
+            (root.svgHash as unknown as string),
+          rootSvgHash: root.svgHash,
+          kind: "CLAIM",
+          kaiMoment: claimMoment,
+          deltaPhiMicro: String(payoutMicro),
+          resultingBalanceMicro: String(resultingBalance),
+          refId: String(p.id),
+          refs: {
+            vaultId: String(activeVault.vaultId),
+            lockId: String(p.lock.lockId),
+            marketId: String(p.marketId),
+            positionId: String(p.id),
+          },
+          hashes: {
+            lineageId: mintRes.sigil.payload.lineageId,
+            canonicalPayloadHash: mintRes.canonicalHashHex,
+          },
+        });
+      }
+    } else {
+      ui.toast("error", "Claim sigil failed", mintRes.error, { atPulse: props.now.pulse });
+    }
+
     setLoading(false);
-    props.onClose();
   };
 
   return (
@@ -171,6 +291,31 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
         <div className="sm-small" style={{ marginTop: 10 }}>
           This is MVP settlement logic. We will wire full deterministic settlement to your on-ledger resolution keys next.
         </div>
+
+        {claimSigil ? (
+          <>
+            <Divider />
+            <div className="sm-claim-row">
+              <span className="k">Lineage</span>
+              <span className="v mono">{String(claimSigil.payload.lineageRootSigilId).slice(0, 10)}…</span>
+            </div>
+            <div className="sm-claim-trophy">
+              <div className="sm-claim-trophy__label">Trophy sigil</div>
+              {claimSigil.svgUrl ? (
+                <img src={claimSigil.svgUrl} alt="Claim sigil preview" className="sm-claim-trophy__img" />
+              ) : null}
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => void downloadBundle()}
+              disabled={bundleBusy}
+              loading={bundleBusy}
+              leftIcon={<Icon name="download" size={14} tone="gold" />}
+            >
+              Download Victory Bundle (.zip)
+            </Button>
+          </>
+        ) : null}
       </div>
     </Sheet>
   );

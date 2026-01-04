@@ -34,6 +34,15 @@ import type { KaiSignature, MicroDecimalString, SvgHash, UserPhiKey } from "./va
 export type { MicroDecimalString } from "./vaultTypes";
 export { asMicroDecimalString } from "./vaultTypes";
 
+export type SigilLineageFields = Readonly<{
+  lineageRootSigilId: string;
+  lineageRootSvgHash: SvgHash;
+  lineageId: string;
+  parentSigilId?: string;
+  parentSvgHash?: SvgHash;
+  kaiMoment: KaiMoment;
+}>;
+
 /** Position id (unique within the user's local store; may also be globally referenced). */
 export type PositionId = Brand<string, "PositionId">;
 export const asPositionId = (v: string): PositionId => v as PositionId;
@@ -295,6 +304,53 @@ export type PositionSigilPayloadV1 = Readonly<{
   /** Optional UI labels. */
   label?: string;
   note?: string;
+}> &
+  SigilLineageFields;
+
+export type ClaimSigilPayloadV1 = Readonly<{
+  v: "SM-CLAIM-1";
+  kind: "claim";
+
+  userPhiKey: UserPhiKey;
+  kaiSignature: KaiSignature;
+
+  marketId: MarketId;
+  positionId: PositionId;
+  side: MarketSide;
+
+  outcome: MarketOutcome;
+  resolutionId: string;
+  resolutionPulse: KaiPulse;
+  decisionId?: string;
+
+  payoutPhiMicro: MicroDecimalString;
+  payoutPhiDisplay: string;
+
+  lockedStakeMicro: MicroDecimalString;
+  sharesMicro: MicroDecimalString;
+  avgPriceMicro: MicroDecimalString;
+  worstPriceMicro: MicroDecimalString;
+  feeMicro: MicroDecimalString;
+  totalCostMicro: MicroDecimalString;
+
+  vaultId: VaultId;
+  lockId: LockId;
+
+  openedAt: KaiMoment;
+  claimedAt: KaiMoment;
+
+  marketDefinitionHash?: EvidenceHash;
+
+  label?: string;
+  note?: string;
+}> &
+  SigilLineageFields;
+
+export type ClaimSigilArtifact = Readonly<{
+  sigilId: PositionSigilId;
+  svgHash: SvgHash;
+  url?: string;
+  payload: ClaimSigilPayloadV1;
 }>;
 
 /** A minted Position Sigil artifact reference. */

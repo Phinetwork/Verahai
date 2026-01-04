@@ -4,9 +4,11 @@
    • Fix: ALWAYS opens in LIVE
    • Fix: LIVE uses calibrated μpulses-since-genesis (never boots at 0)
    • Fix: countdown & scheduler use same calibrated source (ticks + advances)
-   • Fix: KaiSigil large-pulse invariant crash (correct wrap period preserves μ-lattice)
-   • UI: removed redundant Live button in pulse row
-   • UI: LIVE indicator is a styled chip (mobile-safe spacing, no overlap with close button)
+   • Fix: KaiSigil KKS invariant crash (Sigil stepIndex always matches KaiSigil’s own step math)
+   • Fix: bigint never rendered directly (no ReactNode bigint)
+   • Fix: large-pulse safe pulse wrapping preserves BOTH:
+       (a) μ-lattice invariance period, AND
+       (b) base-grid mod (beat+step) invariance used by KaiSigil
 ────────────────────────────────────────────────────────────────── */
 
 "use client";
@@ -27,6 +29,7 @@ import JSZip from "jszip";
 import SigilMomentRow from "./SigilMomentRow";
 
 import KaiSigil, { type KaiSigilProps, type KaiSigilHandle } from "./KaiSigil";
+import { stepIndexFromPulseExact, percentIntoStepFromPulseExact } from "./KaiSigil/step";
 
 import SealMomentModal from "./SealMomentModal";
 import {
@@ -60,21 +63,25 @@ import {
   PULSE_MS,
   STEPS_BEAT,
   BEATS_DAY,
+  PULSES_BEAT,
   N_DAY_MICRO,
+  BASE_DAY_MICRO,
   DAY_TO_CHAKRA,
   getKaiTimeSource,
   epochMsFromPulse,
   microPulsesSinceGenesis,
   utcFromBreathSlot,
-  latticeFromMicroPulses,
-  normalizePercentIntoStep,
   buildKaiKlockResponse,
   momentFromPulse,
   type Weekday,
   type ChakraDay,
 } from "../utils/kai_pulse";
 import { generateKaiTurah } from "../utils/kai_turah";
-import { getKaiPulseToday, getSolarAlignedCounters, SOLAR_DAY_NAMES } from "../SovereignSolar";
+import {
+  getKaiPulseToday,
+  getSolarAlignedCounters,
+  SOLAR_DAY_NAMES,
+} from "../SovereignSolar";
 
 /* ────────────────────────────────────────────────────────────────
    Strict browser timer handle types
@@ -98,18 +105,9 @@ type KaiKlock = Readonly<Record<string, unknown>>;
 ────────────────────────────────────────────────────────────────── */
 const ONE_PULSE_MICRO = 1_000_000n;
 const MAX_SAFE_BI = BigInt(Number.MAX_SAFE_INTEGER);
-const HARMONIC_DAY_PULSES_EXACT = 17_491.270421; // exact
-const CHAKRA_BEATS_PER_DAY = 36;
-const PULSES_PER_STEP = 11;
-const UPULSES_PER_PULSE = 1_000_000;
-const MU_PER_BEAT = Math.round(
-  (HARMONIC_DAY_PULSES_EXACT / CHAKRA_BEATS_PER_DAY) * UPULSES_PER_PULSE
-);
-const MU_PER_STEP = PULSES_PER_STEP * UPULSES_PER_PULSE;
-
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-/* Safe BigInt → Number clamp (numbers are pixels) */
+/* Safe BigInt → Number clamp (numbers are pixels / UI only) */
 const biToSafeNumber = (x: bigint): number => {
   if (x > MAX_SAFE_BI) return Number.MAX_SAFE_INTEGER;
   if (x < -MAX_SAFE_BI) return -Number.MAX_SAFE_INTEGER;
@@ -147,27 +145,40 @@ const gcdBI = (a: bigint, b: bigint): bigint => {
 };
 
 /**
- * ✅ KaiSigil safe-wrap period (pulse domain)
- * We must preserve: (pulse * 1_000_000) mod N_DAY_MICRO
- * Period: N_DAY_MICRO / gcd(N_DAY_MICRO, 1_000_000)
+ * ✅ SAFE WRAP PERIOD FOR KAI SIGIL (pulse domain)
  *
- * This prevents KaiSigil's internal "determinism invariant" crash for large pulses.
+ * KaiSigil derives stepIndex from integer pulse using:
+ *   pulsesIntoBeat = pulse mod PULSES_BEAT
+ *   stepIndex      = floor(pulsesIntoBeat / PULSES_STEP)
+ *
+ * If we wrap pulse for safety, we MUST preserve:
+ *   (pulse mod PULSES_BEAT) AND (pulse mod (PULSES_BEAT * BEATS_DAY))
+ *
+ * At the same time, we want to preserve the μ-lattice invariance period:
+ *   (pulse * 1_000_000) mod N_DAY_MICRO repeats every:
+ *     basePeriodPulse = N_DAY_MICRO / gcd(N_DAY_MICRO, 1_000_000)
+ *
+ * So we choose a wrap period that is:
+ *   WRAP = basePeriodPulse * BASE_DAY_PULSES
+ * where BASE_DAY_PULSES = PULSES_BEAT * BEATS_DAY (17424),
+ * ensuring mod BASE_DAY_PULSES and mod PULSES_BEAT are invariant under wrapping.
  */
+const BASE_DAY_PULSES_BI = BigInt(PULSES_BEAT * BEATS_DAY);
 const SIGIL_WRAP_PULSE: bigint = (() => {
   const g = gcdBI(N_DAY_MICRO, ONE_PULSE_MICRO);
-  return g === 0n ? 0n : N_DAY_MICRO / g;
+  const basePeriodPulse = g === 0n ? 0n : N_DAY_MICRO / g; // pulses
+  return basePeriodPulse === 0n ? 0n : basePeriodPulse * BASE_DAY_PULSES_BI;
 })();
-
-const fmtSeal = (raw: string) =>
-  raw
-    .trim()
-    .replace(/^(\d+):(\d+)/, (_m, b, s) => `${+b}:${String(s).padStart(2, "0")}`)
-    .replace(/D\s*(\d+)/, (_m, d) => `D${+d}`);
 
 const fmtSealKairos = (beat: number, stepIdx: number) => `${beat}:${pad2(stepIdx)}`;
 
-const fmtPulse = (pulseValue: bigint) =>
-  pulseValue <= MAX_SAFE_BI ? Number(pulseValue).toLocaleString() : pulseValue.toString();
+const fmtPulseDisplay = (pulseExact: bigint) => {
+  try {
+    return pulseExact.toLocaleString();
+  } catch {
+    return pulseExact.toString();
+  }
+};
 
 type SolarSealContext = {
   weekday: string;
@@ -206,7 +217,7 @@ const canonicalizeSealText = (
   const solarCtx = getSolarSealContext(canonicalPulse);
 
   s = s.replace(/Kairos:\s*\d{1,2}:\d{1,2}/i, `Kairos:${fmtSealKairos(beat, stepIdx)}`);
-  s = s.replace(/Eternal\s*Pulse:\s*[\d,]+/i, `Eternal Pulse:${fmtPulse(canonicalPulse)}`);
+  s = s.replace(/Eternal\s*Pulse:\s*[\d,]+/i, `Eternal Pulse:${fmtPulseDisplay(canonicalPulse)}`);
   s = s.replace(/Step:\s*\d{1,2}\s*\/\s*44/i, `Step:${stepIdx}/44`);
   s = s.replace(/Beat:\s*\d{1,2}\s*\/\s*36(?:\([^)]+\))?/i, `Beat:${beat}/36`);
 
@@ -232,22 +243,6 @@ const isoFromPulse = (pulse: bigint): string => {
   } catch {
     return "";
   }
-};
-
-const exactBeatStepFromPulse = (pulseValue: bigint) => {
-  const muPosInDay = Number(modE(pulseValue * ONE_PULSE_MICRO, N_DAY_MICRO));
-  const beat = Math.min(
-    CHAKRA_BEATS_PER_DAY - 1,
-    Math.max(0, Math.floor(muPosInDay / MU_PER_BEAT))
-  );
-  const muPosInBeat = muPosInDay % MU_PER_BEAT;
-  const stepIndex = Math.min(
-    STEPS_BEAT - 1,
-    Math.max(0, Math.floor(muPosInBeat / MU_PER_STEP))
-  );
-  const muPosInStep = muPosInBeat % MU_PER_STEP;
-  const stepPct = normalizePercentIntoStep(muPosInStep / MU_PER_STEP);
-  return { beat, stepIndex, stepPct };
 };
 
 /* deterministic datetime-local parsing */
@@ -486,7 +481,6 @@ const getArkColor = (label?: string): string => {
 
 /* ────────────────────────────────────────────────────────────────
    Sticky MINT dock styles (keep inline)
-   NOTE: pulse row + LIVE chip styles live in SigilModal.css now
 ────────────────────────────────────────────────────────────────── */
 const MintDockStyles = () => (
   <style>{`
@@ -617,6 +611,37 @@ const BREATH_LABELS: readonly string[] = Array.from({ length: 11 }, (_, i) => {
 });
 
 /* ────────────────────────────────────────────────────────────────
+   KKS helpers (MUST MATCH KaiSigil/step.ts)
+────────────────────────────────────────────────────────────────── */
+const beatIndexFromPulseExact = (pulseNum: number): number => {
+  const p = Number.isFinite(pulseNum) ? Math.trunc(pulseNum) : 0;
+  const base = PULSES_BEAT * BEATS_DAY; // 17424
+  const into = ((p % base) + base) % base;
+  return Math.max(0, Math.min(BEATS_DAY - 1, Math.floor(into / PULSES_BEAT)));
+};
+
+const kksFromPulseNumberExact = (pulseNum: number) => {
+  const beat = beatIndexFromPulseExact(pulseNum);
+  const stepIndex = stepIndexFromPulseExact(pulseNum);
+  const stepPct = percentIntoStepFromPulseExact(pulseNum);
+  return { beat, stepIndex, stepPct };
+};
+
+const safePulseNumberForSigil = (pulseExact: bigint): number => {
+  const p = clampPulseNonNeg(pulseExact);
+  if (p <= MAX_SAFE_BI) return Number(p);
+  if (SIGIL_WRAP_PULSE <= 0n) return 0;
+  const wrapped = modE(p, SIGIL_WRAP_PULSE);
+  return biToSafeNumber(wrapped);
+};
+
+const fmtSeal = (raw: string) =>
+  raw
+    .trim()
+    .replace(/^(\d+):(\d+)/, (_m, b, s) => `${+b}:${String(s).padStart(2, "0")}`)
+    .replace(/D\s*(\d+)/, (_m, d) => `D${+d}`);
+
+/* ────────────────────────────────────────────────────────────────
    Main component
 ────────────────────────────────────────────────────────────────── */
 const SigilModal: FC<Props> = ({ onClose }: Props) => {
@@ -744,13 +769,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
   const timeoutRef = useRef<TimeoutHandle | null>(null);
   const targetBoundaryRef = useRef<number>(0);
 
-  const pulseDisp = useMemo(() => {
-    try {
-      return pulse.toLocaleString();
-    } catch {
-      return pulse.toString();
-    }
-  }, [pulse]);
+  const pulseDisp = useMemo(() => fmtPulseDisplay(pulse), [pulse]);
 
   // Visual-only: align CSS animation with current pulse progress (mid-pulse correct)
   const syncPulseCss = useCallback(() => {
@@ -974,16 +993,16 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
     resetToLive();
   };
 
-  /* KKS v1.0 derived ONLY from pulse (BIGINT) */
-  const kksDisplay = useMemo(() => exactBeatStepFromPulse(pulse), [pulse]);
-  const kksSigil = useMemo(() => {
-    const pμ = pulse * ONE_PULSE_MICRO;
-    const { beat, stepIndex, percentIntoStep } = latticeFromMicroPulses(pμ);
-    const stepPct = normalizePercentIntoStep(percentIntoStep);
-    return { beat, stepIndex, stepPct };
-  }, [pulse]);
+  /**
+   * ✅ KaiSigil safe pulse (Number) AND KKS-safe step:
+   * - pulseForSigil is always <= Number.MAX_SAFE_INTEGER
+   * - beat/step/stepPct are derived from pulseForSigil using KaiSigil/step.ts math
+   */
+  const pulseForSigil: number = useMemo(() => safePulseNumberForSigil(pulse), [pulse]);
 
-  /* ChakraDay for visuals */
+  const kksSigil = useMemo(() => kksFromPulseNumberExact(pulseForSigil), [pulseForSigil]);
+
+  // ChakraDay for visuals (from KaiKlock record if present, otherwise stable fallback)
   const chakraDay: ChakraDay = useMemo(() => {
     if (!kairos) return "Root";
     const hd = readWeekday(kairos, "harmonicDay");
@@ -994,8 +1013,8 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
   const dayPct = useMemo(() => {
     try {
       const pμ_total = pulse * ONE_PULSE_MICRO;
-      const pμ_in_day = modE(pμ_total, N_DAY_MICRO);
-      const scaled = (pμ_in_day * 100_000_000n) / N_DAY_MICRO;
+      const pulsesInDay = modE(pμ_total, N_DAY_MICRO);
+      const scaled = (pulsesInDay * 100_000_000n) / N_DAY_MICRO;
       return Number(scaled) / 1_000_000;
     } catch {
       return 0;
@@ -1004,7 +1023,6 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
 
   /**
    * ✅ Solar day percent (0..100), sunrise-aligned using SovereignSolar
-   * Matches EternalKlock's sunrise window + overrides for determinism.
    */
   const solarDayPct = useMemo(() => {
     try {
@@ -1024,9 +1042,9 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
       const { beatIndex, stepIndex } = getKaiPulseToday(when);
       return { beat: beatIndex, stepIndex };
     } catch {
-      return { beat: kksDisplay.beat, stepIndex: kksDisplay.stepIndex };
+      return { beat: kksSigil.beat, stepIndex: kksSigil.stepIndex };
     }
-  }, [pulse, kksDisplay.beat, kksDisplay.stepIndex]);
+  }, [pulse, kksSigil.beat, kksSigil.stepIndex]);
 
   /* Derive KaiKlock “response” for current pulse */
   useEffect(() => {
@@ -1048,11 +1066,11 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
     };
   }, [pulse]);
 
-  /* UI strings */
-  const localBeatStep = `${kksDisplay.beat}:${pad2(kksDisplay.stepIndex)}`;
+  /* UI strings (MUST match KaiSigil seed inputs to avoid “I didn’t get it”) */
+  const localBeatStep = `${kksSigil.beat}:${pad2(kksSigil.stepIndex)}`;
+  const beatStepDisp = localBeatStep;
 
   const chakraStepString = kairos ? readString(kairos, "chakraStepString") : undefined;
-  const beatStepDisp = localBeatStep;
 
   const dayOfMonth = kairos ? readNumber(kairos, "dayOfMonth") : undefined;
   const eternalMonthIndex = kairos ? readNumber(kairos, "eternalMonthIndex") : undefined;
@@ -1084,21 +1102,6 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
   const copy = (txt: string) => fireAndForget(copyText(txt));
   const copyJSON = (obj: unknown) => copy(JSON.stringify(obj, null, 2));
 
-  /**
-   * ✅ KaiSigil safe pulse (Number) WITHOUT breaking KKS invariants:
-   * Use SIGIL_WRAP_PULSE (derived from N_DAY_MICRO + gcd law).
-   */
-  const pulseForSigil: number = useMemo(() => {
-    try {
-      if (pulse <= MAX_SAFE_BI) return Number(pulse);
-      if (SIGIL_WRAP_PULSE <= 0n) return 0;
-      const wrapped = modE(pulse, SIGIL_WRAP_PULSE);
-      return Number(wrapped); // wrapped is tiny (<= day-ish), safe integer
-    } catch {
-      return 0;
-    }
-  }, [pulse]);
-
   const getSVGElement = (): SVGSVGElement | null =>
     document.querySelector<SVGSVGElement>("#sigil-export svg");
 
@@ -1107,6 +1110,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
     exportedAt: string;
     expiresAtPulse: string; // bigint exact
     pulseExact: string; // bigint exact
+    pulseSigil: number; // the pulse number actually used in the SVG (wrapped-safe)
   };
 
   type ProofBundle = {
@@ -1132,21 +1136,21 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
   ): SigilSharePayloadExtended => {
     const stepsPerBeat = STEPS_BEAT;
 
-    const { beat, stepIndex } = exactBeatStepFromPulse(pulseSnapshot);
-    const s = Math.max(0, Math.min(Math.trunc(stepIndex), stepsPerBeat - 1));
-    const b = Math.max(0, Math.min(Math.trunc(beat), BEATS_DAY - 1));
-    const pulsePixel = biToSafeNumber(pulseSnapshot);
+    const pulseSigil = safePulseNumberForSigil(pulseSnapshot);
+    const { beat, stepIndex } = kksFromPulseNumberExact(pulseSigil);
 
+    // IMPORTANT: payload.pulse MUST match the SVG’s data-pulse (so verifiers stay coherent)
     return {
-      pulse: pulsePixel,
-      beat: b,
-      stepIndex: s,
+      pulse: pulseSigil,
+      beat,
+      stepIndex,
       chakraDay: chakraSnapshot,
       stepsPerBeat,
       canonicalHash,
       exportedAt: isoFromPulse(pulseSnapshot),
       expiresAtPulse: (pulseSnapshot + 11n).toString(),
       pulseExact: pulseSnapshot.toString(),
+      pulseSigil,
     };
   };
 
@@ -1177,6 +1181,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
     const liveNow = mode === "live" ? getNowPulseBI() : pulse;
     const mintPulse = mode === "live" ? (liveNow >= pulse ? liveNow : pulse) : pulse;
     sealModeRef.current = mode;
+
     if (mode === "live") {
       setMode("static-pulse");
       applyPulse(mintPulse, true);
@@ -1184,21 +1189,27 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
 
     const moment = momentFromPulse(mintPulse);
     const chakraSnapshot = normalizeChakraDay(moment.chakraDay) ?? chakraDay;
+
     const svg = getSVGElement();
     const svgPulseAttr = svg?.getAttribute("data-pulse");
     const svgPulseBI =
       svgPulseAttr && /^\d+$/.test(svgPulseAttr) ? BigInt(svgPulseAttr) : null;
-    const svgMatchesMint = svgPulseBI !== null && svgPulseBI === mintPulse;
-    const canTrustChildHash = mintPulse <= MAX_SAFE_BI && svgMatchesMint;
 
-    let hash = (canTrustChildHash ? lastHash : "").toLowerCase();
+    // IMPORTANT: SVG stores the SAFE sigil pulse (wrapped), not bigint pulseExact.
+    const mintPulseSigilNum = safePulseNumberForSigil(mintPulse);
+    const svgMatchesMint =
+      svgPulseBI !== null && svgPulseBI === BigInt(mintPulseSigilNum);
+
+    // If the SVG pulse matches, lastHash is trustworthy for this mint moment.
+    let hash = (svgMatchesMint ? lastHash : "").toLowerCase();
 
     if (!hash) {
-      const mintKks = exactBeatStepFromPulse(mintPulse);
+      const mintKks = kksFromPulseNumberExact(mintPulseSigilNum);
       const svgStr = svg ? new XMLSerializer().serializeToString(svg) : "";
       const basis =
         (svgStr || "no-svg") +
         `|pulseExact=${mintPulse.toString()}` +
+        `|pulseSigil=${mintPulseSigilNum}` +
         `|beat=${mintKks.beat}|step=${mintKks.stepIndex}|chakra=${chakraSnapshot}`;
       hash = (await sha256Hex(basis)).toLowerCase();
     }
@@ -1218,14 +1229,19 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
       if (!svgEl) return "Export failed: sigil SVG is not available.";
 
       const payloadFromUrl = sealUrl ? extractPayloadFromUrl(sealUrl) : null;
+
       const svgPulseAttr = svgEl.getAttribute("data-pulse");
       const svgPulseParsed = svgPulseAttr ? Number.parseInt(svgPulseAttr, 10) : NaN;
+
       const svgBeatAttr = svgEl.getAttribute("data-beat");
       const svgBeatParsed = svgBeatAttr ? Number.parseInt(svgBeatAttr, 10) : NaN;
+
       const svgStepAttr = svgEl.getAttribute("data-step-index");
       const svgStepParsed = svgStepAttr ? Number.parseInt(svgStepAttr, 10) : NaN;
+
       const svgChakraAttr = svgEl.getAttribute("data-chakra-day");
       const svgChakraNormalized = normalizeChakraDay(svgChakraAttr ?? undefined);
+
       const svgStepsPerBeatAttr = svgEl.getAttribute("data-steps-per-beat");
       const svgStepsPerBeatParsed = svgStepsPerBeatAttr
         ? Number.parseInt(svgStepsPerBeatAttr, 10)
@@ -1259,20 +1275,22 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
         : STEPS_BEAT;
 
       const chakraNormalized = payloadChakra ?? svgChakraNormalized;
+
       const kaiSignature =
         typeof payloadFromUrl?.kaiSignature === "string"
           ? payloadFromUrl.kaiSignature
           : kaiSignatureAttr;
+
       const phiKey =
         typeof payloadFromUrl?.userPhiKey === "string"
           ? payloadFromUrl.userPhiKey
           : phiKeyAttr;
+
       const payloadHashHex = sealHash || payloadHashAttr;
 
       if (!kaiSignature) return "Export failed: kaiSignature missing from SVG.";
       if (!phiKey) return "Export failed: Φ-Key missing from SVG.";
       if (!payloadHashHex) return "Export failed: payload hash missing from SVG.";
-
       if (!chakraNormalized) return "Export failed: chakra day missing from SVG.";
 
       if (!Number.isFinite(pulseNum)) return "Export failed: pulse missing from SVG.";
@@ -1292,6 +1310,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
       const shareUrl = makeSigilUrl(payloadHashHex, sharePayload);
       const verifierUrl = buildVerifierUrl(pulseNum, kaiSignature);
       const kaiSignatureShort = kaiSignature.slice(0, 10);
+
       const proofCapsule: ProofCapsuleV1 = {
         v: "KPV-1",
         pulse: pulseNum,
@@ -1302,6 +1321,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
       };
 
       const capsuleHash = await hashProofCapsuleV1(proofCapsule);
+
       const svgClone = svgEl.cloneNode(true) as SVGElement;
       svgClone.setAttribute("data-pulse", String(pulseNum));
       svgClone.setAttribute("data-beat", String(beatNum));
@@ -1314,11 +1334,13 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
 
       const svgString = new XMLSerializer().serializeToString(svgClone);
       const embeddedMeta = extractEmbeddedMetaFromSvg(svgString);
+
       let zkPoseidonHash =
         typeof embeddedMeta.zkPoseidonHash === "string" &&
         embeddedMeta.zkPoseidonHash.trim().length > 0
           ? embeddedMeta.zkPoseidonHash.trim()
           : undefined;
+
       let zkProof = embeddedMeta.zkProof;
       let proofHints = embeddedMeta.proofHints;
       let zkPublicInputs: unknown = embeddedMeta.zkPublicInputs;
@@ -1333,14 +1355,15 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
           zkProof && typeof zkProof === "object"
             ? (zkProof as Record<string, unknown>)
             : null;
+
         const hasProof =
           typeof zkProof === "string"
             ? zkProof.trim().length > 0
             : Array.isArray(zkProof)
-              ? zkProof.length > 0
-              : proofObj
-                ? Object.keys(proofObj).length > 0
-                : false;
+            ? zkProof.length > 0
+            : proofObj
+            ? Object.keys(proofObj).length > 0
+            : false;
 
         let secretForProof =
           typeof zkPoseidonSecret === "string" && zkPoseidonSecret.trim().length > 0
@@ -1367,19 +1390,19 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
                 ? (proofHints as SigilProofHints)
                 : undefined,
           });
-          if (!generated) {
-            throw new Error("ZK proof generation failed");
-          }
+          if (!generated) throw new Error("ZK proof generation failed");
           zkProof = generated.proof;
           proofHints = generated.proofHints;
           zkPublicInputs = generated.zkPublicInputs;
         }
+
         if (typeof proofHints !== "object" || proofHints === null) {
           proofHints = buildProofHints(zkPoseidonHash);
         } else {
           proofHints = buildProofHints(zkPoseidonHash, proofHints as SigilProofHints);
         }
       }
+
       if (zkPoseidonHash && zkPublicInputs) {
         const publicInput0 = readPublicInput0(zkPublicInputs);
         if (publicInput0 && publicInput0 !== zkPoseidonHash) {
@@ -1389,25 +1412,20 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
       if (zkPoseidonHash && (!zkProof || typeof zkProof !== "object")) {
         throw new Error("ZK proof missing");
       }
+
       if (zkPublicInputs) {
         svgClone.setAttribute("data-zk-public-inputs", JSON.stringify(zkPublicInputs));
       }
       if (zkPoseidonHash) {
         svgClone.setAttribute("data-zk-scheme", "groth16-poseidon");
         svgClone.setAttribute("data-zk-poseidon-hash", zkPoseidonHash);
-        if (zkProof) {
-          svgClone.setAttribute("data-zk-proof", "present");
-        }
-      }
-      if (
-        svgClone.getAttribute("data-pulse") !== String(pulseNum) ||
-        svgClone.getAttribute("data-kai-signature") !== kaiSignature ||
-        svgClone.getAttribute("data-phi-key") !== phiKey
-      ) {
-        throw new Error("SVG data attributes do not match proof capsule");
+        if (zkProof) svgClone.setAttribute("data-zk-proof", "present");
       }
 
-      const svgHash = await hashSvgText(svgString);
+      const svgString2 = new XMLSerializer().serializeToString(svgClone);
+
+      const svgHash = await hashSvgText(svgString2);
+
       const proofBundleBase = {
         hashAlg: PROOF_HASH_ALG,
         canon: PROOF_CANON,
@@ -1422,8 +1440,10 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
         proofHints,
         zkPublicInputs,
       };
+
       const bundleUnsigned = buildBundleUnsigned(proofBundleBase);
       const computedBundleHash = await hashBundle(bundleUnsigned);
+
       let authorSig: AuthorSig | null = null;
       try {
         await ensurePasskey(phiKey);
@@ -1432,13 +1452,15 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
         console.warn("Author signature failed; continuing without authorSig.", err);
         authorSig = null;
       }
+
       const proofBundle: ProofBundle = {
         ...proofBundleBase,
         bundleHash: computedBundleHash,
         authorSig,
       };
 
-      const sealedSvg = embedProofMetadata(svgString, proofBundle);
+      const sealedSvg = embedProofMetadata(svgString2, proofBundle);
+
       const baseName = `kai-voh_pulse-${pulseNum}_${kaiSignatureShort}`;
       const zip = new JSZip();
       zip.file(`${baseName}.svg`, sealedSvg);
@@ -1474,6 +1496,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
     () => (kairos ? readString(kairos, "eternalMonth") ?? "" : ""),
     [kairos]
   );
+
   const kaiTurahText = useMemo(() => {
     try {
       const moment = momentFromPulse(pulse);
@@ -1489,13 +1512,13 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
     return canonicalizeSealText(
       raw,
       pulse,
-      kksDisplay.beat,
-      kksDisplay.stepIndex,
+      kksSigil.beat,
+      kksSigil.stepIndex,
       solarBeatStep.beat,
       solarBeatStep.stepIndex,
       eternalYearText || undefined
     );
-  }, [kairos, kksDisplay.beat, kksDisplay.stepIndex, pulse, solarBeatStep, eternalYearText]);
+  }, [kairos, kksSigil.beat, kksSigil.stepIndex, pulse, solarBeatStep, eternalYearText]);
 
   // Memory display helpers
   const kaiPulseEternalNum = kairos ? readNumber(kairos, "kaiPulseEternal") : undefined;
@@ -1630,7 +1653,6 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
               />
             </label>
 
-            {/* ✅ No button (redundant). Chip has its own styled space via CSS. */}
             <span
               className={`sigil-live-chip ${mode === "live" ? "is-live" : "is-static"}`}
               aria-live="polite"
@@ -1639,7 +1661,10 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
             </span>
           </div>
 
-          <div id="sigil-export" style={{ position: "relative", width: 240, margin: "16px auto" }}>
+          <div
+            id="sigil-export"
+            style={{ position: "relative", width: 240, margin: "16px auto" }}
+          >
             <KaiSigil
               ref={sigilRef}
               pulse={pulseForSigil}
@@ -1664,15 +1689,15 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
           <div className="sigil-meta-block">
             <p>
               <strong>☤KAI:</strong>&nbsp;
-              {pulse}
-              <button className="copy-btn" onClick={() => copy(beatStepDisp)}>
+              {pulseDisp}
+              <button className="copy-btn" onClick={() => copy(pulse.toString())}>
                 💠
               </button>
             </p>
 
             <p>
               <strong>Kairos/Date:</strong>&nbsp;
-              {kairosDisp} {pulse}
+              {kairosDisp} {pulseDisp}
               <button className="copy-btn" onClick={() => copy(kairosDisp)}>
                 💠
               </button>
@@ -1721,6 +1746,11 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
                 <div>
                   <code>pulseExact</code>
                   <span>{pulse.toString()}</span>
+                </div>
+
+                <div>
+                  <code>pulseSigil</code>
+                  <span>{String(pulseForSigil)}</span>
                 </div>
 
                 <div>
@@ -1801,6 +1831,16 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
                 <div className="span-2">
                   <code>eternalSeal</code>
                   <span className="truncate">{sealText}</span>
+                </div>
+
+                <div className="span-2">
+                  <code>wrapPeriodPulse</code>
+                  <span>{SIGIL_WRAP_PULSE.toString()}</span>
+                </div>
+
+                <div className="span-2">
+                  <code>baseDayMicro</code>
+                  <span>{BASE_DAY_MICRO.toString()}</span>
                 </div>
               </div>
 

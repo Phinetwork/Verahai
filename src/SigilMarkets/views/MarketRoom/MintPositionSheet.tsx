@@ -63,6 +63,10 @@ export const MintPositionSheet = (props: MintPositionSheetProps) => {
       ui.pushSheet({ id: "inhale-glyph", reason: "trade", marketId: p.marketId });
       return;
     }
+    if (!activeVault.owner.identitySigil) {
+      ui.pushSheet({ id: "inhale-glyph", reason: "trade", marketId: p.marketId });
+      return;
+    }
 
     if (p.sigil) {
       ui.toast("info", "Already minted", "This position already has a sigil.");

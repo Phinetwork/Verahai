@@ -13,7 +13,9 @@ import { useSigilMarketsUi } from "../../state/uiStore";
 import { useActiveVault } from "../../state/vaultStore";
 import { useSigilMarketsPositionStore } from "../../state/positionStore";
 import { SigilExportButton } from "../../sigils/SigilExport";
-import { buildPositionSigilSvgFromPayload, mintPositionSigil } from "../../sigils/PositionSigilMint";
+import { buildPositionSigilSvgFromPayload, mintClaimSigil, mintPositionSigil } from "../../sigils/PositionSigilMint";
+import { payoutForShares } from "../../utils/math";
+import { momentFromPulse } from "../../../utils/kai_pulse";
 
 export type ExportPositionSheetProps = Readonly<{
   open: boolean;
@@ -39,6 +41,7 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
   const hasSigil = !!p.sigil?.payload;
   const canCopyLink = !!p.sigil?.url;
   const [svgText, setSvgText] = useState<string | null>(null);
+  const [claimSvgText, setClaimSvgText] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
 
   const subtitle = useMemo(() => {
@@ -88,6 +91,33 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
       mounted = false;
     };
   }, [p.sigil?.payload]);
+
+  useEffect(() => {
+    let mounted = true;
+    setClaimSvgText(null);
+
+    if (!shouldLabelClaimProof || !activeVault || !p.resolution) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const payoutMicro = p.status === "lost" ? 0n : payoutForShares(p.entry.sharesMicro);
+    const claimMoment = momentFromPulse(p.resolution.resolvedPulse);
+
+    void mintClaimSigil(p, activeVault, claimMoment, payoutMicro)
+      .then((res) => {
+        if (!mounted) return;
+        setClaimSvgText(res.ok ? res.svgText : null);
+      })
+      .catch(() => {
+        if (mounted) setClaimSvgText(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeVault, p, shouldLabelClaimProof]);
 
   const finalizeProof = async (): Promise<void> => {
     if (!hasResolution) {
@@ -152,8 +182,8 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
           {hasSigil ? (
             <SigilExportButton
               filenameBase={filenameBase}
-              svgUrl={p.sigil?.url}
-              svgText={svgText ?? undefined}
+              svgUrl={shouldLabelClaimProof ? undefined : p.sigil?.url}
+              svgText={(shouldLabelClaimProof ? claimSvgText : svgText) ?? undefined}
               pngSizePx={2048}
               mode="zip"
               label={exportLabel}
@@ -196,6 +226,11 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
           <Chip size="sm" selected={false} variant="outline" tone="default">
             opened • p{p.entry.openedAt.pulse}
           </Chip>
+          {p.sigil?.payload?.lineageRootSigilId ? (
+            <Chip size="sm" selected={false} variant="outline" tone="default">
+              lineage • {shortHash(p.sigil.payload.lineageRootSigilId as unknown as string, 10, 6)}
+            </Chip>
+          ) : null}
         </div>
 
         <Divider />

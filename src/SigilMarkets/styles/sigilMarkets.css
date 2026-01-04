@@ -213,6 +213,184 @@ body{
   box-shadow: 0 0 0 6px rgba(191,252,255,0.08);
 }
 
+/* Verahai How-To dock + sheet */
+.vhHowToDock{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--sm-dock-h) + 8px + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  z-index: 55;
+  pointer-events: none;
+}
+
+.vhHowToButton{
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--sm-text);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06)) padding-box,
+    linear-gradient(135deg, rgba(191,252,255,0.45), rgba(183,163,255,0.32)) border-box;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform 140ms ease, box-shadow 160ms ease, border-color 160ms ease, background 200ms ease;
+}
+
+.vhHowToButton:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.vhHowToButton:active{
+  transform: translateY(0);
+}
+
+.vhHowToButton:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(191,252,255,0.6), 0 14px 32px rgba(0,0,0,0.42);
+}
+
+.vhHowToSheet .sm-sheet-panel{
+  background:
+    linear-gradient(160deg, rgba(7,10,16,0.92), rgba(7,10,16,0.98)) padding-box,
+    linear-gradient(120deg, rgba(191,252,255,0.35), rgba(183,163,255,0.25)) border-box;
+  border: 1px solid transparent;
+  box-shadow: 0 28px 70px rgba(0,0,0,0.55);
+}
+
+.vhHowToContent{
+  display: grid;
+  gap: 12px;
+  color: var(--sm-text);
+}
+
+.vhHowToCarousel{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 10px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.vhHowToCarousel::-webkit-scrollbar{
+  display: none;
+}
+
+.vhHowToSlide{
+  scroll-snap-align: center;
+  padding: 12px 12px 4px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.vhHowToSlideTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--sm-dimmer);
+}
+
+.vhHowToStepBadge{
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(191,252,255,0.12);
+  color: var(--sm-cyan);
+  border: 1px solid rgba(191,252,255,0.2);
+  font-weight: 600;
+}
+
+.vhHowToSlide h3{
+  margin: 0 0 6px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.vhHowToSlide p{
+  margin: 0;
+  color: var(--sm-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.vhHowToSteps ul{
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--sm-text);
+}
+
+.vhHowToNote{
+  margin: 10px 0 0;
+  color: var(--sm-dimmer);
+  font-size: 12px;
+}
+
+.vhHowToDots{
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.vhHowToDot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255,255,255,0.2);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.vhHowToDot.is-active{
+  transform: scale(1.2);
+  background: rgba(191,252,255,0.8);
+  box-shadow: 0 0 0 3px rgba(191,252,255,0.18);
+}
+
+.vhHowToDivider{
+  margin: 6px 0 2px;
+}
+
+.vhHowToToggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--sm-dimmer);
+}
+
+.vhHowToToggle input{
+  width: 16px;
+  height: 16px;
+  accent-color: rgba(191,252,255,0.9);
+}
+
+.vhHowToFooter{
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+
 /* Shared page layout */
 .sm-page{
   padding: 0 calc(var(--sm-pad) + env(safe-area-inset-right)) var(--sm-pad) calc(var(--sm-pad) + env(safe-area-inset-left));
@@ -788,6 +966,9 @@ body{
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   padding: 10px 12px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  animation: smToastLife var(--sm-toast-ttl, 2600ms) ease-out forwards;
 }
 
 .sm-toast-head{
@@ -824,6 +1005,21 @@ body{
 .sm-toast.is-warning{ border-color: rgba(255,219,138,0.22); }
 .sm-toast.is-error{ border-color: rgba(255,104,104,0.22); }
 .sm-toast.is-info{ border-color: rgba(191,252,255,0.16); }
+
+@keyframes smToastLife{
+  0%{ opacity: 0; transform: translateY(-6px) scale(0.985); }
+  12%{ opacity: 1; transform: translateY(0) scale(1); }
+  82%{ opacity: 1; transform: translateY(0) scale(1); }
+  100%{ opacity: 0; transform: translateY(-4px) scale(0.985); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .sm-toast{
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css */
 
 .sm-topbar{
@@ -2767,6 +2963,29 @@ body{
 
 .sm-claim-row .k{ color: rgba(255,255,255,0.62); }
 .sm-claim-row .v{ color: rgba(255,255,255,0.90); font-weight: 900; }
+.sm-claim-trophy{
+  margin-top: 6px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(12,16,20,0.4);
+}
+.sm-claim-trophy__label{
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+.sm-claim-trophy__img{
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.28);
+}
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css */
 
 .sm-proph-toolbar{
@@ -3509,4 +3728,18 @@ body{
   .klock-pop__panel::before {
     animation: none;
   }
+}
+.vhHowToBody { white-space: pre-wrap; }
+
+.vhHowToCta{
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.vhHowToCtaHint{
+  font-size: 12px;
+  opacity: .78;
+  line-height: 1.25;
+  margin: 0;
 }

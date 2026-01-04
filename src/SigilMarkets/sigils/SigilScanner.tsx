@@ -57,7 +57,7 @@ const extractAttr = (el: Element, names: readonly string[]): string | null => {
   return null;
 };
 
-export type SigilKind = "position" | "resolution" | "vault" | "prophecy" | "unknown";
+export type SigilKind = "position" | "claim" | "resolution" | "vault" | "prophecy" | "unknown";
 
 export type SigilScanResult = Readonly<{
   kind: SigilKind;
@@ -73,6 +73,7 @@ const detectKind = (svg: Element, payload: unknown | null): SigilKind => {
   const v = extractAttr(svg, ["data-v"]);
 
   if (dk?.includes("sigilmarkets-position") || v === "SM-POS-1") return "position";
+  if (dk?.includes("sigilmarkets-claim") || v === "SM-CLAIM-1") return "claim";
   if (dk?.includes("sigilmarkets-resolution") || v === "SM-RES-1") return "resolution";
   if (dk?.includes("sigilmarkets-vault") || v === "SM-VAULT-1") return "vault";
   if (dk?.includes("sigilmarkets-prophecy") || v === "SM-PROP-1") return "prophecy";
@@ -81,6 +82,7 @@ const detectKind = (svg: Element, payload: unknown | null): SigilKind => {
     const vv = payload["v"];
     const kind = payload["kind"];
     if (vv === "SM-POS-1" || kind === "position") return "position";
+    if (vv === "SM-CLAIM-1" || kind === "claim") return "claim";
     if (vv === "SM-RES-1" || kind === "resolution") return "resolution";
     if (vv === "SM-VAULT-1" || kind === "vault") return "vault";
     if (vv === "SM-PROP-1" || kind === "prophecy") return "prophecy";
@@ -104,6 +106,8 @@ const extractFields = (svg: Element, payload: unknown | null): Readonly<Record<s
   add("marketId", extractAttr(svg, ["data-market-id"]));
   add("positionId", extractAttr(svg, ["data-position-id"]));
   add("side", extractAttr(svg, ["data-side"]));
+  add("outcome", extractAttr(svg, ["data-outcome"]));
+  add("payoutPhi", extractAttr(svg, ["data-payout-phi"]));
   add("vaultId", extractAttr(svg, ["data-vault-id"]));
   add("lockId", extractAttr(svg, ["data-lock-id"]));
   add("userPhiKey", extractAttr(svg, ["data-user-phikey", "data-userPhiKey"]));
@@ -120,9 +124,11 @@ const extractFields = (svg: Element, payload: unknown | null): Readonly<Record<s
     const marketId = payload["marketId"];
     const side = payload["side"];
     const outcome = payload["outcome"];
+    const payoutPhi = payload["payoutPhiMicro"];
     if (isString(marketId)) add("payload.marketId", marketId);
     if (isString(side)) add("payload.side", side);
     if (isString(outcome)) add("payload.outcome", outcome);
+    if (isString(payoutPhi)) add("payload.payoutPhiMicro", payoutPhi);
   }
 
   return out;

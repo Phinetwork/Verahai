@@ -57,6 +57,14 @@ import {
   SIGIL_TRANSFER_LS_KEY,
   type SigilTransferRecord,
 } from "../utils/sigilTransferRegistry";
+import {
+  latestLedgerEventForRoot,
+  readSigilLedgerRegistry,
+  SIGIL_LEDGER_CHANNEL_NAME,
+  SIGIL_LEDGER_EVENT,
+  SIGIL_LEDGER_LS_KEY,
+  type SigilLedgerEvent,
+} from "../utils/sigilLedgerRegistry";
 import { USERNAME_CLAIM_KIND, type UsernameClaimPayload } from "../types/usernameClaim";
 import { SIGIL_EXPLORER_OPEN_EVENT } from "../constants/sigilExplorer";
 import "./SigilExplorer.css";
@@ -2105,6 +2113,14 @@ function resolveCanonicalHashFromNode(node: SigilNode): string | undefined {
   return undefined;
 }
 
+function resolveRootSigilIdFromNode(node: SigilNode): string | undefined {
+  const record = node.payload as Record<string, unknown>;
+  const lineageRoot = readStringField(record, "lineageRootSigilId");
+  if (lineageRoot) return lineageRoot;
+  const canonical = resolveCanonicalHashFromNode(node);
+  return canonical ?? undefined;
+}
+
 function resolveTransferMoveForNode(
   node: SigilNode,
   transferRegistry: ReadonlyMap<string, SigilTransferRecord>,
@@ -2142,6 +2158,7 @@ function buildDetailEntries(
   node: SigilNode,
   usernameClaims: UsernameClaimRegistry,
   transferRegistry: ReadonlyMap<string, SigilTransferRecord>,
+  ledgerEvents: ReadonlyMap<string, SigilLedgerEvent>,
 ): DetailEntry[] {
   const record = node.payload as unknown as Record<string, unknown>;
   const entries: DetailEntry[] = [];
@@ -2163,6 +2180,17 @@ function buildDetailEntries(
     if (transferMove.sentPulse !== undefined) {
       entries.push({ label: "Sent pulse", value: String(transferMove.sentPulse) });
     }
+  }
+
+  const rootSigilId = resolveRootSigilIdFromNode(node);
+  const latestLedger = latestLedgerEventForRoot(rootSigilId, ledgerEvents);
+  if (latestLedger) {
+    const bal = Number(latestLedger.resultingBalanceMicro) / 1_000_000;
+    const label = Number.isFinite(bal) ? formatPhi(bal) : latestLedger.resultingBalanceMicro;
+    entries.push({
+      label: "Vault balance",
+      value: `${label} Φ`,
+    });
   }
 
   const feed = record.feed as FeedPostPayload | undefined;
@@ -2387,7 +2415,7 @@ function SigilTreeNode({
   const phiSentFromPulse = pulseKey != null ? phiTotalsByPulse.get(pulseKey) : undefined;
 
   const openHref = explorerOpenUrl(node.url);
-  const detailEntries = open ? buildDetailEntries(node, usernameClaims, transferRegistry) : [];
+  const detailEntries = open ? buildDetailEntries(node, usernameClaims, transferRegistry, ledgerRegistry.events) : [];
   const transferMove = resolveTransferMoveForNode(node, transferRegistry);
 
   return (
@@ -2708,6 +2736,7 @@ function ExplorerToolbar({
 const SigilExplorer: React.FC = () => {
   const [registryRev, setRegistryRev] = useState(0);
   const [transferRev, setTransferRev] = useState(0);
+  const [ledgerRev, setLedgerRev] = useState(0);
   const [lastAdded, setLastAdded] = useState<string | undefined>(undefined);
   const [usernameClaims, setUsernameClaims] = useState<UsernameClaimRegistry>(() => getUsernameClaimRegistry());
 
@@ -3159,8 +3188,13 @@ const SigilExplorer: React.FC = () => {
       const isRegistryKey = ev.key === REGISTRY_LS_KEY;
       const isModalKey = ev.key === MODAL_FALLBACK_LS_KEY;
       const isTransferKey = ev.key === SIGIL_TRANSFER_LS_KEY;
+      const isLedgerKey = ev.key === SIGIL_LEDGER_LS_KEY;
       if (isTransferKey) {
         setTransferRev((v) => v + 1);
+        return;
+      }
+      if (isLedgerKey) {
+        setLedgerRev((v) => v + 1);
         return;
       }
       if (!isRegistryKey && !isModalKey) return;
@@ -3199,6 +3233,8 @@ const SigilExplorer: React.FC = () => {
 
     const onTransferEvent = () => setTransferRev((v) => v + 1);
     window.addEventListener(SIGIL_TRANSFER_EVENT, onTransferEvent as EventListener);
+    const onLedgerEvent = () => setLedgerRev((v) => v + 1);
+    window.addEventListener(SIGIL_LEDGER_EVENT, onLedgerEvent as EventListener);
 
     const transferChannel =
       hasWindow && "BroadcastChannel" in window ? new BroadcastChannel(SIGIL_TRANSFER_CHANNEL_NAME) : null;
@@ -3209,6 +3245,16 @@ const SigilExplorer: React.FC = () => {
       }
     };
     transferChannel?.addEventListener("message", onTransferMsg);
+
+    const ledgerChannel =
+      hasWindow && "BroadcastChannel" in window ? new BroadcastChannel(SIGIL_LEDGER_CHANNEL_NAME) : null;
+    const onLedgerMsg = (ev: MessageEvent) => {
+      const data = ev.data as unknown as { type?: unknown };
+      if (data?.type === "ledger:update") {
+        setLedgerRev((v) => v + 1);
+      }
+    };
+    ledgerChannel?.addEventListener("message", onLedgerMsg);
 
     const onPageHide = () => {
       saveInhaleQueueToStorage();
@@ -3401,9 +3447,14 @@ window.addEventListener("online", onOnline);
       window.removeEventListener("sigil:minted", onMint as EventListener);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener(SIGIL_TRANSFER_EVENT, onTransferEvent as EventListener);
+      window.removeEventListener(SIGIL_LEDGER_EVENT, onLedgerEvent as EventListener);
       if (transferChannel) {
         transferChannel.removeEventListener("message", onTransferMsg);
         transferChannel.close();
+      }
+      if (ledgerChannel) {
+        ledgerChannel.removeEventListener("message", onLedgerMsg);
+        ledgerChannel.close();
       }
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("focus", onFocus);
@@ -3440,6 +3491,7 @@ breathTimer = null;
 
   const forest = useMemo(() => buildForest(memoryRegistry), [registryRev]);
   const transferRegistry = useMemo(() => readSigilTransferRegistry(), [transferRev]);
+  const ledgerRegistry = useMemo(() => readSigilLedgerRegistry(), [ledgerRev]);
 
   const phiTotalsByPulse = useMemo((): ReadonlyMap<number, number> => {
     const totals = new Map<number, number>();

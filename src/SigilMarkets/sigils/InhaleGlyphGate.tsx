@@ -23,7 +23,7 @@ import { Button } from "../ui/atoms/Button";
 import { Divider } from "../ui/atoms/Divider";
 import { Icon } from "../ui/atoms/Icon";
 import { Chip } from "../ui/atoms/Chip";
-import { parsePhiToMicro, shortHash } from "../utils/format";
+import { formatPhiMicro, parsePhiToMicro, shortHash } from "../utils/format";
 
 import { deriveVaultId, sha256Hex } from "../utils/ids";
 import { useSigilMarketsUi } from "../state/uiStore";
@@ -31,7 +31,7 @@ import { useSigilMarketsVaultStore } from "../state/vaultStore";
 import { useSigilMarketsRuntimeConfig } from "../state/runtimeConfig";
 import { fetchVaultSnapshot } from "../api/vaultApi";
 
-import type { KaiSignature, SvgHash, UserPhiKey } from "../types/vaultTypes";
+import type { KaiSignature, SvgHash, UserPhiKey, VaultRecord } from "../types/vaultTypes";
 import { asKaiSignature, asSvgHash, asUserPhiKey } from "../types/vaultTypes";
 import type { PhiMicro } from "../types/marketTypes";
 import { computeIntrinsicUnsigned, type SigilMetadataLite } from "../../utils/valuation";
@@ -42,6 +42,7 @@ import { ETERNAL_STEPS_PER_BEAT } from "../../SovereignSolar";
 import { makeSigilUrlLoose, type SigilSharePayloadLoose } from "../../utils/sigilUrl";
 import { registerSigilUrl } from "../../utils/sigilRegistry";
 import { enqueueInhaleKrystal, flushInhaleQueue } from "../../components/SigilExplorer/inhaleQueue";
+import { recordSigilRootEntry } from "../../utils/sigilLedgerRegistry";
 
 type InhaleReason = "auth" | "trade" | "vault";
 
@@ -247,6 +248,41 @@ const toPhiMicro = (valuePhi?: number): PhiMicro | undefined => {
   return parsed.ok ? (parsed.micro as PhiMicro) : undefined;
 };
 
+const normalizePhi = (v: bigint): PhiMicro => (v < 0n ? (0n as PhiMicro) : (v as PhiMicro));
+
+const applyDepositToVault = (
+  vaultRecord: VaultRecord,
+  amountMicro: PhiMicro,
+  atPulse: number,
+): { ok: true; value: VaultRecord } | { ok: false; error: string } => {
+  if (amountMicro <= 0n) return { ok: false, error: "amount must be > 0" };
+  if (vaultRecord.status === "frozen") return { ok: false, error: "vault frozen" };
+
+  const identity = vaultRecord.owner.identitySigil;
+  if (!identity) return { ok: false, error: "Missing identity glyph. Re-inhale your identity glyph to sync." };
+
+  const available = identity.availablePhiMicro ?? identity.valuePhiMicro;
+  if (available !== undefined && available < amountMicro) {
+    return { ok: false, error: "Amount exceeds available glyph balance." };
+  }
+
+  const nextAvailable = available !== undefined ? normalizePhi(available - amountMicro) : identity.availablePhiMicro;
+  const nextSpendable = normalizePhi(vaultRecord.spendableMicro + amountMicro);
+
+  return {
+    ok: true,
+    value: {
+      ...vaultRecord,
+      owner: {
+        ...vaultRecord.owner,
+        identitySigil: { ...identity, availablePhiMicro: nextAvailable },
+      },
+      spendableMicro: nextSpendable,
+      updatedPulse: Math.max(vaultRecord.updatedPulse, atPulse),
+    },
+  };
+};
+
 export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
   const { open, onClose, now, reason, initialSpendableMicro } = props;
 
@@ -262,6 +298,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
 
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
+  const [depositAmt, setDepositAmt] = useState<string>("");
 
   const reset = useCallback((): void => {
     setFileName("");
@@ -269,6 +306,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     setVaultId(null);
     setErr(null);
     setBusy(false);
+    setDepositAmt("");
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
@@ -381,8 +419,35 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
 
   const onConfirm = useCallback(async (): Promise<void> => {
     if (!parsed || !vaultId) return;
+    setErr(null);
     setBusy(true);
+    const trimmedDeposit = depositAmt.trim();
+    let requestedDeposit: PhiMicro | null = null;
+    if (trimmedDeposit.length > 0) {
+      const parsedDeposit = parsePhiToMicro(trimmedDeposit);
+      if (!parsedDeposit.ok) {
+        setErr(parsedDeposit.error);
+        setBusy(false);
+        return;
+      }
+      requestedDeposit = parsedDeposit.micro as PhiMicro;
+    } else if (initialSpendableMicro && initialSpendableMicro > 0n) {
+      requestedDeposit = initialSpendableMicro;
+    }
+
     const valuePhiMicro = toPhiMicro(parsed.valuePhi);
+    if (requestedDeposit !== null && requestedDeposit > 0n) {
+      if (valuePhiMicro === undefined) {
+        setErr("Glyph balance unavailable. Re-inhale your identity glyph to sync.");
+        setBusy(false);
+        return;
+      }
+      if (valuePhiMicro < requestedDeposit) {
+        setErr("Amount exceeds available glyph balance.");
+        setBusy(false);
+        return;
+      }
+    }
     const identitySigil = {
       svgHash: parsed.svgHash,
       url: parsed.sigilUrl,
@@ -393,6 +458,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     };
 
     let hydrated = false;
+    let activeVault: VaultRecord | null = null;
 
     if (vaultApiConfig.baseUrl) {
       const remote = await fetchVaultSnapshot(vaultApiConfig, vaultId);
@@ -405,6 +471,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
           },
         };
         vault.applyVaultSnapshot(merged, { activate: true });
+        activeVault = merged;
         hydrated = true;
       } else {
         ui.toast("warning", "Vault sync failed", remote.error, { atPulse: now.pulse });
@@ -412,18 +479,33 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     }
 
     if (!hydrated) {
-      vault.createOrActivateVault({
+      activeVault = vault.createOrActivateVault({
         vaultId,
         owner: {
           userPhiKey: parsed.userPhiKey,
           kaiSignature: parsed.kaiSignature,
           identitySigil,
         },
-        initialSpendableMicro: initialSpendableMicro ?? (0n as PhiMicro),
+        initialSpendableMicro: 0n as PhiMicro,
         createdPulse: now.pulse,
       });
 
       vault.setActiveVault(vaultId);
+    }
+
+    if (requestedDeposit !== null && requestedDeposit > 0n) {
+      if (!activeVault) {
+        setErr("vault not found");
+        setBusy(false);
+        return;
+      }
+      const depositRes = applyDepositToVault(activeVault, requestedDeposit, now.pulse);
+      if (!depositRes.ok) {
+        setErr(depositRes.error);
+        setBusy(false);
+        return;
+      }
+      vault.applyVaultSnapshot(depositRes.value, { activate: true });
     }
 
     if (parsed.sigilUrl && parsed.sigilPayload) {
@@ -432,11 +514,20 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
       void flushInhaleQueue();
     }
 
+    recordSigilRootEntry({
+      rootSigilId: String(parsed.canonicalHash ?? parsed.svgHash),
+      rootSvgHash: parsed.svgHash,
+      userPhiKey: parsed.userPhiKey,
+      kaiSignature: parsed.kaiSignature,
+      lastSeenPulse: now.pulse,
+    });
+
     ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: now.pulse });
     setBusy(false);
     close();
   }, [
     close,
+    depositAmt,
     enqueueInhaleKrystal,
     flushInhaleQueue,
     initialSpendableMicro,
@@ -448,6 +539,15 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     vaultApiConfig,
     vaultId,
   ]);
+
+  const glyphAvailableMicro = useMemo(() => (parsed ? toPhiMicro(parsed.valuePhi) : undefined), [parsed]);
+  const glyphAvailableLabel = useMemo(() => {
+    if (glyphAvailableMicro === undefined) return "—";
+    return formatPhiMicro(glyphAvailableMicro, { withUnit: true, maxDecimals: 6, trimZeros: true });
+  }, [glyphAvailableMicro]);
+
+  const hasDepositIntent = depositAmt.trim().length > 0;
+  const activateLabel = hasDepositIntent ? "Activate + Deposit" : "Activate";
 
   const subtitle = useMemo(() => {
     if (reason === "trade") return "Inhale your identity glyph to lock Φ into a position.";
@@ -476,7 +576,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
             disabled={!parsed || !vaultId || busy}
             leftIcon={<Icon name="check" size={14} tone="gold" />}
           >
-            Activate
+            {activateLabel}
           </Button>
         </div>
       }
@@ -543,6 +643,28 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
                   <span className="v">{parsed.chakraDay}</span>
                 </div>
               ) : null}
+            </div>
+            <Divider />
+            <div>
+              <div className="sm-small" style={{ marginBottom: 6 }}>
+                Optional first deposit (Φ)
+              </div>
+              <input
+                className="sm-input"
+                value={depositAmt}
+                onChange={(e) => {
+                  setDepositAmt(e.target.value);
+                  if (err) setErr(null);
+                }}
+                placeholder="e.g. 5.0"
+                inputMode="decimal"
+              />
+              <div className="sm-small" style={{ marginTop: 8 }}>
+                Available on your glyph: <strong>{glyphAvailableLabel}</strong>
+              </div>
+              <div className="sm-small" style={{ marginTop: 4 }}>
+                You can add more deposits or withdraw later from the Vault tab.
+              </div>
             </div>
           </>
         ) : null}
