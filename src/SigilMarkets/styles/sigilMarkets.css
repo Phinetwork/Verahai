@@ -2945,6 +2945,29 @@ body{
 
 .sm-claim-row .k{ color: rgba(255,255,255,0.62); }
 .sm-claim-row .v{ color: rgba(255,255,255,0.90); font-weight: 900; }
+.sm-claim-trophy{
+  margin-top: 6px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(12,16,20,0.4);
+}
+.sm-claim-trophy__label{
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+.sm-claim-trophy__img{
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.28);
+}
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css */
 
 .sm-proph-toolbar{

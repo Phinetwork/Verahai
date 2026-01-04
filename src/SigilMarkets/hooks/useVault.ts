@@ -6,6 +6,8 @@ import type { KaiPulse, LockId, PhiMicro, VaultId } from "../types/marketTypes";
 import type { VaultRecord, VaultLock, VaultLockReason, VaultLockStatus } from "../types/vaultTypes";
 import { useActiveVault, useSigilMarketsVaultStore, useVaultById } from "../state/vaultStore";
 import { useSigilMarketsUi } from "../state/uiStore";
+import { recordSigilLedgerEvent } from "../../utils/sigilLedgerRegistry";
+import { momentFromPulse } from "../../utils/kai_pulse";
 
 export type UseVaultResult = Readonly<{
   vault: VaultRecord | null;
@@ -26,6 +28,17 @@ export type UseVaultResult = Readonly<{
 }>;
 
 const countLocked = (locks: readonly VaultLock[]): number => locks.reduce((n, l) => (l.status === "locked" ? n + 1 : n), 0);
+
+const rootSigilIdFromVault = (vault: VaultRecord): string | null => {
+  const identity = vault.owner.identitySigil;
+  if (!identity) return null;
+  return (
+    (identity.sigilId as unknown as string | undefined) ??
+    (identity.canonicalHash as unknown as string | undefined) ??
+    (identity.svgHash as unknown as string | undefined) ??
+    null
+  );
+};
 
 export const useVault = (vaultId?: VaultId | null): UseVaultResult => {
   const active = useActiveVault();
@@ -116,7 +129,23 @@ export const useVaultActions = (): Readonly<{
     (vaultId: VaultId, amountMicro: PhiMicro, atPulse: KaiPulse) => {
       const res = actions.moveValue({ vaultId, kind: "deposit", amountMicro, atPulse });
       if (!res.ok) ui.toast("error", "Deposit failed", res.error);
-      else ui.toast("success", "Deposited", undefined, { atPulse });
+      else {
+        ui.toast("success", "Deposited", undefined, { atPulse });
+        const vault = res.value;
+        const rootId = rootSigilIdFromVault(vault);
+        if (rootId && vault.owner.identitySigil) {
+          void recordSigilLedgerEvent({
+            rootSigilId: rootId,
+            rootSvgHash: vault.owner.identitySigil.svgHash,
+            kind: "DEPOSIT",
+            kaiMoment: momentFromPulse(atPulse),
+            deltaPhiMicro: String(amountMicro),
+            resultingBalanceMicro: String(vault.spendableMicro),
+            refId: `${String(vaultId)}:${String(amountMicro)}`,
+            refs: { vaultId: String(vaultId) },
+          });
+        }
+      }
     },
     [actions, ui],
   );
@@ -125,7 +154,23 @@ export const useVaultActions = (): Readonly<{
     (vaultId: VaultId, amountMicro: PhiMicro, atPulse: KaiPulse) => {
       const res = actions.moveValue({ vaultId, kind: "withdraw", amountMicro, atPulse });
       if (!res.ok) ui.toast("error", "Withdraw failed", res.error);
-      else ui.toast("success", "Withdrew", undefined, { atPulse });
+      else {
+        ui.toast("success", "Withdrew", undefined, { atPulse });
+        const vault = res.value;
+        const rootId = rootSigilIdFromVault(vault);
+        if (rootId && vault.owner.identitySigil) {
+          void recordSigilLedgerEvent({
+            rootSigilId: rootId,
+            rootSvgHash: vault.owner.identitySigil.svgHash,
+            kind: "WITHDRAW",
+            kaiMoment: momentFromPulse(atPulse),
+            deltaPhiMicro: `-${String(amountMicro)}`,
+            resultingBalanceMicro: String(vault.spendableMicro),
+            refId: `${String(vaultId)}:${String(amountMicro)}`,
+            refs: { vaultId: String(vaultId) },
+          });
+        }
+      }
     },
     [actions, ui],
   );
@@ -144,6 +189,27 @@ export const useVaultActions = (): Readonly<{
     }>) => {
       const res = actions.openLock(req);
       if (!res.ok) ui.toast("error", "Lock failed", res.error, { atPulse: req.updatedPulse });
+      else {
+        const vault = res.value;
+        const rootId = rootSigilIdFromVault(vault);
+        if (rootId && vault.owner.identitySigil) {
+          void recordSigilLedgerEvent({
+            rootSigilId: rootId,
+            rootSvgHash: vault.owner.identitySigil.svgHash,
+            kind: "LOCK",
+            kaiMoment: req.createdAt,
+            deltaPhiMicro: `-${String(req.amountMicro)}`,
+            resultingBalanceMicro: String(vault.spendableMicro),
+            refId: String(req.lockId),
+            refs: {
+              vaultId: String(req.vaultId),
+              lockId: String(req.lockId),
+              marketId: req.marketId,
+              positionId: req.positionId,
+            },
+          });
+        }
+      }
     },
     [actions, ui],
   );
@@ -159,6 +225,27 @@ export const useVaultActions = (): Readonly<{
     }>) => {
       const res = actions.transitionLock(req);
       if (!res.ok) ui.toast("error", "Lock update failed", res.error, { atPulse: req.updatedPulse });
+      else if (req.toStatus === "released" || req.toStatus === "refunded") {
+        const vault = res.value;
+        const rootId = rootSigilIdFromVault(vault);
+        if (rootId && vault.owner.identitySigil) {
+          const lock = vault.locks.find((l) => l.lockId === req.lockId);
+          const delta = lock ? String(lock.amountMicro) : "0";
+          void recordSigilLedgerEvent({
+            rootSigilId: rootId,
+            rootSvgHash: vault.owner.identitySigil.svgHash,
+            kind: "UNLOCK",
+            kaiMoment: momentFromPulse(req.updatedPulse),
+            deltaPhiMicro: delta,
+            resultingBalanceMicro: String(vault.spendableMicro),
+            refId: String(req.lockId),
+            refs: {
+              vaultId: String(req.vaultId),
+              lockId: String(req.lockId),
+            },
+          });
+        }
+      }
     },
     [actions, ui],
   );

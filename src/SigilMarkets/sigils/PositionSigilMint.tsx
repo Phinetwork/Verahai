@@ -14,19 +14,28 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import type { KaiMoment } from "../types/marketTypes";
-import type { PositionRecord, PositionSigilArtifact, PositionSigilPayloadV1 } from "../types/sigilPositionTypes";
+import type { KaiMoment, PhiMicro } from "../types/marketTypes";
+import type {
+  ClaimSigilArtifact,
+  ClaimSigilPayloadV1,
+  PositionRecord,
+  PositionSigilArtifact,
+  PositionSigilPayloadV1,
+  SigilLineageFields,
+} from "../types/sigilPositionTypes";
 import { asPositionSigilId } from "../types/sigilPositionTypes";
 import type { VaultRecord } from "../types/vaultTypes";
 import { asSvgHash } from "../types/vaultTypes";
 
 import { sha256Hex, derivePositionSigilId } from "../utils/ids";
+import { deriveChildSeed, deriveLineageId, resolveLineageRoot } from "../utils/lineage";
 import { Button } from "../ui/atoms/Button";
 import { Icon } from "../ui/atoms/Icon";
 import { useSigilMarketsPositionStore } from "../state/positionStore";
 import { useSigilMarketsUi } from "../state/uiStore";
 import { DEFAULT_ISSUANCE_POLICY, quotePhiForUsd, usdValueFromPhi } from "../../utils/phi-issuance";
 import { momentFromPulse } from "../../utils/kai_pulse";
+import { formatPhiMicro } from "../utils/format";
 import type { SigilMetadataLite } from "../../utils/valuation";
 /** local compat brand */
 type MicroDecimalString = string & { readonly __brand: "MicroDecimalString" };
@@ -34,6 +43,10 @@ const asMicroDecimalString = (v: string): MicroDecimalString => v as MicroDecima
 
 type UnknownRecord = Record<string, unknown>;
 const isRecord = (v: unknown): v is UnknownRecord => typeof v === "object" && v !== null;
+
+type PositionOrClaimPayload = PositionSigilPayloadV1 | ClaimSigilPayloadV1;
+
+const isClaimPayload = (payload: PositionOrClaimPayload): payload is ClaimSigilPayloadV1 => payload.kind === "claim";
 
 const esc = (s: string): string =>
   s
@@ -415,8 +428,8 @@ const firstDecimalInput = (xs?: readonly string[]): string | undefined => {
   return undefined;
 };
 
-const buildZkSeal = async (payload: PositionSigilPayloadV1, vault: VaultRecord | null, pos?: PositionRecord): Promise<ZkSeal> => {
-  const canonObj = toJsonValue({
+const canonicalPayloadForSeal = (payload: PositionOrClaimPayload): JSONValue =>
+  toJsonValue({
     v: payload.v,
     kind: payload.kind,
     userPhiKey: payload.userPhiKey,
@@ -433,12 +446,28 @@ const buildZkSeal = async (payload: PositionSigilPayloadV1, vault: VaultRecord |
     vaultId: payload.vaultId,
     lockId: payload.lockId,
     openedAt: payload.openedAt,
-    venue: payload.venue ?? null,
+    venue: "venue" in payload ? payload.venue ?? null : null,
     marketDefinitionHash: payload.marketDefinitionHash ?? null,
-    resolution: payload.resolution ?? null,
+    resolution: "resolution" in payload ? payload.resolution ?? null : null,
+    outcome: isClaimPayload(payload) ? payload.outcome : null,
+    resolutionId: isClaimPayload(payload) ? payload.resolutionId : null,
+    resolutionPulse: isClaimPayload(payload) ? payload.resolutionPulse : null,
+    decisionId: isClaimPayload(payload) ? payload.decisionId ?? null : null,
+    payoutPhiMicro: isClaimPayload(payload) ? payload.payoutPhiMicro : null,
+    payoutPhiDisplay: isClaimPayload(payload) ? payload.payoutPhiDisplay : null,
+    claimedAt: isClaimPayload(payload) ? payload.claimedAt : null,
+    lineageRootSigilId: payload.lineageRootSigilId,
+    lineageRootSvgHash: payload.lineageRootSvgHash,
+    lineageId: payload.lineageId,
+    parentSigilId: payload.parentSigilId ?? null,
+    parentSvgHash: payload.parentSvgHash ?? null,
+    kaiMoment: payload.kaiMoment,
     label: payload.label ?? null,
     note: payload.note ?? null,
   });
+
+const buildZkSeal = async (payload: PositionOrClaimPayload, vault: VaultRecord | null, pos?: PositionRecord): Promise<ZkSeal> => {
+  const canonObj = canonicalPayloadForSeal(payload);
 
   const canonStr = stableStringify(canonObj);
   const canonicalBytesLen = new TextEncoder().encode(canonStr).byteLength;
@@ -580,7 +609,7 @@ const buildRingLines = (sigId: string, seedHex: string, lines: readonly Readonly
  * Sacred geometry (same vibe)
  * ───────────────────────────────────────────────────────────── */
 
-const lissajousPath = (seedHex: string): string => {
+const lissajousPath = (seedHex: string, rootAngle = 0): string => {
   const seed = seed32FromHex(seedHex);
   const rnd = makeRng(seed);
 
@@ -588,7 +617,7 @@ const lissajousPath = (seedHex: string): string => {
   const B = 340 + Math.floor(rnd() * 160);
   const a = 3 + Math.floor(rnd() * 5);
   const b = 4 + Math.floor(rnd() * 6);
-  const delta = rnd() * Math.PI;
+  const delta = rnd() * Math.PI + rootAngle * 0.65;
 
   const cx = 500;
   const cy = 500;
@@ -655,7 +684,7 @@ const flowerOfLife = (): readonly string[] => {
   return circles;
 };
 
-const crystalFacets = (seedHex: string): readonly string[] => {
+const crystalFacets = (seedHex: string, rootAngle = 0): readonly string[] => {
   const rnd = makeRng(seed32FromHex(`FACETS:${seedHex}`));
   const cx = 500;
   const cy = 500;
@@ -664,7 +693,7 @@ const crystalFacets = (seedHex: string): readonly string[] => {
   const paths: string[] = [];
 
   for (let i = 0; i < facetCount; i += 1) {
-    const ang0 = rnd() * Math.PI * 2;
+    const ang0 = rootAngle + rnd() * Math.PI * 2;
     const ang1 = ang0 + (0.22 + rnd() * 0.55);
     const ang2 = ang1 + (0.18 + rnd() * 0.45);
 
@@ -745,7 +774,30 @@ const chipTicks = (hashHex: string, r: number): string => {
  * Payload construction (preserve proof fields if present)
  * ───────────────────────────────────────────────────────────── */
 
-const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayloadV1 => {
+const makePayload = async (pos: PositionRecord, vault: VaultRecord): Promise<PositionSigilPayloadV1> => {
+  const identity = vault.owner.identitySigil;
+  if (!identity) {
+    throw new Error("Missing identity sigil. Inhale your root sigil to mint positions.");
+  }
+
+  const lineageRoot = resolveLineageRoot(identity);
+  const lineageId = await deriveLineageId({
+    lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
+    marketId: String(pos.marketId),
+    positionId: String(pos.id),
+    sideOrOutcome: String(pos.entry.side),
+    kaiMoment: pos.entry.openedAt,
+  });
+
+  const lineageFields: SigilLineageFields = {
+    lineageRootSigilId: lineageRoot.lineageRootSigilId,
+    lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
+    lineageId,
+    parentSigilId: lineageRoot.lineageRootSigilId,
+    parentSvgHash: lineageRoot.lineageRootSvgHash,
+    kaiMoment: pos.entry.openedAt,
+  };
+
   const base: PositionSigilPayloadV1 = {
     v: "SM-POS-1",
     kind: "position",
@@ -783,6 +835,7 @@ const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayl
 
     label: `Position ${pos.entry.side}`,
     note: undefined,
+    ...lineageFields,
   };
 
   const owner = (vault as unknown as UnknownRecord)["owner"];
@@ -804,25 +857,116 @@ const makePayload = (pos: PositionRecord, vault: VaultRecord): PositionSigilPayl
   return base;
 };
 
+export const buildClaimPayload = async (
+  pos: PositionRecord,
+  vault: VaultRecord,
+  claimMoment: KaiMoment,
+  payoutMicro: bigint,
+): Promise<ClaimSigilPayloadV1> => {
+  const identity = vault.owner.identitySigil;
+  if (!identity) {
+    throw new Error("Missing identity sigil. Inhale your root sigil to mint claims.");
+  }
+  if (!pos.resolution) {
+    throw new Error("Missing resolution snapshot for claim sigil.");
+  }
+
+  const lineageRoot = resolveLineageRoot(identity);
+  const outcome = pos.resolution.outcome;
+  const normalizedPayout = pos.status === "lost" ? 0n : payoutMicro < 0n ? 0n : payoutMicro;
+  const payoutDisplay = formatPhiMicro(normalizedPayout as unknown as PhiMicro, {
+    withUnit: true,
+    maxDecimals: 6,
+    trimZeros: true,
+  });
+
+  const lineageId = await deriveLineageId({
+    lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
+    marketId: String(pos.marketId),
+    positionId: String(pos.id),
+    sideOrOutcome: String(outcome),
+    kaiMoment: claimMoment,
+  });
+
+  const resolutionId = await sha256Hex(
+    `SM-RES-1|${String(pos.marketId)}|${String(outcome)}|${String(pos.resolution.resolvedPulse)}`,
+  );
+
+  const payload: ClaimSigilPayloadV1 = {
+    v: "SM-CLAIM-1",
+    kind: "claim",
+    userPhiKey: vault.owner.userPhiKey,
+    kaiSignature: vault.owner.kaiSignature,
+    marketId: pos.marketId,
+    positionId: pos.id,
+    side: pos.entry.side,
+    outcome,
+    resolutionId,
+    resolutionPulse: pos.resolution.resolvedPulse,
+    payoutPhiMicro: biDec(normalizedPayout),
+    payoutPhiDisplay: payoutDisplay,
+    lockedStakeMicro: biDec(pos.lock.lockedStakeMicro),
+    sharesMicro: biDec(pos.entry.sharesMicro),
+    avgPriceMicro: biDec(pos.entry.avgPriceMicro),
+    worstPriceMicro: biDec(pos.entry.worstPriceMicro),
+    feeMicro: biDec(pos.entry.feeMicro),
+    totalCostMicro: biDec(pos.entry.totalCostMicro),
+    vaultId: pos.lock.vaultId,
+    lockId: pos.lock.lockId,
+    openedAt: coerceKaiMoment(pos.entry.openedAt as unknown),
+    claimedAt: claimMoment,
+    marketDefinitionHash: pos.entry.marketDefinitionHash,
+    label: `Claim ${outcome}`,
+    note: pos.status === "lost" ? "Loss settled" : "Claim settled",
+    lineageRootSigilId: lineageRoot.lineageRootSigilId,
+    lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
+    lineageId,
+    parentSigilId: lineageRoot.lineageRootSigilId,
+    parentSvgHash: lineageRoot.lineageRootSvgHash,
+    kaiMoment: claimMoment,
+  };
+
+  const owner = (vault as unknown as UnknownRecord)["owner"];
+  const merged = mergePrefer(
+    extractZkFromUnknown(pos as unknown),
+    extractZkFromUnknown((pos as unknown as UnknownRecord)["entry"]),
+    extractZkFromUnknown(owner),
+  );
+
+  const extra: UnknownRecord = {};
+  if (merged.zkProof) extra["zkProof"] = merged.zkProof;
+  if (merged.zkPublicInputs) extra["zkPublicInputs"] = merged.zkPublicInputs;
+  if (merged.zkPoseidonHashDec) extra["zkPoseidonHash"] = merged.zkPoseidonHashDec;
+  if (merged.proofHints) extra["proofHints"] = merged.proofHints;
+  if (merged.verifiedFlag) extra["zkOk"] = true;
+  if (merged.verifiedBy) extra["verifiedBy"] = merged.verifiedBy;
+  Object.assign(payload as unknown as UnknownRecord, extra);
+
+  return payload;
+};
+
 /* ─────────────────────────────────────────────────────────────
  * SVG build (OFFICIAL CHIP)
  * ───────────────────────────────────────────────────────────── */
 
 const buildSvg = async (
-  payload: PositionSigilPayloadV1,
+  payload: PositionOrClaimPayload,
   svgHashSeed: string,
   vault: VaultRecord | null,
   pos?: PositionRecord,
 ): Promise<string> => {
+  const rootSeed = seed32FromHex(`ROOT:${payload.lineageRootSvgHash}`);
+  const rootAngle = ((rootSeed % 360) * Math.PI) / 180;
+
   const ring = hexRingPath();
-  const wave = lissajousPath(svgHashSeed);
+  const wave = lissajousPath(svgHashSeed, rootAngle);
   const spiral = goldenSpiralPath();
 
   const yesTone = "rgba(185,252,255,0.98)";
   const noTone = "rgba(190,170,255,0.98)";
   const tone = payload.side === "YES" ? yesTone : noTone;
 
-  const styleRnd = makeRng(seed32FromHex(`${svgHashSeed}:${payload.side}:STYLE`));
+  const styleRnd = makeRng(seed32FromHex(`${svgHashSeed}:${payload.side}:STYLE:${rootSeed}`));
   const ringOuterOpacity = clamp01(0.04 + styleRnd() * 0.10);
   const ringInnerOpacity = clamp01(0.16 + styleRnd() * 0.18);
   const waveGlowOpacity = clamp01(0.08 + styleRnd() * 0.12);
@@ -836,10 +980,11 @@ const buildSvg = async (
   const prismShift = styleRnd();
   const noiseSeed = seed32FromHex(`NOISE:${svgHashSeed}`) % 999;
 
-  const facets = crystalFacets(svgHashSeed);
+  const facets = crystalFacets(svgHashSeed, rootAngle);
   const flower = flowerOfLife();
 
-  const sigId = `sm-pos-${payload.openedAt.pulse}-${payload.openedAt.beat}-${payload.openedAt.stepIndex}`;
+  const isClaim = isClaimPayload(payload);
+  const sigId = `${isClaim ? "sm-claim" : "sm-pos"}-${payload.openedAt.pulse}-${payload.openedAt.beat}-${payload.openedAt.stepIndex}`;
   const descId = `${sigId}-desc`;
 
   // ZK seal (FIXED)
@@ -901,6 +1046,7 @@ const buildSvg = async (
     `marketId=${String(payload.marketId)}`,
     `positionId=${String(payload.positionId)}`,
     `side=${payload.side}`,
+    ...(isClaimPayload(payload) ? [`outcome=${payload.outcome}`, `payout=${payload.payoutPhiDisplay}`] : []),
     `vaultId=${String(payload.vaultId)}`,
     `lockId=${String(payload.lockId)}`,
     `pulse=${payload.openedAt.pulse}`,
@@ -908,6 +1054,8 @@ const buildSvg = async (
     `stepIndex=${payload.openedAt.stepIndex}`,
     `userPhiKey=${String(payload.userPhiKey)}`,
     `kaiSignature=${String(payload.kaiSignature)}`,
+    `lineageRoot=${String(payload.lineageRootSigilId)}`,
+    `lineageId=${String(payload.lineageId)}`,
     `canonicalHashHex=${seal.canonicalHashHex}`,
     `poseidon=${seal.zkPoseidonHashDec}`,
     `scheme=${seal.scheme}`,
@@ -917,17 +1065,29 @@ const buildSvg = async (
   const binarySig = bitsToBinaryString(seal.canonicalHashHex);
 
   const openedShort = `p=${payload.openedAt.pulse} b=${payload.openedAt.beat} s=${payload.openedAt.stepIndex}`;
-  const resolutionShort = payload.resolution
-    ? `resolved=${payload.resolution.status} outcome=${payload.resolution.outcome} atPulse=${payload.resolution.resolvedPulse}`
-    : "resolved=(unresolved)";
+  const resolutionShort = isClaimPayload(payload)
+    ? `claimPulse=${payload.claimedAt.pulse} outcome=${payload.outcome} resolutionPulse=${payload.resolutionPulse}`
+    : payload.resolution
+      ? `resolved=${payload.resolution.status} outcome=${payload.resolution.outcome} atPulse=${payload.resolution.resolvedPulse}`
+      : "resolved=(unresolved)";
 
   // No straight header: header becomes a ring line
   const ringLines = buildRingLines(sigId, seal.canonicalHashHex, [
-    { tone: "hi", text: `SM-POS-1 • ${okWord} • zk=${seal.scheme} • assurance=${seal.zkAssurance}` },
+    { tone: "hi", text: `${payload.v} • ${okWord} • zk=${seal.scheme} • assurance=${seal.zkAssurance}` },
     { tone: "hi", text: `WAGER • Φ ${stakePhiDec6} • USD $${stakeUsd2} • feeMicro=${String(payload.feeMicro)}` },
-    { tone: "mid", text: `POSITION • marketId=${String(payload.marketId)} • side=${payload.side} • ${openedShort}` },
+    {
+      tone: "hi",
+      text: isClaimPayload(payload)
+        ? `PAYOUT • Φ ${microDecToPhiDec6(String(payload.payoutPhiMicro))} • ${payload.payoutPhiDisplay}`
+        : `POSITION • marketId=${String(payload.marketId)} • side=${payload.side} • ${openedShort}`,
+    },
+    { tone: "mid", text: `marketId=${String(payload.marketId)} • side=${payload.side} • ${openedShort}` },
     { tone: "mid", text: `positionId=${String(payload.positionId)} • vaultId=${String(payload.vaultId)} • lockId=${String(payload.lockId)}` },
     { tone: "mid", text: `IDENTITY • userPhiKey=${String(payload.userPhiKey)} • kaiSignature=${String(payload.kaiSignature)}` },
+    {
+      tone: "mid",
+      text: `LINEAGE • root=${String(payload.lineageRootSigilId)} • lineageId=${String(payload.lineageId)}`,
+    },
     { tone: "mid", text: `VALUE • sharesMicro=${String(payload.sharesMicro)} • avgPriceMicro=${String(payload.avgPriceMicro)} • worstPriceMicro=${String(payload.worstPriceMicro)} • totalCostMicro=${String(payload.totalCostMicro)} • ${resolutionShort}` },
     { tone: "low", text: `HASH • canonicalHashHex=${seal.canonicalHashHex}` },
     { tone: "low", text: `POSEIDON • ${seal.zkPoseidonHashDec}` },
@@ -1011,7 +1171,14 @@ const amountW = wholeW + fracW;
 
 
   // Center ring microtext (official feel)
-  const microSeal = `ΦNET • ${okWord} • ${seal.scheme} • ${openedShort} • ${String(payload.marketId)} •`;
+  const microSeal = isClaim
+    ? `ΦNET • CLAIM • ${seal.scheme} • ${payload.claimedAt.pulse} • ${String(payload.marketId)} •`
+    : `ΦNET • ${okWord} • ${seal.scheme} • ${openedShort} • ${String(payload.marketId)} •`;
+
+  const dataKind = isClaim ? "sigilmarkets-claim" : "sigilmarkets-position";
+  const ariaLabel = isClaim
+    ? `SigilMarkets Claim — ${payload.outcome} — pulse ${payload.claimedAt.pulse}`
+    : `SigilMarkets Position — ${payload.side} — pulse ${payload.openedAt.pulse}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg
@@ -1020,7 +1187,7 @@ const amountW = wholeW + fracW;
   xmlns:xlink="http://www.w3.org/1999/xlink"
   role="img"
   lang="en"
-  aria-label="${esc(`SigilMarkets Position — ${payload.side} — pulse ${payload.openedAt.pulse}`)}"
+  aria-label="${esc(ariaLabel)}"
   aria-describedby="${esc(descId)}"
   viewBox="0 0 1000 1000"
   width="1000"
@@ -1028,11 +1195,14 @@ const amountW = wholeW + fracW;
   shape-rendering="geometricPrecision"
   preserveAspectRatio="xMidYMid meet"
   style="background: transparent;"
-  data-kind="sigilmarkets-position"
-  data-v="SM-POS-1"
+  data-kind="${esc(dataKind)}"
+  data-v="${esc(payload.v)}"
   data-market-id="${esc(String(payload.marketId))}"
   data-position-id="${esc(String(payload.positionId))}"
   data-side="${esc(payload.side)}"
+  ${isClaim ? `data-outcome="${esc(payload.outcome)}"` : ""}
+  ${isClaim ? `data-payout-phi="${esc(String(payload.payoutPhiMicro))}"` : ""}
+  ${isClaim ? `data-payout-display="${esc(String(payload.payoutPhiDisplay))}"` : ""}
   data-vault-id="${esc(String(payload.vaultId))}"
   data-lock-id="${esc(String(payload.lockId))}"
   data-user-phikey="${esc(String(payload.userPhiKey))}"
@@ -1040,6 +1210,14 @@ const amountW = wholeW + fracW;
   data-pulse="${esc(String(payload.openedAt.pulse))}"
   data-beat="${esc(String(payload.openedAt.beat))}"
   data-step-index="${esc(String(payload.openedAt.stepIndex))}"
+  data-lineage-root-id="${esc(String(payload.lineageRootSigilId))}"
+  data-lineage-root-hash="${esc(String(payload.lineageRootSvgHash))}"
+  data-lineage-id="${esc(String(payload.lineageId))}"
+  data-lineage-parent-id="${esc(String(payload.parentSigilId ?? ""))}"
+  data-lineage-parent-hash="${esc(String(payload.parentSvgHash ?? ""))}"
+  data-lineage-pulse="${esc(String(payload.kaiMoment.pulse))}"
+  data-lineage-beat="${esc(String(payload.kaiMoment.beat))}"
+  data-lineage-step-index="${esc(String(payload.kaiMoment.stepIndex))}"
   data-wager-phi="${esc(stakePhiDec6)}"
   data-wager-usd="${esc(stakeUsd2)}"
   data-zk-scheme="${esc(seal.scheme)}"
@@ -1048,8 +1226,8 @@ const amountW = wholeW + fracW;
   data-zk-poseidon-hash="${esc(seal.zkPoseidonHashDec)}"
   data-payload-hash="${esc(seal.canonicalHashHex)}"
 >
-  <title>${esc(`SigilMarkets Position — ${payload.side} — pulse ${payload.openedAt.pulse}`)}</title>
-  <desc id="${esc(descId)}">${esc("Atlantean chip sigil with embedded proof + metadata.")}</desc>
+  <title>${esc(ariaLabel)}</title>
+  <desc id="${esc(descId)}">${esc(isClaim ? "Claim sigil with embedded payout + lineage." : "Atlantean chip sigil with embedded proof + metadata.")}</desc>
 
   <metadata>${safeCdata(payloadJsonRaw)}</metadata>
   <metadata id="sm-zk">${safeCdata(sealJsonRaw)}</metadata>
@@ -1379,7 +1557,7 @@ const amountW = wholeW + fracW;
  * ───────────────────────────────────────────────────────────── */
 
 export const buildPositionSigilSvgFromPayload = async (payload: PositionSigilPayloadV1): Promise<string> => {
-  const seed = await sha256Hex(`SM:POS:SEED:${payload.positionId}:${payload.lockId}:${payload.userPhiKey}`);
+  const seed = payload.lineageId ? await deriveChildSeed(payload.lineageId) : await sha256Hex(`SM:POS:SEED:${payload.positionId}:${payload.lockId}:${payload.userPhiKey}`);
   return buildSvg(payload, seed, null, undefined);
 };
 
@@ -1388,8 +1566,17 @@ export const buildPositionSigilSvgFromPayloadWithVault = async (
   vault: VaultRecord,
   pos?: PositionRecord,
 ): Promise<string> => {
-  const seed = await sha256Hex(`SM:POS:SEED:${payload.positionId}:${payload.lockId}:${payload.userPhiKey}`);
+  const seed = payload.lineageId ? await deriveChildSeed(payload.lineageId) : await sha256Hex(`SM:POS:SEED:${payload.positionId}:${payload.lockId}:${payload.userPhiKey}`);
   return buildSvg(payload, seed, vault, pos);
+};
+
+export const buildClaimSigilSvgFromPayload = async (
+  payload: ClaimSigilPayloadV1,
+  vault?: VaultRecord,
+  pos?: PositionRecord,
+): Promise<string> => {
+  const seed = payload.lineageId ? await deriveChildSeed(payload.lineageId) : await sha256Hex(`SM:CLAIM:SEED:${payload.positionId}:${payload.lockId}:${payload.userPhiKey}`);
+  return buildSvg(payload, seed, vault ?? null, pos);
 };
 
 export type MintPositionSigilResult =
@@ -1398,7 +1585,7 @@ export type MintPositionSigilResult =
 
 export const mintPositionSigil = async (pos: PositionRecord, vault: VaultRecord): Promise<MintPositionSigilResult> => {
   try {
-    const payload = makePayload(pos, vault);
+    const payload = await makePayload(pos, vault);
     const svgText = await buildPositionSigilSvgFromPayloadWithVault(payload, vault, pos);
 
     const svgHashHex = await sha256Hex(svgText);
@@ -1424,6 +1611,43 @@ export const mintPositionSigil = async (pos: PositionRecord, vault: VaultRecord)
   }
 };
 
+export type MintClaimSigilResult =
+  | Readonly<{ ok: true; sigil: ClaimSigilArtifact; svgText: string; canonicalHashHex: string; zkSeal: ZkSeal }>
+  | Readonly<{ ok: false; error: string }>;
+
+export const mintClaimSigil = async (
+  pos: PositionRecord,
+  vault: VaultRecord,
+  claimMoment: KaiMoment,
+  payoutMicro: bigint,
+): Promise<MintClaimSigilResult> => {
+  try {
+    const payload = await buildClaimPayload(pos, vault, claimMoment, payoutMicro);
+    const svgText = await buildClaimSigilSvgFromPayload(payload, vault, pos);
+    const svgHashHex = await sha256Hex(svgText);
+    const svgHash = asSvgHash(svgHashHex);
+    const rawSigilId = await derivePositionSigilId({ positionId: pos.id, ref: svgHashHex.slice(0, 24) });
+    const sigilId = asPositionSigilId(String(rawSigilId));
+
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+
+    const seal = await buildZkSeal(payload, vault, pos);
+
+    const sigil: ClaimSigilArtifact = {
+      sigilId,
+      svgHash,
+      url,
+      payload,
+    };
+
+    return { ok: true, sigil, svgText, canonicalHashHex: seal.canonicalHashHex, zkSeal: seal };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "mint claim failed";
+    return { ok: false, error: msg };
+  }
+};
+
 /** Optional UI component wrapper (drop-in) */
 export type PositionSigilMintProps = Readonly<{
   position: PositionRecord;
@@ -1437,10 +1661,15 @@ export const PositionSigilMint = (props: PositionSigilMintProps) => {
   const { actions: posStore } = useSigilMarketsPositionStore();
 
   const [busy, setBusy] = useState(false);
-  const can = useMemo(() => !props.position.sigil, [props.position.sigil]);
+  const hasRoot = Boolean(props.vault.owner.identitySigil);
+  const can = useMemo(() => !props.position.sigil && hasRoot, [hasRoot, props.position.sigil]);
 
   const run = useCallback(async () => {
     if (!can) return;
+    if (!props.vault.owner.identitySigil) {
+      ui.toast("error", "Root sigil required", "Inhale your identity sigil to mint this position.");
+      return;
+    }
 
     setBusy(true);
     const res = await mintPositionSigil(props.position, props.vault);

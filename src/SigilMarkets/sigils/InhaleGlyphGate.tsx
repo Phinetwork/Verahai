@@ -42,6 +42,7 @@ import { ETERNAL_STEPS_PER_BEAT } from "../../SovereignSolar";
 import { makeSigilUrlLoose, type SigilSharePayloadLoose } from "../../utils/sigilUrl";
 import { registerSigilUrl } from "../../utils/sigilRegistry";
 import { enqueueInhaleKrystal, flushInhaleQueue } from "../../components/SigilExplorer/inhaleQueue";
+import { recordSigilRootEntry } from "../../utils/sigilLedgerRegistry";
 
 type InhaleReason = "auth" | "trade" | "vault";
 
@@ -431,6 +432,14 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
       enqueueInhaleKrystal(parsed.sigilUrl, parsed.sigilPayload);
       void flushInhaleQueue();
     }
+
+    recordSigilRootEntry({
+      rootSigilId: String(parsed.canonicalHash ?? parsed.svgHash),
+      rootSvgHash: parsed.svgHash,
+      userPhiKey: parsed.userPhiKey,
+      kaiSignature: parsed.kaiSignature,
+      lastSeenPulse: now.pulse,
+    });
 
     ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: now.pulse });
     setBusy(false);
