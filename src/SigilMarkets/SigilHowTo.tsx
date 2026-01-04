@@ -1,13 +1,14 @@
 // SigilMarkets/SigilHowTo.tsx
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button } from "./ui/atoms/Button";
 import { Divider } from "./ui/atoms/Divider";
 import { Icon } from "./ui/atoms/Icon";
 import { Sheet } from "./ui/atoms/Sheet";
 import { decodeBoolean, loadFromStorage, saveToStorage, SM_HOWTO_DISMISSED_KEY } from "./state/persistence";
 import { useSigilMarketsUi } from "./state/uiStore";
+import { useActiveVault } from "./state/vaultStore";
 
 // NOTE: this is your current path. Keep it exactly as you wrote it.
 import SigilModal from "../components/SigilModal";
@@ -33,6 +34,7 @@ export const SigilHowTo = () => {
   const [activeStep, setActiveStep] = useState(0);
 
   const { actions: ui } = useSigilMarketsUi();
+  const activeVault = useActiveVault();
 
   // Step 1 action opens SigilModal (mint window)
   const [sigilModalOpen, setSigilModalOpen] = useState(false);
@@ -110,10 +112,31 @@ export const SigilHowTo = () => {
     setOpen(true);
   };
 
-  const openInhaleFromStep2 = (): void => {
+  const openInhaleFromStep2 = useCallback((): void => {
     setOpen(false);
+    if (activeVault) {
+      ui.navigate({ view: "vault", vaultId: activeVault.vaultId });
+      ui.pushSheet({ id: "deposit-withdraw", vaultId: activeVault.vaultId, mode: "deposit" });
+      return;
+    }
     ui.pushSheet({ id: "inhale-glyph", reason: "auth" });
-  };
+  }, [activeVault, ui]);
+
+  const step2Action = useMemo<HowToAction>(
+    () =>
+      activeVault
+        ? {
+            label: "Deposit to Vault",
+            hint: "You are already logged in — add a deposit now.",
+            onClick: openInhaleFromStep2,
+          }
+        : {
+            label: "Inhale + Activate Vault",
+            hint: "Upload your Sigil-Glyph and optionally add your first deposit in the same step.",
+            onClick: openInhaleFromStep2,
+          },
+    [activeVault, openInhaleFromStep2],
+  );
 
   const steps: readonly HowToStep[] = useMemo(
     () => [
@@ -145,11 +168,7 @@ export const SigilHowTo = () => {
           "Enter: Your Vault + positions are now bound to the same ΦKey proof lineage.",
           "Access Vault: Tap “Vault” in the bottom nav after login to deposit, withdraw, or view balances.",
         ],
-        action: {
-          label: "Inhale + Activate Vault",
-          hint: "Upload your Sigil-Glyph and optionally add your first deposit in the same step.",
-          onClick: openInhaleFromStep2,
-        },
+        action: step2Action,
         note:
           "Bridge to what you already know: this is like “Sign in with Apple,” but instead of Apple being the gatekeeper, the file is the credential and verification is self-contained. You carry your login. You carry your receipts. You carry your value.",
       },
@@ -178,7 +197,7 @@ export const SigilHowTo = () => {
           "No accounts. No platforms. No trust assumptions.\nThe Sigil-Glyph IS the position — a sovereign, self-verifying vessel of truth that can be carried, traded, and redeemed anywhere.",
       },
     ],
-    [],
+    [step2Action],
   );
 
   const updateActiveStep = (): void => {
