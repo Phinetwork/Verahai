@@ -486,6 +486,9 @@ export type SigilMarketsVaultActions = Readonly<{
   /** Create the vault if missing, and make it active. */
   createOrActivateVault: (input: CreateOrActivateVaultInput) => VaultRecord;
 
+  /** Apply a remote snapshot (authoritative balances/status) into local state. */
+  applyVaultSnapshot: (snapshot: VaultRecord, opts?: Readonly<{ activate?: boolean }>) => VaultRecord;
+
   setActiveVault: (vaultId: VaultId | null) => void;
 
   /** Deposit/withdraw to spendable balance (fails safely if insufficient). */
@@ -753,6 +756,46 @@ export const SigilMarketsVaultProvider = (props: Readonly<{ children: ReactNode 
           updatedPulse: input.createdPulse,
         }
       );
+    };
+
+    const applyVaultSnapshot = (snapshot: VaultRecord, opts?: Readonly<{ activate?: boolean }>): VaultRecord => {
+      const key = vaultKey(snapshot.vaultId);
+      let updated: VaultRecord = snapshot;
+
+      setAndMaybePersist(
+        (prev) => {
+          const existing = prev.byId[key];
+          const mergedIdentitySigil = snapshot.owner.identitySigil ?? existing?.owner.identitySigil;
+          const mergedLocks = snapshot.locks.length > 0 ? snapshot.locks : existing?.locks ?? snapshot.locks;
+          const mergedStats = snapshot.stats ?? existing?.stats;
+
+          updated = {
+            ...snapshot,
+            owner: {
+              ...snapshot.owner,
+              identitySigil: mergedIdentitySigil,
+            },
+            locks: mergedLocks,
+            stats: mergedStats,
+          };
+
+          const byId: Record<string, VaultRecord> = { ...prev.byId, [key]: updated };
+          const ids = sortVaultIds(byId);
+
+          return {
+            ...prev,
+            byId,
+            ids,
+            activeVaultId: opts?.activate === false ? prev.activeVaultId : snapshot.vaultId,
+            status: "ready",
+            error: undefined,
+            lastUpdatedPulse: Math.max(prev.lastUpdatedPulse ?? 0, updated.updatedPulse),
+          };
+        },
+        true,
+      );
+
+      return updated;
     };
 
     const moveValue = (req: Readonly<{ vaultId: VaultId; kind: "deposit" | "withdraw"; amountMicro: PhiMicro; atPulse: KaiPulse }>): PersistResult<VaultRecord> => {
@@ -1119,6 +1162,7 @@ export const SigilMarketsVaultProvider = (props: Readonly<{ children: ReactNode 
     return {
       hydrateFromCache,
       createOrActivateVault,
+      applyVaultSnapshot,
       setActiveVault,
       moveValue,
       openLock,

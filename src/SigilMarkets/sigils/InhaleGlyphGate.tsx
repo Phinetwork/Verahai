@@ -28,6 +28,8 @@ import { parsePhiToMicro, shortHash } from "../utils/format";
 import { deriveVaultId, sha256Hex } from "../utils/ids";
 import { useSigilMarketsUi } from "../state/uiStore";
 import { useSigilMarketsVaultStore } from "../state/vaultStore";
+import { useSigilMarketsRuntimeConfig } from "../state/runtimeConfig";
+import { fetchVaultSnapshot } from "../api/vaultApi";
 
 import type { KaiSignature, SvgHash, UserPhiKey } from "../types/vaultTypes";
 import { asKaiSignature, asSvgHash, asUserPhiKey } from "../types/vaultTypes";
@@ -250,6 +252,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
 
   const { actions: ui } = useSigilMarketsUi();
   const { actions: vault } = useSigilMarketsVaultStore();
+  const { vaultApiConfig } = useSigilMarketsRuntimeConfig();
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -376,30 +379,52 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     [now.pulse],
   );
 
-  const onConfirm = useCallback((): void => {
+  const onConfirm = useCallback(async (): Promise<void> => {
     if (!parsed || !vaultId) return;
+    setBusy(true);
     const valuePhiMicro = toPhiMicro(parsed.valuePhi);
+    const identitySigil = {
+      svgHash: parsed.svgHash,
+      url: parsed.sigilUrl,
+      canonicalHash: parsed.canonicalHash,
+      valuePhiMicro,
+      availablePhiMicro: valuePhiMicro,
+      lastValuedPulse: valuePhiMicro !== undefined ? now.pulse : undefined,
+    };
 
-    // Create or activate vault
-    vault.createOrActivateVault({
-      vaultId,
-      owner: {
-        userPhiKey: parsed.userPhiKey,
-        kaiSignature: parsed.kaiSignature,
-        identitySigil: {
-          svgHash: parsed.svgHash,
-          url: parsed.sigilUrl,
-          canonicalHash: parsed.canonicalHash,
-          valuePhiMicro,
-          availablePhiMicro: valuePhiMicro,
-          lastValuedPulse: valuePhiMicro !== undefined ? now.pulse : undefined,
+    let hydrated = false;
+
+    if (vaultApiConfig.baseUrl) {
+      const remote = await fetchVaultSnapshot(vaultApiConfig, vaultId);
+      if (remote.ok) {
+        const merged = {
+          ...remote.vault,
+          owner: {
+            ...remote.vault.owner,
+            identitySigil: remote.vault.owner.identitySigil ?? identitySigil,
+          },
+        };
+        vault.applyVaultSnapshot(merged, { activate: true });
+        hydrated = true;
+      } else {
+        ui.toast("warning", "Vault sync failed", remote.error, { atPulse: now.pulse });
+      }
+    }
+
+    if (!hydrated) {
+      vault.createOrActivateVault({
+        vaultId,
+        owner: {
+          userPhiKey: parsed.userPhiKey,
+          kaiSignature: parsed.kaiSignature,
+          identitySigil,
         },
-      },
-      initialSpendableMicro: initialSpendableMicro ?? (0n as PhiMicro),
-      createdPulse: now.pulse,
-    });
+        initialSpendableMicro: initialSpendableMicro ?? (0n as PhiMicro),
+        createdPulse: now.pulse,
+      });
 
-    vault.setActiveVault(vaultId);
+      vault.setActiveVault(vaultId);
+    }
 
     if (parsed.sigilUrl && parsed.sigilPayload) {
       registerSigilUrl(parsed.sigilUrl);
@@ -408,8 +433,21 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     }
 
     ui.toast("success", "Glyph inhaled", "Vault activated", { atPulse: now.pulse });
+    setBusy(false);
     close();
-  }, [close, enqueueInhaleKrystal, flushInhaleQueue, initialSpendableMicro, now.pulse, parsed, registerSigilUrl, ui, vault, vaultId]);
+  }, [
+    close,
+    enqueueInhaleKrystal,
+    flushInhaleQueue,
+    initialSpendableMicro,
+    now.pulse,
+    parsed,
+    registerSigilUrl,
+    ui,
+    vault,
+    vaultApiConfig,
+    vaultId,
+  ]);
 
   const subtitle = useMemo(() => {
     if (reason === "trade") return "Inhale your identity glyph to lock Φ into a position.";

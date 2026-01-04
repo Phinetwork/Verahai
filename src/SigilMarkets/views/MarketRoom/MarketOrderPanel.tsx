@@ -20,11 +20,12 @@ import { useActiveVault, useSigilMarketsVaultStore } from "../../state/vaultStor
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useSigilMarketsPositionStore } from "../../state/positionStore";
 import { useSigilMarketsFeedStore } from "../../state/feedStore";
+import { useSigilMarketsRuntimeConfig } from "../../state/runtimeConfig";
 
 import { useHaptics } from "../../hooks/useHaptics";
 import { useSfx } from "../../hooks/useSfx";
 
-import { executeLocalTrade } from "../../api/positionApi";
+import { executeLocalTrade, executeTrade } from "../../api/positionApi";
 import type { PositionRecord } from "../../types/sigilPositionTypes";
 import { deriveMarketStatus } from "../../utils/marketTiming";
 
@@ -41,6 +42,7 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
   const { actions: vaultActions } = useSigilMarketsVaultStore();
   const { actions: posActions } = useSigilMarketsPositionStore();
   const { actions: feedActions } = useSigilMarketsFeedStore();
+  const { positionApiConfig } = useSigilMarketsRuntimeConfig();
 
   const haptics = useHaptics();
   const sfx = useSfx();
@@ -156,13 +158,16 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
       maxSlippageBps: 400,
     };
 
-    const res = await executeLocalTrade({
-      market: props.market,
-      vault: activeVault,
-      now: props.now,
-      request: req,
-      nonce: `${props.now.pulse}:${Math.random().toString(16).slice(2)}`,
-    });
+    const res = await executeTrade(
+      {
+        market: props.market,
+        vault: activeVault,
+        now: props.now,
+        request: req,
+        nonce: `${props.now.pulse}:${Math.random().toString(16).slice(2)}`,
+      },
+      positionApiConfig,
+    );
 
     if (!res.ok) {
       setLoading(false);

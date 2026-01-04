@@ -23,6 +23,7 @@ export { SigilMarketsMarketProvider, useSigilMarketsMarketStore, useMarkets, use
 export { SigilMarketsVaultProvider, useSigilMarketsVaultStore, useActiveVault, useVaultById } from "./state/vaultStore";
 export { SigilMarketsPositionProvider, useSigilMarketsPositionStore } from "./state/positionStore";
 export { SigilMarketsFeedProvider, useSigilMarketsFeedStore } from "./state/feedStore";
+export { SigilMarketsRuntimeConfigProvider, useSigilMarketsRuntimeConfig } from "./state/runtimeConfig";
 
 /** Hooks */
 export { useKaiNow } from "./hooks/useKaiNow";
@@ -40,7 +41,7 @@ export { useScrollRestoration } from "./hooks/useScrollRestoration";
 /** APIs (local-first; remote-ready) */
 export { defaultMarketApiConfig, fetchMarkets, seedDemoMarkets } from "./api/marketApi";
 export { defaultVaultApiConfig, fetchVaultSnapshot } from "./api/vaultApi";
-export { executeLocalTrade } from "./api/positionApi";
+export { defaultPositionApiConfig, executeLocalTrade, executeTrade } from "./api/positionApi";
 export { defaultOracleApiConfig, createLocalProposal, createLocalFinalization, makeResolutionSigilPayload } from "./api/oracleApi";
 export { cachedJsonFetch, clearSigilMarketsCache, pruneSigilMarketsCache, setSigilMarketsCacheStorageEnabled } from "./api/cacheApi";
 

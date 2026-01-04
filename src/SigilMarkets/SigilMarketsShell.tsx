@@ -11,13 +11,17 @@ import { SigilMarketsMarketProvider, useSigilMarketsMarketStore } from "./state/
 import { SigilMarketsVaultProvider } from "./state/vaultStore";
 import { SigilMarketsPositionProvider, useSigilMarketsPositionStore } from "./state/positionStore";
 import { SigilMarketsFeedProvider, useSigilMarketsFeedStore } from "./state/feedStore";
+import { SigilMarketsRuntimeConfigProvider, useSigilMarketsRuntimeConfig } from "./state/runtimeConfig";
 
 import { SigilMarketsRoutes } from "./SigilMarketsRoutes";
 
 import { usePulseTicker } from "./hooks/usePulseTicker";
 import { useSfx } from "./hooks/useSfx";
 
-import { defaultMarketApiConfig, fetchMarkets, type SigilMarketsMarketApiConfig } from "./api/marketApi";
+import { fetchMarkets, type SigilMarketsMarketApiConfig } from "./api/marketApi";
+import type { SigilMarketsVaultApiConfig } from "./api/vaultApi";
+import type { SigilMarketsPositionApiConfig } from "./api/positionApi";
+import type { SigilMarketsOracleApiConfig } from "./api/oracleApi";
 import type { KaiMoment, KaiPulse, Market, MarketOutcome, MarketResolution } from "./types/marketTypes";
 
 export type SigilMarketsShellProps = Readonly<{
@@ -26,6 +30,9 @@ export type SigilMarketsShellProps = Readonly<{
 
   /** Optional override: remote/local config for market list. */
   marketApiConfig?: SigilMarketsMarketApiConfig;
+  vaultApiConfig?: SigilMarketsVaultApiConfig;
+  positionApiConfig?: SigilMarketsPositionApiConfig;
+  oracleApiConfig?: SigilMarketsOracleApiConfig;
 
   /**
    * If true, renders without an internal scroll container and assumes window scroll.
@@ -77,11 +84,12 @@ const buildDeterministicResolution = (m: Market, resolvedPulse: KaiPulse): Marke
   },
 });
 
-const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiConfig; windowScroll: boolean }>) => {
+const ShellInner = (props: Readonly<{ windowScroll: boolean }>) => {
   const { state: uiState, actions: ui } = useSigilMarketsUi();
   const { state: marketState, actions: markets } = useSigilMarketsMarketStore();
   const { actions: positions } = useSigilMarketsPositionStore();
   const { actions: feed } = useSigilMarketsFeedStore();
+  const { marketApiConfig } = useSigilMarketsRuntimeConfig();
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -94,7 +102,7 @@ const ShellInner = (props: Readonly<{ marketApiConfig?: SigilMarketsMarketApiCon
   // Use KaiMoment explicitly (typed UI + provenance).
   const now: KaiMoment = moment as KaiMoment;
 
-  const marketCfg = useMemo(() => props.marketApiConfig ?? defaultMarketApiConfig(), [props.marketApiConfig]);
+  const marketCfg = useMemo(() => marketApiConfig, [marketApiConfig]);
 
   // Use uiState intentionally: theme + user toggles (sfx/haptics).
   const themeClass = useMemo(() => {
@@ -306,17 +314,24 @@ export const SigilMarketsShell = (props: SigilMarketsShellProps) => {
 
   return (
     <div className={props.className} style={props.style} data-sm-root="1">
-      <SigilMarketsUiProvider>
-        <SigilMarketsMarketProvider>
-          <SigilMarketsVaultProvider>
-            <SigilMarketsPositionProvider>
-              <SigilMarketsFeedProvider>
-                <ShellInner marketApiConfig={props.marketApiConfig} windowScroll={windowScroll} />
-              </SigilMarketsFeedProvider>
-            </SigilMarketsPositionProvider>
-          </SigilMarketsVaultProvider>
-        </SigilMarketsMarketProvider>
-      </SigilMarketsUiProvider>
+      <SigilMarketsRuntimeConfigProvider
+        marketApiConfig={props.marketApiConfig}
+        vaultApiConfig={props.vaultApiConfig}
+        positionApiConfig={props.positionApiConfig}
+        oracleApiConfig={props.oracleApiConfig}
+      >
+        <SigilMarketsUiProvider>
+          <SigilMarketsMarketProvider>
+            <SigilMarketsVaultProvider>
+              <SigilMarketsPositionProvider>
+                <SigilMarketsFeedProvider>
+                  <ShellInner windowScroll={windowScroll} />
+                </SigilMarketsFeedProvider>
+              </SigilMarketsPositionProvider>
+            </SigilMarketsVaultProvider>
+          </SigilMarketsMarketProvider>
+        </SigilMarketsUiProvider>
+      </SigilMarketsRuntimeConfigProvider>
     </div>
   );
 };
