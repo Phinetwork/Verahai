@@ -119,6 +119,7 @@ const SigilGlyphButton: React.FC<Props> = () => {
         onClick={() => setOpen(true)}
         data-chakra={chakraDay}
         aria-label="Open Kairos Sigil"
+        type="button"
       >
         {/* Decorative thumbnail only — link-proof via shield */}
         <span

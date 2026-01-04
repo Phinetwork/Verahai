@@ -403,6 +403,11 @@ self.addEventListener("fetch", (event) => {
       try {
         const preload = ("navigationPreload" in self.registration) ? await event.preloadResponse : null;
         if (preload) {
+          const isRedirect =
+            preload.redirected || (preload.status >= 300 && preload.status < 400);
+          if (isRedirect) {
+            throw new Error("preload redirect");
+          }
           // Update shell cache and map to this route
           await safePut(PRECACHE, new Request(OFFLINE_URL), preload.clone());
           await mapShellToRoute(req.url, preload);
