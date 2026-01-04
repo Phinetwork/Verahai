@@ -36,7 +36,12 @@ export const ToastHost = (props: ToastHostProps) => {
   return (
     <div className={cls} aria-live="polite" aria-relevant="additions">
       {toasts.slice(-3).map((t: ToastModel) => (
-        <div key={t.id} className={cx("sm-toast", toneClass(t.kind))} role="status">
+        <div
+          key={t.id}
+          className={cx("sm-toast", toneClass(t.kind))}
+          role="status"
+          style={{ ["--sm-toast-ttl" as string]: `${t.ttlMs ?? 2600}ms` }}
+        >
           <div className="sm-toast-head">
             <div className="sm-toast-title">{t.title}</div>
             <button type="button" className="sm-toast-x" onClick={() => actions.dismissToast(t.id)} aria-label="Dismiss">

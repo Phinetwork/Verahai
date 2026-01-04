@@ -966,6 +966,9 @@ body{
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   padding: 10px 12px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  animation: smToastLife var(--sm-toast-ttl, 2600ms) ease-out forwards;
 }
 
 .sm-toast-head{
@@ -1002,6 +1005,21 @@ body{
 .sm-toast.is-warning{ border-color: rgba(255,219,138,0.22); }
 .sm-toast.is-error{ border-color: rgba(255,104,104,0.22); }
 .sm-toast.is-info{ border-color: rgba(191,252,255,0.16); }
+
+@keyframes smToastLife{
+  0%{ opacity: 0; transform: translateY(-6px) scale(0.985); }
+  12%{ opacity: 1; transform: translateY(0) scale(1); }
+  82%{ opacity: 1; transform: translateY(0) scale(1); }
+  100%{ opacity: 0; transform: translateY(-4px) scale(0.985); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .sm-toast{
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
 /* Add these styles to SigilMarkets/styles/sigilMarkets.css */
 
 .sm-topbar{
