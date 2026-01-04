@@ -242,7 +242,7 @@ export const SigilHowTo = () => {
         open={open}
         onClose={close}
         title="Sigil-Glyphs"
-        subtitle="Mint one once. Carry it forever."
+        subtitle="Mint one once. Prove it forever."
         className="vhHowToSheet"
         footer={
           <div className="vhHowToFooter">
