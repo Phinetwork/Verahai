@@ -12,7 +12,7 @@ import { formatPhiMicro, formatSharesMicro } from "../../utils/format";
 import { payoutForShares } from "../../utils/math";
 
 import { useSigilMarketsUi } from "../../state/uiStore";
-import { useSigilMarketsVaultStore } from "../../state/vaultStore";
+import { useActiveVault, useSigilMarketsVaultStore } from "../../state/vaultStore";
 import { useSigilMarketsPositionStore } from "../../state/positionStore";
 import { useHaptics } from "../../hooks/useHaptics";
 import { useSfx } from "../../hooks/useSfx";
@@ -28,6 +28,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
   const { actions: ui } = useSigilMarketsUi();
   const { actions: vault } = useSigilMarketsVaultStore();
   const { actions: positions } = useSigilMarketsPositionStore();
+  const activeVault = useActiveVault();
   const haptics = useHaptics();
   const sfx = useSfx();
 
@@ -54,6 +55,10 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
 
   const apply = (): void => {
     if (!isActionable) return;
+    if (!activeVault || activeVault.vaultId !== p.lock.vaultId) {
+      ui.toast("error", "Not authorized", "Active vault does not match this position.");
+      return;
+    }
 
     setLoading(true);
 

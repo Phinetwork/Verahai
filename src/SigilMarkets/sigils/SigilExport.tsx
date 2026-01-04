@@ -458,6 +458,7 @@ export type SigilExportButtonProps = Readonly<{
   pngSizePx?: number;
   mode?: "pair" | "zip";
   className?: string;
+  label?: string;
 }>;
 
 export const SigilExportButton = (props: SigilExportButtonProps) => {
@@ -504,7 +505,7 @@ export const SigilExportButton = (props: SigilExportButtonProps) => {
       leftIcon={<Icon name="export" size={14} tone="dim" />}
       className={props.className}
     >
-      {mode === "zip" ? "Export ZIP" : "Export SVG + PNG"}
+      {props.label ?? (mode === "zip" ? "Export ZIP" : "Export SVG + PNG")}
     </Button>
   );
 };

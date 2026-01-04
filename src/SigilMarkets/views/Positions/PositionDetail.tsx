@@ -8,6 +8,7 @@ import { useSigilMarketsUi } from "../../state/uiStore";
 import { useScrollRestoration } from "../../hooks/useScrollRestoration";
 import { usePosition } from "../../hooks/usePositions";
 import { useMarketById } from "../../state/marketStore";
+import { useActiveVault } from "../../state/vaultStore";
 import { TopBar } from "../../ui/chrome/TopBar";
 import { Card, CardContent } from "../../ui/atoms/Card";
 import { Button } from "../../ui/atoms/Button";
@@ -36,6 +37,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
   });
 
   const p = usePosition(props.positionId);
+  const activeVault = useActiveVault();
 
   // Hooks must be called unconditionally. Use a safe sentinel id when position is missing.
   const lookupMarketId: MarketId = (p?.marketId ?? ("__none__" as unknown as MarketId)) as MarketId;
@@ -101,6 +103,18 @@ export const PositionDetail = (props: PositionDetailProps) => {
   }
 
   const position = p;
+  const hasClaimProof =
+    !!position.resolution && (position.status === "claimable" || position.status === "lost");
+  const exportLabel = hasClaimProof ? "Download claim proof" : "Export";
+  const canAccessVault = !!activeVault && activeVault.vaultId === position.lock.vaultId;
+
+  const openClaimSheet = (): void => {
+    if (!canAccessVault) {
+      actions.pushSheet({ id: "inhale-glyph", reason: "vault" });
+      return;
+    }
+    setClaimOpen(true);
+  };
 
   return (
     <div className="sm-page" data-sm="position-detail">
@@ -146,7 +160,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
             {position.status === "claimable" || position.status === "refundable" ? (
               <Button
                 variant="primary"
-                onClick={() => setClaimOpen(true)}
+                onClick={openClaimSheet}
                 leftIcon={<Icon name="check" size={14} tone="gold" />}
               >
                 {position.status === "claimable" ? "Claim" : "Refund"}
@@ -154,7 +168,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
             ) : null}
 
             <Button variant="ghost" onClick={() => setExportOpen(true)} leftIcon={<Icon name="export" size={14} tone="dim" />}>
-              Export
+              {exportLabel}
             </Button>
 
             <Button variant="ghost" onClick={() => setTransferOpen(true)} leftIcon={<Icon name="share" size={14} tone="dim" />}>

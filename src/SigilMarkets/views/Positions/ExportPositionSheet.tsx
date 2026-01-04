@@ -10,8 +10,10 @@ import { Icon } from "../../ui/atoms/Icon";
 import { Chip } from "../../ui/atoms/Chip";
 import { shortHash } from "../../utils/format";
 import { useSigilMarketsUi } from "../../state/uiStore";
+import { useActiveVault } from "../../state/vaultStore";
+import { useSigilMarketsPositionStore } from "../../state/positionStore";
 import { SigilExportButton } from "../../sigils/SigilExport";
-import { buildPositionSigilSvgFromPayload } from "../../sigils/PositionSigilMint";
+import { buildPositionSigilSvgFromPayload, mintPositionSigil } from "../../sigils/PositionSigilMint";
 
 export type ExportPositionSheetProps = Readonly<{
   open: boolean;
@@ -30,16 +32,23 @@ const statusLabel = (st: string): string => {
 
 export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
   const { actions: ui } = useSigilMarketsUi();
+  const { actions: positionStore } = useSigilMarketsPositionStore();
+  const activeVault = useActiveVault();
   const p = props.position;
 
   const hasSigil = !!p.sigil?.payload;
   const canCopyLink = !!p.sigil?.url;
   const [svgText, setSvgText] = useState<string | null>(null);
+  const [finalizing, setFinalizing] = useState(false);
 
   const subtitle = useMemo(() => {
     if (!hasSigil) return "Mint your Position Sigil first. Export downloads a ZIP with SVG, PNG, and manifest.";
     return "Export your Position Sigil as a ZIP (SVG + PNG + manifest for offline verification).";
   }, [hasSigil]);
+
+  const hasResolution = !!p.resolution;
+  const shouldLabelClaimProof = hasResolution && (p.status === "claimable" || p.status === "lost");
+  const exportLabel = shouldLabelClaimProof ? "Download claim proof" : undefined;
 
   const filenameBase = useMemo(() => {
     const pid = p.id as unknown as string;
@@ -80,6 +89,32 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
     };
   }, [p.sigil?.payload]);
 
+  const finalizeProof = async (): Promise<void> => {
+    if (!hasResolution) {
+      ui.toast("info", "Not resolved", "Finalize proof is available after resolution.");
+      return;
+    }
+    if (!activeVault || activeVault.vaultId !== p.lock.vaultId) {
+      ui.pushSheet({ id: "inhale-glyph", reason: "vault" });
+      return;
+    }
+    if (finalizing) return;
+
+    setFinalizing(true);
+
+    const res = await mintPositionSigil(p, activeVault);
+    if (!res.ok) {
+      ui.toast("error", "Finalize failed", res.error);
+      setFinalizing(false);
+      return;
+    }
+
+    const updatedPulse = p.resolution?.resolvedPulse ?? p.updatedPulse;
+    positionStore.attachSigil(p.id, res.sigil, updatedPulse);
+    ui.toast("success", "Proof finalized", "Position sigil updated with resolution.");
+    setFinalizing(false);
+  };
+
   return (
     <Sheet
       open={props.open}
@@ -101,6 +136,18 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
             Copy link
           </Button>
 
+          {hasResolution ? (
+            <Button
+              variant="ghost"
+              onClick={finalizeProof}
+              disabled={finalizing}
+              loading={finalizing}
+              leftIcon={<Icon name="spark" size={14} tone="gold" />}
+            >
+              Finalize proof
+            </Button>
+          ) : null}
+
           {hasSigil ? (
             <SigilExportButton
               filenameBase={filenameBase}
@@ -108,6 +155,7 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
               svgText={svgText ?? undefined}
               pngSizePx={2048}
               mode="zip"
+              label={exportLabel}
             />
           ) : (
             <Button
