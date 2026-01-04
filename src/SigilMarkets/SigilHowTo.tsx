@@ -129,11 +129,13 @@ export const SigilHowTo = () => {
       {
         title: "How to log in (Inhale) with a Sigil-Glyph",
         body:
-          "Logging in with Verahai is not a username/password.\n\nYou Inhale with your Sigil-Glyph:\n\n1) Tap Inhale / Login\n2) Upload or select the Sigil-Glyph file you saved\n3) Verahai verifies locally:\n   - decodes the embedded metadata\n   - checks your Kai Signature against your ΦKey\n   - checks the Kai-Klok pulse stamp\n   - verifies ZK integrity proofs (when present)\n\nIf valid, you are in.\n\nNo password to steal.\nNo account to delete.\nNo platform permission.\nJust proof.",
+          "Logging in with Verahai is not a username/password.\n\nYou Inhale with your Sigil-Glyph:\n\n1) Tap Inhale / Login\n2) Upload or select the Sigil-Glyph file you saved\n3) Verahai verifies locally:\n   - decodes the embedded metadata\n   - checks your Kai Signature against your ΦKey\n   - checks the Kai-Klok pulse stamp\n   - verifies ZK integrity proofs (when present)\n4) (Optional) Enter a first deposit amount and tap Activate — your Vault is funded instantly\n\nIf valid, you are in.\n\nNo password to steal.\nNo account to delete.\nNo platform permission.\nJust proof.",
         bullets: [
           "Inhale: Present your Sigil-Glyph file (your ΦKey + Kai Signature).",
           "Verify: Local, offline-capable verification of signature + pulse + ZK.",
+          "Deposit (optional): Enter an amount before Activate to fund your Vault in the same step.",
           "Enter: Your Vault + positions are now bound to the same ΦKey proof lineage.",
+          "Access Vault: Tap “Vault” in the bottom nav after login to deposit, withdraw, or view balances.",
         ],
         note:
           "Bridge to what you already know: this is like “Sign in with Apple,” but instead of Apple being the gatekeeper, the file is the credential and verification is self-contained. You carry your login. You carry your receipts. You carry your value.",
