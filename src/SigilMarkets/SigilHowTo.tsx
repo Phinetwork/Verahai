@@ -58,30 +58,41 @@ export const SigilHowTo = () => {
   };
 
   const close = (): void => setOpen(false);
+const steps = useMemo(
+  () => [
+    {
+      title: "What is a Sigil-Glyph?",
+      body:
+        "A Sigil-Glyph is a sovereign truth vessel — not an image, but a living seal.\n\nIt is self-contained. It carries, inside the file:\n- The claim you minted\n- The exact Kai-Klok pulse of sealing\n- Your ΦKey (breath-minted identity)\n- Your Kai Signature (authorship + intent)\n- A Zero-Knowledge proof (ZK) that proves validity and integrity without exposing private inputs\n\nThis is not “verified by a platform.” There is no central witness.\nThe vessel *is* the verification: decode it, check the signature, check the pulse, verify the proof.\n\nPortable. Peer-to-peer. Offline.\nA truth object that survives servers, survives accounts, survives empires — because it is sealed in breath and time.",
+    },
+    {
+      title: "What is Verahai?",
+      body:
+        "Verahai is the sovereign prediction market — not a website you trust, but a protocol you carry.\n\nYou do not place a bet *into* a platform.\nYou mint a Position Sigil.\n\nThat Position Sigil is your YES/NO stance, sealed as a Sigil-Glyph:\n- bound to your ΦKey\n- stamped to a Kai-Klok pulse\n- signed by your Kai Signature\n- guarded by Zero-Knowledge validity proofs\n\nSo your position is not a database row.\nIt is a sovereign vessel.\nYou can share it anywhere, verify it anywhere, and redeem it without intermediaries — because the proof travels with the claim.",
+      bullets: [
+        "Inhale: Enter with your Identity Sigil (ΦKey + Kai Signature)",
+        "Lock Φ: Escrow value in your Vault and mint a Position Sigil",
+        "Carry: Share the Sigil-Glyph — it verifies itself, offline",
+      ],
+    },
+    {
+      title: "How settlement works (Kai-Klok × Φ Network)",
+      body:
+        "Kai-Klok governs time: markets open and close on harmonic pulse boundaries — deterministic, universal, unforgeable.\nΦ Network governs value + identity: Vaults, Sigils, and positions are bound to your ΦKey — ownership by breath, not by accounts.\n\nWhen the outcome is sealed, settlement becomes mechanical.\nA Resolution is minted at a precise pulse (YES / NO / VOID), with its own signature and evidence lineage.\nThen each Position Sigil proves what it is, proves when it was minted, proves who minted it, and proves it satisfies the settlement rules — with Zero-Knowledge proofs that reveal nothing but correctness.\n\nNo sync.\nNo platform custody.\nNo server as a judge.\nJust breath-sealed truth resolving at pulse.",
+      bullets: [
+        "Verify: Decode the vessel metadata, Kai Signature, and ZK proof",
+        "Resolve: Outcome is sealed (YES / NO / VOID) precisely at pulse",
+        "Claim: Valid Position Sigils unlock Φ from the Vault (ΦKey-bound)",
+      ],
+      note:
+        "No accounts. No platforms. No trust assumptions.\nThe Sigil-Glyph *is* the position — a sovereign, self-verifying vessel of truth that can be carried, traded, and redeemed anywhere.",
+    },
+  ],
+  [],
+);
 
-  const steps = useMemo(
-    () => [
-      {
-        title: "What is a Sigil-Glyph?",
-        body: "A Sigil-Glyph is a shareable symbol that carries verifiable data inside the SVG—so the image isn’t just art, it’s proof.",
-      },
-      {
-        title: "What does Verahai do?",
-        body: "Verahai lets you mint, share, and verify Sigil-Glyphs for real claims—so truth can move peer-to-peer, not platform-to-platform.",
-      },
-      {
-        title: "How it works",
-        body: null,
-        bullets: [
-          "Mint: create a sigil for a moment / claim",
-          "Share: send the SVG anywhere",
-          "Verify: confirm the embedded proof + metadata",
-        ],
-        note: "Verification reads the SVG’s embedded metadata—no trust required.",
-      },
-    ],
-    [],
-  );
+
+
 
   const updateActiveStep = (): void => {
     if (!carouselRef.current) return;
