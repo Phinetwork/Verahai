@@ -31,7 +31,7 @@ import { useSigilMarketsVaultStore } from "../state/vaultStore";
 import { useSigilMarketsRuntimeConfig } from "../state/runtimeConfig";
 import { fetchVaultSnapshot } from "../api/vaultApi";
 
-import type { KaiSignature, SvgHash, UserPhiKey } from "../types/vaultTypes";
+import type { KaiSignature, SvgHash, UserPhiKey, VaultRecord } from "../types/vaultTypes";
 import { asKaiSignature, asSvgHash, asUserPhiKey } from "../types/vaultTypes";
 import type { PhiMicro } from "../types/marketTypes";
 import { computeIntrinsicUnsigned, type SigilMetadataLite } from "../../utils/valuation";
@@ -248,6 +248,41 @@ const toPhiMicro = (valuePhi?: number): PhiMicro | undefined => {
   return parsed.ok ? (parsed.micro as PhiMicro) : undefined;
 };
 
+const normalizePhi = (v: bigint): PhiMicro => (v < 0n ? (0n as PhiMicro) : (v as PhiMicro));
+
+const applyDepositToVault = (
+  vaultRecord: VaultRecord,
+  amountMicro: PhiMicro,
+  atPulse: number,
+): { ok: true; value: VaultRecord } | { ok: false; error: string } => {
+  if (amountMicro <= 0n) return { ok: false, error: "amount must be > 0" };
+  if (vaultRecord.status === "frozen") return { ok: false, error: "vault frozen" };
+
+  const identity = vaultRecord.owner.identitySigil;
+  if (!identity) return { ok: false, error: "Missing identity glyph. Re-inhale your identity glyph to sync." };
+
+  const available = identity.availablePhiMicro ?? identity.valuePhiMicro;
+  if (available !== undefined && available < amountMicro) {
+    return { ok: false, error: "Amount exceeds available glyph balance." };
+  }
+
+  const nextAvailable = available !== undefined ? normalizePhi(available - amountMicro) : identity.availablePhiMicro;
+  const nextSpendable = normalizePhi(vaultRecord.spendableMicro + amountMicro);
+
+  return {
+    ok: true,
+    value: {
+      ...vaultRecord,
+      owner: {
+        ...vaultRecord.owner,
+        identitySigil: { ...identity, availablePhiMicro: nextAvailable },
+      },
+      spendableMicro: nextSpendable,
+      updatedPulse: Math.max(vaultRecord.updatedPulse, atPulse),
+    },
+  };
+};
+
 export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
   const { open, onClose, now, reason, initialSpendableMicro } = props;
 
@@ -408,7 +443,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
         return;
       }
       if (valuePhiMicro < requestedDeposit) {
-        setErr("Deposit exceeds available glyph balance.");
+        setErr("Amount exceeds available glyph balance.");
         setBusy(false);
         return;
       }
@@ -423,6 +458,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     };
 
     let hydrated = false;
+    let activeVault: VaultRecord | null = null;
 
     if (vaultApiConfig.baseUrl) {
       const remote = await fetchVaultSnapshot(vaultApiConfig, vaultId);
@@ -435,6 +471,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
           },
         };
         vault.applyVaultSnapshot(merged, { activate: true });
+        activeVault = merged;
         hydrated = true;
       } else {
         ui.toast("warning", "Vault sync failed", remote.error, { atPulse: now.pulse });
@@ -442,7 +479,7 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     }
 
     if (!hydrated) {
-      vault.createOrActivateVault({
+      activeVault = vault.createOrActivateVault({
         vaultId,
         owner: {
           userPhiKey: parsed.userPhiKey,
@@ -457,17 +494,18 @@ export const InhaleGlyphGate = (props: InhaleGlyphGateProps) => {
     }
 
     if (requestedDeposit !== null && requestedDeposit > 0n) {
-      const depositRes = vault.moveValue({
-        vaultId,
-        kind: "deposit",
-        amountMicro: requestedDeposit,
-        atPulse: now.pulse,
-      });
+      if (!activeVault) {
+        setErr("vault not found");
+        setBusy(false);
+        return;
+      }
+      const depositRes = applyDepositToVault(activeVault, requestedDeposit, now.pulse);
       if (!depositRes.ok) {
         setErr(depositRes.error);
         setBusy(false);
         return;
       }
+      vault.applyVaultSnapshot(depositRes.value, { activate: true });
     }
 
     if (parsed.sigilUrl && parsed.sigilPayload) {
