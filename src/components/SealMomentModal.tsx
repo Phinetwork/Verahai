@@ -364,7 +364,7 @@ const SealMomentModal: FC<Props> = ({
                     className="open-link"
                     href={url}
                     target="_blank"
-                    rel="noopener"
+                    rel="noreferrer noopener"
                     aria-label="Open link in new tab"
                     title="Open link"
                   >

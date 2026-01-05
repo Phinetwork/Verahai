@@ -14,6 +14,49 @@ import {
 } from "../utils/prophecySigil";
 import type { ProphecySigilPayloadV1 } from "../types/prophecySigilTypes";
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   ChakraDay coercion
+   NOTE: KaiMoment (from marketTypes) does NOT include chakraDay — it's a minimal moment.
+   So we define ChakraDay here (or import it from your canonical kai_pulse types).
+────────────────────────────────────────────────────────────────────────────── */
+type ChakraDay =
+  | "Root"
+  | "Sacral"
+  | "Solar Plexus"
+  | "Heart"
+  | "Throat"
+  | "Third Eye"
+  | "Crown";
+
+function asChakraDay(v: unknown): ChakraDay {
+  const raw = String(v ?? "").trim();
+  const s = raw.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ");
+
+  switch (s) {
+    case "root":
+      return "Root";
+    case "sacral":
+      return "Sacral";
+    case "solar plexus":
+    case "solar":
+    case "plexus":
+      return "Solar Plexus";
+    case "heart":
+      return "Heart";
+    case "throat":
+      return "Throat";
+    case "third eye":
+    case "third":
+    case "eye":
+      return "Third Eye";
+    case "crown":
+    case "krown":
+      return "Crown";
+    default:
+      return "Root";
+  }
+}
+
 const loadVkey = async (): Promise<unknown | null> => {
   try {
     const res = await fetch("/zk/verification_key.json", { cache: "no-store" });
@@ -34,7 +77,10 @@ export type ProphecySigilVerification = Readonly<{
   windowStatus: "open" | "closed" | "unknown";
 }>;
 
-export const useProphecySigilVerification = (svg: string | undefined, now: KaiMoment): ProphecySigilVerification => {
+export const useProphecySigilVerification = (
+  svg: string | undefined,
+  now: KaiMoment,
+): ProphecySigilVerification => {
   const [state, setState] = useState<ProphecySigilVerification>({
     signatureOk: null,
     zkOk: null,
@@ -48,25 +94,30 @@ export const useProphecySigilVerification = (svg: string | undefined, now: KaiMo
   useEffect(() => {
     let cancelled = false;
 
+    const reset = (): void => {
+      setState({
+        signatureOk: null,
+        zkOk: null,
+        canonicalHashOk: null,
+        text: "",
+        windowStatus: "unknown",
+      });
+    };
+
     const run = async (): Promise<void> => {
       if (!svgText) {
-        if (!cancelled) {
-          setState({
-            signatureOk: null,
-            zkOk: null,
-            canonicalHashOk: null,
-            text: "",
-            windowStatus: "unknown",
-          });
-        }
+        if (!cancelled) reset();
         return;
       }
 
       const parsed = parseProphecySigilSvg(svgText);
       const payload = parsed.payload;
-      const text = typeof payload.text === "string" ? payload.text : parsed.textDecoded ?? "";
 
-      const windowStatus =
+      const textFromPayload = typeof payload.text === "string" ? payload.text : "";
+      const textDecoded = parsed.textDecoded ?? "";
+      const text = textFromPayload || textDecoded;
+
+      const windowStatus: ProphecySigilVerification["windowStatus"] =
         typeof payload.expirationPulse === "number"
           ? now.pulse >= payload.expirationPulse
             ? "closed"
@@ -79,7 +130,8 @@ export const useProphecySigilVerification = (svg: string | undefined, now: KaiMo
           : null;
 
       let canonicalHashOk: boolean | null = null;
-      let canonicalHash: string | undefined = typeof payload.canonicalHash === "string" ? payload.canonicalHash : undefined;
+      let canonicalHash: string | undefined =
+        typeof payload.canonicalHash === "string" ? payload.canonicalHash : undefined;
 
       const hasCoreFields =
         typeof payload.prophecyId === "string" &&
@@ -94,6 +146,16 @@ export const useProphecySigilVerification = (svg: string | undefined, now: KaiMo
         typeof payload.chakraDay === "string";
 
       if (hasCoreFields) {
+        // Build moment as a variable (assignable even if buildProphecyPayloadBase uses a narrower moment type)
+        const moment = {
+          pulse: payload.pulse,
+          beat: payload.beat,
+          stepIndex: payload.stepIndex,
+          stepPctAcrossBeat: payload.stepPct,
+          chakraDay: asChakraDay(payload.chakraDay),
+          weekday: "Solhara" as const,
+        };
+
         const base = buildProphecyPayloadBase({
           prophecyId: payload.prophecyId,
           text: payload.text,
@@ -104,18 +166,11 @@ export const useProphecySigilVerification = (svg: string | undefined, now: KaiMo
           evidence: payload.evidence,
           userPhiKey: payload.userPhiKey,
           kaiSignature: payload.kaiSignature,
-          moment: {
-            pulse: payload.pulse,
-            beat: payload.beat,
-            stepIndex: payload.stepIndex,
-            stepPctAcrossBeat: payload.stepPct,
-            chakraDay: payload.chakraDay,
-            weekday: "Solhara",
-          },
+          moment,
         });
 
         const computed = await computeProphecyCanonicalHash(base);
-        canonicalHashOk = canonicalHash ? canonicalHash.toLowerCase() === computed : false;
+        canonicalHashOk = canonicalHash ? canonicalHash.toLowerCase() === computed.toLowerCase() : false;
         canonicalHash = canonicalHash ?? computed;
       }
 
@@ -125,8 +180,10 @@ export const useProphecySigilVerification = (svg: string | undefined, now: KaiMo
       const zk = parsed.zk ?? (payload.zk as ProphecySigilPayloadV1["zk"] | undefined);
       if (zk && zk.proof && zk.publicInputs && canonicalHash) {
         zkScheme = zk.scheme;
+
         const poseidon = await computeZkPoseidonHash(canonicalHash);
         const publicInput0 = Array.isArray(zk.publicInputs) ? zk.publicInputs[0] : undefined;
+
         const binds =
           (zk.poseidonHash ? zk.poseidonHash === poseidon.hash : true) &&
           (publicInput0 ? publicInput0 === poseidon.hash : true);
@@ -152,7 +209,7 @@ export const useProphecySigilVerification = (svg: string | undefined, now: KaiMo
           zkScheme,
           canonicalHash,
           canonicalHashOk,
-          text: text || decodeProphecyText(parsed.textDecoded ?? "", payload.textEnc),
+          text: text || decodeProphecyText(textDecoded, payload.textEnc),
           windowStatus,
         });
       }
