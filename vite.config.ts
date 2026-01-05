@@ -5,6 +5,7 @@ import sigilProofHandler from './api/proof/sigil.js';
 
 const USE_EXTERNAL_PROOF_API = process.env.SIGIL_PROOF_API === 'external';
 const PROOF_API_TARGET = process.env.SIGIL_PROOF_API_URL ?? 'http://localhost:8787';
+const SIGIL_API_TARGET = process.env.SIGIL_API_URL ?? 'http://localhost:8787';
 
 function sigilProofApi() {
   const handler = async (req: unknown, res: unknown, next: () => void) => {
@@ -46,26 +47,24 @@ function sigilProofApi() {
   };
 }
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command }) => {
+  const sigilProxy = {
+    '/sigils': SIGIL_API_TARGET,
+    '/api/sigils': SIGIL_API_TARGET,
+    ...(USE_EXTERNAL_PROOF_API ? { '/api/proof/sigil': PROOF_API_TARGET } : {}),
+  };
+
+  const devServer = command === 'serve' ? { proxy: sigilProxy } : undefined;
+  const previewServer = command === 'preview' ? { proxy: sigilProxy } : undefined;
+
+  return ({
   resolve: {
     alias: {
       html2canvas: '/src/shims/html2canvas.ts'
     }
   },
-  server: USE_EXTERNAL_PROOF_API
-    ? {
-        proxy: {
-          '/api/proof/sigil': PROOF_API_TARGET
-        }
-      }
-    : undefined,
-  preview: USE_EXTERNAL_PROOF_API
-    ? {
-        proxy: {
-          '/api/proof/sigil': PROOF_API_TARGET
-        }
-      }
-    : undefined,
+  server: devServer,
+  preview: previewServer,
   plugins: [
     react(),
     VitePWA({
@@ -91,4 +90,4 @@ export default defineConfig(({ command }) => ({
     }),
     ...(USE_EXTERNAL_PROOF_API || !(command === 'serve' || command === 'preview') ? [] : [sigilProofApi()])
   ]
-}));
+});

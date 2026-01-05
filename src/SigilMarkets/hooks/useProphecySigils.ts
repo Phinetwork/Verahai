@@ -14,7 +14,6 @@ import { computeZkPoseidonHash } from "../../utils/kai";
 import { buildProofHints, generateZkProofFromPoseidonHash } from "../../utils/zkProof";
 import {
   buildProphecyPayloadBase,
-  buildProphecySvg,
   computeProphecyCanonicalHash,
   deriveProphecyId,
   encodeProphecyText,
@@ -22,7 +21,6 @@ import {
 } from "../utils/prophecySigil";
 import { registerSigilUrl } from "../../utils/sigilRegistry";
 import { asSvgHash } from "../types/vaultTypes";
-import { sha256Hex } from "../utils/ids";
 
 export type SealProphecyRequest = Readonly<{
   text: string;
@@ -121,55 +119,35 @@ export const useProphecySigils = (): UseProphecySigilsResult => {
         },
       };
 
-      const shouldUseLocal = typeof import.meta !== "undefined" && !!import.meta.env?.DEV;
       let sigilId = prophecyId as unknown as string;
-      let svgText: string | null = null;
-      let svgHashText: string | null = null;
-      let sigilUrl: string | undefined;
+      const res = await fetch("/sigils/seal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "prophecy", payload, textEncoded: encoded }),
+      });
 
-      if (!shouldUseLocal) {
-        let res = await fetch("/sigils/seal", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ kind: "prophecy", payload, textEncoded: encoded }),
-        });
-
-        if (res.status === 404) {
-          res = await fetch("/api/sigils/seal", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ kind: "prophecy", payload, textEncoded: encoded }),
-          });
-        }
-
-        if (res.ok) {
-          const body = (await res.json()) as {
-            sigilId?: string;
-            svg?: string;
-            svgHash?: string;
-          };
-          if (body && typeof body.svg === "string" && typeof body.svgHash === "string") {
-            sigilId = typeof body.sigilId === "string" ? body.sigilId : sigilId;
-            svgText = body.svg;
-            svgHashText = body.svgHash;
-            sigilUrl = `/sigils/${sigilId}.svg`;
-          }
-        }
+      if (!res.ok) {
+        return { ok: false, error: "seal failed" };
       }
 
-      if (!svgText || !svgHashText) {
-        svgText = buildProphecySvg(payload, encoded);
-        svgHashText = await sha256Hex(svgText);
-        const blob = new Blob([svgText], { type: "image/svg+xml" });
-        sigilUrl = URL.createObjectURL(blob);
+      const body = (await res.json()) as {
+        sigilId?: string;
+        svg?: string;
+        svgHash?: string;
+      };
+
+      if (!body || typeof body.svg !== "string" || typeof body.svgHash !== "string") {
+        return { ok: false, error: "seal payload missing" };
       }
 
-      const svgHash = asSvgHash(svgHashText);
+      sigilId = typeof body.sigilId === "string" ? body.sigilId : sigilId;
+      const svgHash = asSvgHash(body.svgHash);
+      const sigilUrl = `/sigils/${sigilId}.svg`;
 
       const sigil: ProphecySigilArtifact = {
         sigilId: prophecyId,
         svgHash,
-        svg: svgText,
+        svg: body.svg,
         url: sigilUrl,
         canonicalHash,
         payload,
@@ -186,7 +164,7 @@ export const useProphecySigils = (): UseProphecySigilsResult => {
         createdAtPulse: moment.pulse,
       });
 
-      if (sigilUrl) registerSigilUrl(sigilUrl);
+      registerSigilUrl(sigilUrl);
       ui.toast("success", "Prophecy sealed", undefined, { atPulse: moment.pulse });
 
       return { ok: true, record, sigil };

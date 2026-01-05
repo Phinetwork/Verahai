@@ -4,7 +4,6 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { registerSW } from 'virtual:pwa-register';
 import { SigilMarketsShell } from './SigilMarkets/SigilMarketsShell';
-import SigilSvgRoute from './pages/SigilSvgRoute';
 import './SigilMarkets/styles/sigilMarkets.css';
 import './SigilMarkets/styles/breathe.css';
 import './SigilMarkets/styles/motion.css';
@@ -24,7 +23,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="s" element={<SigilPage />} />
             <Route path="s/:hash" element={<SigilPage />} />
-            <Route path="sigils/:id.svg" element={<SigilSvgRoute />} />
             <Route path="*" element={<SigilMarketsShell />} />
             <Route path="/keystream" element={<KeyStream />} />
           </Routes>
