@@ -928,7 +928,7 @@ export const buildClaimPayload = async (
     claimedAt: claimMoment,
     marketDefinitionHash: pos.entry.marketDefinitionHash,
     label: `Victory ${outcome}`,
-    note: pos.status === "lost" ? "Loss settled" : "Victory sealed",
+    note: pos.status === "lost" ? "Loss settled" : "Won Sealed",
     lineageRootSigilId: lineageRoot.lineageRootSigilId,
     lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
     lineageId,

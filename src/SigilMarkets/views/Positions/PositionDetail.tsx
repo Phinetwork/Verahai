@@ -29,7 +29,7 @@ export type PositionDetailProps = Readonly<{
 
 const statusLabel = (st: string): string => {
   if (st === "claimable") return "won";
-  if (st === "claimed") return "victory sealed";
+  if (st === "claimed") return "Won sealed";
   if (st === "refundable") return "refundable";
   if (st === "refunded") return "refunded";
   if (st === "lost") return "lost";

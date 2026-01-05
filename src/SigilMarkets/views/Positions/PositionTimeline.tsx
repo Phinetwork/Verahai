@@ -68,7 +68,7 @@ export const PositionTimeline = (props: PositionTimelineProps) => {
     if (p.settlement && p.status === "claimed") {
       out.push({
         key: "claimed",
-        title: "Victory sealed",
+        title: "Won sealed",
         detail: `+${formatPhiMicro(p.settlement.creditedMicro, { withUnit: true, maxDecimals: 6, trimZeros: true })}`,
         pulse: p.settlement.settledPulse,
         tone: toneFor("claimed"),

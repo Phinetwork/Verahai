@@ -46,7 +46,7 @@ export const PositionsHome = (props: PositionsHomeProps) => {
       { key: "open", title: "Open", items: buckets.open, tone: "cyan" as const },
       { key: "lost", title: "Lost", items: buckets.lost, tone: "danger" as const },
       { key: "refundable", title: "Refundable", items: buckets.refundable, tone: "violet" as const },
-      { key: "claimed", title: "Victory sealed", items: buckets.claimed, tone: "default" as const },
+      { key: "claimed", title: "Won sealed", items: buckets.claimed, tone: "default" as const },
       { key: "refunded", title: "Refunded", items: buckets.refunded, tone: "default" as const },
     ].filter((s) => s.items.length > 0);
 

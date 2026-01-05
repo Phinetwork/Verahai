@@ -15,6 +15,7 @@ export type IconName =
   | "clock"
   | "share"
   | "export"
+  | "download"
   | "scan"
   | "back"
   | "close"
@@ -60,6 +61,8 @@ const glyph = (name: IconName): string => {
       return "↗";
     case "export":
       return "⤓";
+    case "download":
+      return "↓";
     case "scan":
       return "⌁";
     case "back":

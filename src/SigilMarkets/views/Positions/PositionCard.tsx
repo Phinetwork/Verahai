@@ -31,7 +31,7 @@ const statusLabel = (st: string): string => {
   if (st === "claimable") return "won";
   if (st === "refundable") return "refundable";
   if (st === "lost") return "lost";
-  if (st === "claimed") return "victory sealed";
+  if (st === "claimed") return "Won sealed";
   if (st === "refunded") return "refunded";
   return "open";
 };
