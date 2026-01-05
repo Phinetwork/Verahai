@@ -2671,10 +2671,6 @@ function ExplorerToolbar({
               KAIROS <span>Keystream</span>
             </h1>
             <div className="kx-tagline">Sovereign Lineage • No DB • Pure Φ</div>
-            <p className="kx-origin-note">
-              Sigils outside the registry are top-level origins. The registry lists first-derivative children; the
-              origin appears only after it’s sent.
-            </p>
           </div>
         </div>
 
