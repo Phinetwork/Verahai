@@ -35,6 +35,7 @@ import SealMomentModal from "./SealMomentModal";
 import {
   extractPayloadFromUrl,
   makeSigilUrl,
+  makeSigilUrlLoose,
   type SigilSharePayload,
 } from "../utils/sigilUrl";
 import "./SigilModal.css";
@@ -1224,7 +1225,7 @@ const kksSigil = useMemo(() => deriveKksForPulseNumber(pulseForSigil), [pulseFor
     }
 
     const payload = makeSharePayload(hash, mintPulse, chakraSnapshot);
-    const url = makeSigilUrl(hash, payload);
+    const url = makeSigilUrlLoose(hash, payload);
 
     setSealHash(hash);
     setSealPayload(payload);
