@@ -123,6 +123,9 @@ export type ExecuteTradeResult =
     }>
   | Readonly<{ ok: false; error: string }>;
 
+type DecodeError = Readonly<{ ok: false; error: string }>;
+type DecodeResult<T> = Readonly<{ ok: true; value: T }> | DecodeError;
+
 const toQuote = (req: MarketQuoteRequest, nowPulse: KaiPulse, q: AmmQuote): MarketQuote => {
   // worstPriceMicro and avgPriceMicro refer to SIDE price; this mirrors market quote expectations.
   const totalCostMicro = (q.netStakeMicro as unknown as bigint) + (q.feeMicro as unknown as bigint);
@@ -153,7 +156,7 @@ const joinUrl = (base: string, path: string): string => {
 
 const parseMicro = (value: unknown): bigint | null => {
   if (typeof value === "bigint") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return BigInt(Math.floor(value));
+  if (typeof value === "number" && Number.isFinite(value) && Number.isSafeInteger(value)) return BigInt(value);
   if (typeof value === "string") return parseBigIntDec(value);
   return null;
 };
@@ -223,7 +226,7 @@ type SerializedExecuteTradeOk = Readonly<{
 
 type SerializedExecuteTradeResult = SerializedExecuteTradeOk | Readonly<{ ok: false; error: string }>;
 
-const decodeQuote = (raw: SerializedMarketQuote): ExecuteTradeResult | MarketQuote => {
+const decodeQuote = (raw: SerializedMarketQuote): DecodeResult<MarketQuote> => {
   const stake = parseMicro(raw.stakeMicro);
   const expectedShares = parseMicro(raw.expectedSharesMicro);
   const avgPrice = parseMicro(raw.avgPriceMicro);
@@ -254,23 +257,27 @@ const decodeQuote = (raw: SerializedMarketQuote): ExecuteTradeResult | MarketQuo
   }
 
   return {
-    marketId: raw.marketId,
-    side: raw.side,
-    orderType: raw.orderType,
-    stakeMicro: stake as PhiMicro,
-    expectedSharesMicro: expectedShares as ShareMicro,
-    avgPriceMicro: avgPrice as PriceMicro,
-    worstPriceMicro: worstPrice as PriceMicro,
-    feeMicro: fee as PhiMicro,
-    totalCostMicro: totalCost as PhiMicro,
-    postPricesMicro,
-    slippageBps: raw.slippageBps,
-    quotedAtPulse: quotedPulse,
+    ok: true,
+    value: {
+      marketId: raw.marketId,
+      side: raw.side,
+      orderType: raw.orderType,
+      stakeMicro: stake as PhiMicro,
+      expectedSharesMicro: expectedShares as ShareMicro,
+      avgPriceMicro: avgPrice as PriceMicro,
+      worstPriceMicro: worstPrice as PriceMicro,
+      feeMicro: fee as PhiMicro,
+      totalCostMicro: totalCost as PhiMicro,
+      postPricesMicro,
+      slippageBps: raw.slippageBps,
+      quotedAtPulse: quotedPulse,
+    },
   };
 };
 
-const decodeSerializedPosition = (raw: SerializedPositionRecord): ExecuteTradeResult | PositionRecord => {
+const decodeSerializedPosition = (raw: SerializedPositionRecord): DecodeResult<PositionRecord> => {
   if (!isRecord(raw)) return { ok: false, error: "position: not object" };
+
   const lockStake = parseMicro(raw.lock?.lockedStakeMicro);
   const stake = parseMicro(raw.entry?.stakeMicro);
   const fee = parseMicro(raw.entry?.feeMicro);
@@ -279,67 +286,83 @@ const decodeSerializedPosition = (raw: SerializedPositionRecord): ExecuteTradeRe
   const avg = parseMicro(raw.entry?.avgPriceMicro);
   const worst = parseMicro(raw.entry?.worstPriceMicro);
 
-  if (lockStake === null || stake === null || fee === null || totalCost === null || shares === null || avg === null || worst === null) {
+  if (
+    lockStake === null ||
+    stake === null ||
+    fee === null ||
+    totalCost === null ||
+    shares === null ||
+    avg === null ||
+    worst === null
+  ) {
     return { ok: false, error: "position: bad micros" };
   }
 
   return {
-    id: raw.id,
-    marketId: raw.marketId,
-    lock: {
-      vaultId: raw.lock.vaultId,
-      lockId: raw.lock.lockId,
-      lockedStakeMicro: lockStake as PhiMicro,
+    ok: true,
+    value: {
+      id: raw.id,
+      marketId: raw.marketId,
+      lock: {
+        vaultId: raw.lock.vaultId,
+        lockId: raw.lock.lockId,
+        lockedStakeMicro: lockStake as PhiMicro,
+      },
+      entry: {
+        side: raw.entry.side,
+        stakeMicro: stake as PhiMicro,
+        feeMicro: fee as PhiMicro,
+        totalCostMicro: totalCost as PhiMicro,
+        sharesMicro: shares as ShareMicro,
+        avgPriceMicro: avg as PriceMicro,
+        worstPriceMicro: worst as PriceMicro,
+        venue: raw.entry.venue,
+        openedAt: raw.entry.openedAt,
+        marketDefinitionHash: raw.entry.marketDefinitionHash,
+      },
+      payoutModel: raw.payoutModel,
+      status: raw.status,
+      resolution: raw.resolution,
+      settlement: raw.settlement
+        ? {
+            settledPulse: raw.settlement.settledPulse,
+            creditedMicro: (parseMicro(raw.settlement.creditedMicro) ?? 0n) as PhiMicro,
+            debitedMicro: (parseMicro(raw.settlement.debitedMicro) ?? 0n) as PhiMicro,
+            note: raw.settlement.note,
+          }
+        : undefined,
+      sigil: raw.sigil,
+      updatedPulse: raw.updatedPulse,
     },
-    entry: {
-      side: raw.entry.side,
-      stakeMicro: stake as PhiMicro,
-      feeMicro: fee as PhiMicro,
-      totalCostMicro: totalCost as PhiMicro,
-      sharesMicro: shares as ShareMicro,
-      avgPriceMicro: avg as PriceMicro,
-      worstPriceMicro: worst as PriceMicro,
-      venue: raw.entry.venue,
-      openedAt: raw.entry.openedAt,
-      marketDefinitionHash: raw.entry.marketDefinitionHash,
-    },
-    payoutModel: raw.payoutModel,
-    status: raw.status,
-    resolution: raw.resolution,
-    settlement: raw.settlement
-      ? {
-          settledPulse: raw.settlement.settledPulse,
-          creditedMicro: (parseMicro(raw.settlement.creditedMicro) ?? 0n) as PhiMicro,
-          debitedMicro: (parseMicro(raw.settlement.debitedMicro) ?? 0n) as PhiMicro,
-          note: raw.settlement.note,
-        }
-      : undefined,
-    sigil: raw.sigil,
-    updatedPulse: raw.updatedPulse,
   };
 };
 
 const decodeExecuteTradeResult = (raw: unknown): ExecuteTradeResult => {
   if (!isRecord(raw)) return { ok: false, error: "trade: not object" };
-  if (raw.ok === false) {
-    return { ok: false, error: isString(raw.error) ? raw.error : "trade failed" };
+
+  const data = raw as SerializedExecuteTradeResult;
+
+  if (data.ok === false) {
+    return { ok: false, error: isString(data.error) ? data.error : "trade failed" };
   }
-  if (raw.ok !== true) return { ok: false, error: "trade: missing ok flag" };
+  if (data.ok !== true) return { ok: false, error: "trade: missing ok flag" };
 
-  const data = raw as SerializedExecuteTradeOk;
+  const okData = data as SerializedExecuteTradeOk;
 
-  const quote = decodeQuote(data.quote);
-  if ("ok" in quote && quote.ok === false) return quote;
+  const quoteR = decodeQuote(okData.quote);
+  if (!quoteR.ok) return quoteR;
+  const quote = quoteR.value;
 
-  const position = decodeSerializedPosition(data.position);
-  if ("ok" in position && position.ok === false) return position;
+  const posR = decodeSerializedPosition(okData.position);
+  if (!posR.ok) return posR;
+  const position = posR.value;
 
-  const lockAmt = parseMicro(data.lock.amountMicro);
-  const lockPulse = parsePulse(data.lock.updatedPulse);
-  const activityStake = parseMicro(data.activity.stakeMicro);
-  const activityShares = parseMicro(data.activity.sharesMicro);
-  const activityAvg = parseMicro(data.activity.avgPriceMicro);
-  const activityPulse = parsePulse(data.activity.atPulse);
+  const lockAmt = parseMicro(okData.lock.amountMicro);
+  const lockPulse = parsePulse(okData.lock.updatedPulse);
+  const activityStake = parseMicro(okData.activity.stakeMicro);
+  const activityShares = parseMicro(okData.activity.sharesMicro);
+  const activityAvg = parseMicro(okData.activity.avgPriceMicro);
+  const activityPulse = parsePulse(okData.activity.atPulse);
 
   if (
     lockAmt === null ||
@@ -356,25 +379,25 @@ const decodeExecuteTradeResult = (raw: unknown): ExecuteTradeResult => {
     ok: true,
     quote,
     lock: {
-      vaultId: data.lock.vaultId,
-      lockId: data.lock.lockId,
+      vaultId: okData.lock.vaultId,
+      lockId: okData.lock.lockId,
       amountMicro: lockAmt as PhiMicro,
-      reason: data.lock.reason,
-      createdAt: data.lock.createdAt,
+      reason: okData.lock.reason,
+      createdAt: okData.lock.createdAt,
       updatedPulse: lockPulse,
-      marketId: data.lock.marketId,
-      positionId: data.lock.positionId,
+      marketId: okData.lock.marketId,
+      positionId: okData.lock.positionId,
     },
     position,
     activity: {
-      marketId: data.activity.marketId,
-      side: data.activity.side,
+      marketId: okData.activity.marketId,
+      side: okData.activity.side,
       stakeMicro: activityStake as PhiMicro,
       sharesMicro: activityShares as ShareMicro,
       avgPriceMicro: activityAvg as PriceMicro,
       atPulse: activityPulse,
-      vaultId: data.activity.vaultId,
-      lockId: data.activity.lockId,
+      vaultId: okData.activity.vaultId,
+      lockId: okData.activity.lockId,
     },
   };
 };
@@ -393,7 +416,9 @@ const submitRemoteTrade = async (cfg: SigilMarketsPositionApiConfig, input: Exec
     orderType: input.request.orderType,
     stakeMicro: String(input.request.stakeMicro as unknown as bigint),
     limitPriceMicro:
-      input.request.limitPriceMicro !== undefined ? String(input.request.limitPriceMicro as unknown as bigint) : undefined,
+      input.request.limitPriceMicro !== undefined
+        ? String(input.request.limitPriceMicro as unknown as bigint)
+        : undefined,
     maxSlippageBps: input.request.maxSlippageBps,
     nowPulse: input.now.pulse,
     nonce: input.nonce,

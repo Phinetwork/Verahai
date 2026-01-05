@@ -67,6 +67,8 @@ import {
   N_DAY_MICRO,
   BASE_DAY_MICRO,
   DAY_TO_CHAKRA,
+  latticeFromMicroPulses,
+  normalizePercentIntoStep,
   getKaiTimeSource,
   epochMsFromPulse,
   microPulsesSinceGenesis,
@@ -289,6 +291,12 @@ const epochNow = (): number => {
     return performance.timeOrigin + performance.now();
   }
   return Date.now();
+};
+const deriveKksForPulseNumber = (pulseNum: number) => {
+  const p = Number.isFinite(pulseNum) ? Math.trunc(pulseNum) : 0;
+  const pμ = BigInt(p) * ONE_PULSE_MICRO; // EXACT
+  const { beat, stepIndex, percentIntoStep } = latticeFromMicroPulses(pμ);
+  return { beat, stepIndex, stepPct: normalizePercentIntoStep(percentIntoStep) };
 };
 
 /* ────────────────────────────────────────────────────────────────
@@ -1000,7 +1008,8 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
    */
   const pulseForSigil: number = useMemo(() => safePulseNumberForSigil(pulse), [pulse]);
 
-  const kksSigil = useMemo(() => kksFromPulseNumberExact(pulseForSigil), [pulseForSigil]);
+const kksSigil = useMemo(() => deriveKksForPulseNumber(pulseForSigil), [pulseForSigil]);
+
 
   // ChakraDay for visuals (from KaiKlock record if present, otherwise stable fallback)
   const chakraDay: ChakraDay = useMemo(() => {
@@ -1461,7 +1470,7 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
 
       const sealedSvg = embedProofMetadata(svgString2, proofBundle);
 
-      const baseName = `kai-voh_pulse-${pulseNum}_${kaiSignatureShort}`;
+      const baseName = `kai_pulse_seal-${pulseNum}_${kaiSignatureShort}`;
       const zip = new JSZip();
       zip.file(`${baseName}.svg`, sealedSvg);
       zip.file(`${baseName}_proof_bundle.json`, JSON.stringify(proofBundle, null, 2));
@@ -1665,24 +1674,20 @@ const SigilModal: FC<Props> = ({ onClose }: Props) => {
             id="sigil-export"
             style={{ position: "relative", width: 240, margin: "16px auto" }}
           >
-            <KaiSigil
-              ref={sigilRef}
-              pulse={pulseForSigil}
-              beat={kksSigil.beat}
-              stepIndex={kksSigil.stepIndex}
-              stepPct={kksSigil.stepPct}
-              chakraDay={chakraDay as KaiSigilProps["chakraDay"]}
-              size={240}
-              hashMode="deterministic"
-              origin=""
-              onReady={(payload: { hash?: string; zkPoseidonSecret?: string }) => {
-                const h = payload.hash ? String(payload.hash).toLowerCase() : "";
-                if (h) setLastHash(h);
-                if (payload.zkPoseidonSecret) {
-                  setZkPoseidonSecret(payload.zkPoseidonSecret);
-                }
-              }}
-            />
+<KaiSigil
+  ref={sigilRef}
+  pulse={pulseForSigil}
+  chakraDay={chakraDay as KaiSigilProps["chakraDay"]}
+  size={240}
+  hashMode="deterministic"
+  origin=""
+  onReady={(payload: { hash?: string; zkPoseidonSecret?: string }) => {
+    const h = payload.hash ? String(payload.hash).toLowerCase() : "";
+    if (h) setLastHash(h);
+    if (payload.zkPoseidonSecret) setZkPoseidonSecret(payload.zkPoseidonSecret);
+  }}
+/>
+
             <span className="pulse-tag">{pulseDisp}</span>
           </div>
 
