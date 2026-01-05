@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /* ──────────────────────────────────────────────────────────────────────────────
    Shared VisualViewport publisher (RAF-throttled)
 ────────────────────────────────────────────────────────────────────────────── */
-type VVSize = { width: number; height: number };
+type VVSize = { width: number; height: number; offsetTop: number; offsetLeft: number };
 
 type VVStore = {
   size: VVSize;
@@ -22,10 +22,17 @@ const vvStore: VVStore = {
 };
 
 function readVVNow(): VVSize {
-  if (typeof window === "undefined") return { width: 0, height: 0 };
+  if (typeof window === "undefined") return { width: 0, height: 0, offsetTop: 0, offsetLeft: 0 };
   const vv = window.visualViewport;
-  if (vv) return { width: Math.round(vv.width), height: Math.round(vv.height) };
-  return { width: window.innerWidth, height: window.innerHeight };
+  if (vv) {
+    return {
+      width: Math.round(vv.width),
+      height: Math.round(vv.height),
+      offsetTop: Math.round(vv.offsetTop),
+      offsetLeft: Math.round(vv.offsetLeft),
+    };
+  }
+  return { width: window.innerWidth, height: window.innerHeight, offsetTop: 0, offsetLeft: 0 };
 }
 
 function startVVListeners(): void {
@@ -38,7 +45,13 @@ function startVVListeners(): void {
     vvStore.rafId = null;
     const next = readVVNow();
     const prev = vvStore.size;
-    if (next.width === prev.width && next.height === prev.height) return;
+    if (
+      next.width === prev.width &&
+      next.height === prev.height &&
+      next.offsetTop === prev.offsetTop &&
+      next.offsetLeft === prev.offsetLeft
+    )
+      return;
     vvStore.size = next;
     vvStore.subs.forEach((fn) => fn(next));
   };
