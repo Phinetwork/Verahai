@@ -10,7 +10,6 @@ import { beatIndexFromPulse, kaiCalendarFromPulse, stepIndexFromPulse } from "..
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useStickyHeader } from "../../hooks/useStickyHeader";
 import { useBodyScrollLock } from "../../../hooks/useBodyScrollLock";
-import { useVisualViewportSize } from "../../../hooks/useVisualViewportSize";
 import { Icon } from "../atoms/Icon";
 import { Chip } from "../atoms/Chip";
 import { ToastHost } from "../atoms/Toast";
@@ -151,7 +150,7 @@ type KlockPopoverProps = Readonly<{
 
 function KlockPopover({ open, onClose, children }: KlockPopoverProps): React.JSX.Element | null {
   const isClient = typeof document !== "undefined";
-  const vvSize = useVisualViewportSize();
+
 
   const portalHost = useMemo<HTMLElement | null>(() => {
     if (!isClient) return null;
@@ -180,15 +179,11 @@ function KlockPopover({ open, onClose, children }: KlockPopoverProps): React.JSX
   const overlayStyle = useMemo<KlockPopoverStyle | undefined>(() => {
     if (!open || !isClient) return undefined;
 
-    const h = vvSize.height;
-    const w = vvSize.width;
 
     return {
       position: "fixed",
       inset: 0,
       pointerEvents: "auto",
-      height: h > 0 ? `${h}px` : undefined,
-      width: w > 0 ? `${w}px` : undefined,
 
       ["--klock-breath"]: "5.236s",
       ["--klock-border"]: "rgba(255, 216, 120, 0.26)",
@@ -197,7 +192,7 @@ function KlockPopover({ open, onClose, children }: KlockPopoverProps): React.JSX
         "0 0 0 2px rgba(255, 225, 150, 0.22), 0 0 0 6px rgba(255, 210, 120, 0.10)",
       ["--klock-scale"]: "5",
     };
-  }, [open, isClient, vvSize]);
+  }, [open, isClient,]);
 
   const onBackdropPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>): void => {
