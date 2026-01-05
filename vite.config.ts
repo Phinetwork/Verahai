@@ -57,37 +57,38 @@ export default defineConfig(({ command }) => {
   const devServer = command === 'serve' ? { proxy: sigilProxy } : undefined;
   const previewServer = command === 'preview' ? { proxy: sigilProxy } : undefined;
 
-  return ({
-  resolve: {
-    alias: {
-      html2canvas: '/src/shims/html2canvas.ts'
-    }
-  },
-  server: devServer,
-  preview: previewServer,
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['verahai-icon.svg', 'phi.svg'],
-      manifest: {
-        name: 'Verahai · SigilMarkets',
-        short_name: 'Verahai',
-        description: 'SigilMarkets for Kairos glyph prophecy markets.',
-        theme_color: '#0f1115',
-        background_color: '#0f1115',
-        display: 'standalone',
-        start_url: '/',
-        icons: [
-          {
-            src: '/verahai-icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'maskable any'
-          }
-        ]
+  return {
+    resolve: {
+      alias: {
+        html2canvas: '/src/shims/html2canvas.ts'
       }
-    }),
-    ...(USE_EXTERNAL_PROOF_API || !(command === 'serve' || command === 'preview') ? [] : [sigilProofApi()])
-  ]
+    },
+    server: devServer,
+    preview: previewServer,
+    plugins: [
+      react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['verahai-icon.svg', 'phi.svg'],
+        manifest: {
+          name: 'Verahai · SigilMarkets',
+          short_name: 'Verahai',
+          description: 'SigilMarkets for Kairos glyph prophecy markets.',
+          theme_color: '#0f1115',
+          background_color: '#0f1115',
+          display: 'standalone',
+          start_url: '/',
+          icons: [
+            {
+              src: '/verahai-icon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'maskable any'
+            }
+          ]
+        }
+      }),
+      ...(USE_EXTERNAL_PROOF_API || !(command === 'serve' || command === 'preview') ? [] : [sigilProofApi()])
+    ]
+  };
 });
