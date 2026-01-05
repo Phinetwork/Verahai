@@ -76,7 +76,13 @@ function startVVListeners(): void {
   const vv = window.visualViewport;
 
   window.addEventListener("resize", schedule, { passive: true });
-  if (vv) vv.addEventListener("resize", schedule, { passive: true });
+  window.addEventListener("orientationchange", schedule, { passive: true });
+  window.addEventListener("focusin", schedule, { passive: true });
+  window.addEventListener("focusout", schedule, { passive: true });
+  if (vv) {
+    vv.addEventListener("resize", schedule, { passive: true });
+    vv.addEventListener("scroll", schedule, { passive: true });
+  }
 
   vvStore.cleanup = (): void => {
     if (vvStore.rafId !== null) {
@@ -85,7 +91,13 @@ function startVVListeners(): void {
     }
 
     window.removeEventListener("resize", schedule);
-    if (vv) vv.removeEventListener("resize", schedule);
+    window.removeEventListener("orientationchange", schedule);
+    window.removeEventListener("focusin", schedule);
+    window.removeEventListener("focusout", schedule);
+    if (vv) {
+      vv.removeEventListener("resize", schedule);
+      vv.removeEventListener("scroll", schedule);
+    }
 
     vvStore.cleanup = null;
     vvStore.listening = false;
