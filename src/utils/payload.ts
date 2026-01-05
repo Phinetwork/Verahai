@@ -210,6 +210,26 @@ export function decodePayloadFromQuery(search: string): SigilPayload | null {
       proofHints,
     } as unknown as SigilPayload;
 
+    const extras = raw as {
+      sigilKind?: unknown;
+      sigilId?: unknown;
+      prophecyPayload?: unknown;
+      svgUrl?: unknown;
+    };
+    if (typeof extras.sigilKind === "string") {
+      (payload as SigilPayload & { sigilKind?: string }).sigilKind = extras.sigilKind;
+    }
+    if (typeof extras.sigilId === "string") {
+      (payload as SigilPayload & { sigilId?: string }).sigilId = extras.sigilId;
+    }
+    if (extras.prophecyPayload && typeof extras.prophecyPayload === "object") {
+      (payload as SigilPayload & { prophecyPayload?: unknown }).prophecyPayload =
+        extras.prophecyPayload;
+    }
+    if (typeof extras.svgUrl === "string") {
+      (payload as SigilPayload & { svgUrl?: string }).svgUrl = extras.svgUrl;
+    }
+
     // If URL has token "?t=" but payload omitted it, lift it.
     const urlToken = qs.get("t");
     if (urlToken && !(payload as unknown as { transferNonce?: string }).transferNonce) {

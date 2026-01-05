@@ -56,7 +56,7 @@ import {
 } from "../../utils/provenance";
 import { ensureLink, setJsonLd, setMeta } from "../../utils/domHead";
 import { validateSvgForVerifier, putMetadata } from "../../utils/svgMeta";
-import { decodeSigilHistory, decodeSigilPayload, extractPayloadFromUrl, makeSigilUrl } from "../../utils/sigilUrl";
+import { decodeSigilHistory, extractPayloadFromUrl, makeSigilUrl } from "../../utils/sigilUrl";
 import { registerSigilUrl } from "../../utils/sigilRegistry";
 import { recordSigilTransferMovement } from "../../utils/sigilTransferRegistry";
 import { enqueueInhaleKrystal, flushInhaleQueue } from "../../components/SigilExplorer/inhaleQueue";
@@ -468,22 +468,12 @@ export default function SigilPage() {
     expirationDate: string | null;
   }>;
 
-  const sigilSharePayload = useMemo(() => {
-    const pParam = urlQs.get("p");
-    if (!pParam) return null;
-    try {
-      return decodeSigilPayload(pParam);
-    } catch {
-      return null;
-    }
-  }, [urlQs]);
-
   const prophecyPayload = useMemo(() => {
-    const raw = sigilSharePayload?.prophecyPayload;
+    const raw = (payload as SigilPayload & { prophecyPayload?: unknown } | null)?.prophecyPayload;
     if (!raw || typeof raw !== "object") return null;
     const candidate = raw as ProphecySigilPayloadV1;
     return candidate.kind === "prophecy" ? candidate : null;
-  }, [sigilSharePayload]);
+  }, [payload]);
 
   const prophecyDetails = useMemo<ProphecyDetails | null>(() => {
     if (!prophecyPayload) return null;
@@ -510,8 +500,9 @@ export default function SigilPage() {
   }, [prophecyPayload]);
 
   const isProphecySigil = useMemo(() => {
-    return sigilSharePayload?.sigilKind === "prophecy" || prophecyPayload?.kind === "prophecy";
-  }, [sigilSharePayload, prophecyPayload]);
+    const sigilKind = (payload as SigilPayload & { sigilKind?: string } | null)?.sigilKind;
+    return sigilKind === "prophecy" || prophecyPayload?.kind === "prophecy";
+  }, [payload, prophecyPayload]);
 
   // live Kai (eternal)
   const { pulse: currentPulse, msToNextPulse } = useKaiTicker();
