@@ -3743,3 +3743,34 @@ body{
   line-height: 1.25;
   margin: 0;
 }
+.sm-chart {
+  /* Line + glow */
+  --sm-chart-line: rgba(255, 255, 255, 0.80);
+  --sm-chart-glow: rgba(191, 252, 255, 0.18);
+
+  /* Fill */
+  --sm-chart-fill-top: rgba(191, 252, 255, 0.10);
+  --sm-chart-fill-bot: rgba(255, 255, 255, 0.00);
+
+  /* Grid / baseline */
+  --sm-chart-grid: rgba(255, 255, 255, 0.06);
+  --sm-chart-base: rgba(255, 255, 255, 0.10);
+
+  /* Head dot */
+  --sm-chart-dot: rgba(191, 252, 255, 0.92);
+
+  /* Frost */
+  --sm-chart-sheen-a: rgba(255, 255, 255, 0.08);
+  --sm-chart-sheen-b: rgba(255, 255, 255, 0.00);
+  --sm-chart-grain-alpha: 0.035;
+}
+
+/* Container glass (your existing classnames; tweak as desired) */
+.sm-chart-canvas-wrap {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+}
