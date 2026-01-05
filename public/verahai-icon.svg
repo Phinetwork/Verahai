@@ -1,5 +1,122 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
-  <rect width="120" height="120" rx="28" fill="#0f1115" />
-  <path d="M60 20L90 60L60 100L30 60L60 20Z" fill="#7E8BFF" />
-  <circle cx="60" cy="60" r="18" stroke="#7FF0D1" stroke-width="4" />
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1000 1000"
+  width="1000"
+  height="1000"
+  role="img"
+  aria-labelledby="verahai-title verahai-desc"
+  shape-rendering="geometricPrecision"
+>
+  <title id="verahai-title">VeraHai — Mark</title>
+  <desc id="verahai-desc">
+    Diamond seal with a segmented ring core (time-locked position / sovereign proof mark).
+  </desc>
+
+  <metadata>
+    {"brand":"VeraHai","mark":"diamond-ring","version":"1.0","bg":"transparent","units":"viewBox 1000"}
+  </metadata>
+
+  <defs>
+    <!-- Diamond fill -->
+    <linearGradient id="vhDiamond" x1="500" y1="140" x2="500" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66ECFF"/>
+      <stop offset="0.46" stop-color="#5C86FF"/>
+      <stop offset="1" stop-color="#8A3DFF"/>
+    </linearGradient>
+
+    <!-- Ring stroke -->
+    <linearGradient id="vhRing" x1="280" y1="500" x2="720" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66ECFF"/>
+      <stop offset="0.55" stop-color="#6C86FF"/>
+      <stop offset="1" stop-color="#C9A6FF"/>
+    </linearGradient>
+
+    <!-- Soft highlight over the diamond -->
+    <radialGradient id="vhShine" cx="36%" cy="22%" r="68%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.50"/>
+      <stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Core (center) -->
+    <radialGradient id="vhCore" cx="50%" cy="40%" r="72%">
+      <stop offset="0" stop-color="#0B1224"/>
+      <stop offset="1" stop-color="#05070D"/>
+    </radialGradient>
+
+    <!-- Depth + glow -->
+    <filter id="vhDepth" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#05070D" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#66ECFF" flood-opacity="0.10"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="26" flood-color="#8A3DFF" flood-opacity="0.10"/>
+    </filter>
+
+    <filter id="vhRingGlow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <clipPath id="vhDiamondClip">
+      <polygon points="500,150 850,500 500,850 150,500"/>
+    </clipPath>
+  </defs>
+
+  <!-- MARK -->
+  <g filter="url(#vhDepth)">
+    <!-- Diamond body -->
+    <polygon
+      points="500,150 850,500 500,850 150,500"
+      fill="url(#vhDiamond)"
+      stroke="#070A12"
+      stroke-opacity="0.85"
+      stroke-width="16"
+      stroke-linejoin="round"
+    />
+
+    <!-- Diamond shine (clipped) -->
+    <g clip-path="url(#vhDiamondClip)">
+      <rect x="110" y="110" width="780" height="780" fill="url(#vhShine)"/>
+      <!-- faint inner bevel -->
+      <polygon
+        points="500,190 810,500 500,810 190,500"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-opacity="0.10"
+        stroke-width="6"
+        stroke-linejoin="round"
+      />
+    </g>
+
+    <!-- Segmented ring (4 quadrants with cardinal gaps) -->
+    <g filter="url(#vhRingGlow)">
+      <!-- glow underlay -->
+      <g opacity="0.35">
+        <path d="M 718.79 523.00 A 220.00 220.00 0 0 1 523.00 718.79" fill="none" stroke="url(#vhRing)" stroke-width="52" stroke-linecap="round"/>
+        <path d="M 477.00 718.79 A 220.00 220.00 0 0 1 281.21 523.00" fill="none" stroke="url(#vhRing)" stroke-width="52" stroke-linecap="round"/>
+        <path d="M 281.21 477.00 A 220.00 220.00 0 0 1 477.00 281.21" fill="none" stroke="url(#vhRing)" stroke-width="52" stroke-linecap="round"/>
+        <path d="M 523.00 281.21 A 220.00 220.00 0 0 1 718.79 477.00" fill="none" stroke="url(#vhRing)" stroke-width="52" stroke-linecap="round"/>
+      </g>
+
+      <!-- crisp ring -->
+      <path d="M 718.79 523.00 A 220.00 220.00 0 0 1 523.00 718.79" fill="none" stroke="url(#vhRing)" stroke-width="44" stroke-linecap="round"/>
+      <path d="M 477.00 718.79 A 220.00 220.00 0 0 1 281.21 523.00" fill="none" stroke="url(#vhRing)" stroke-width="44" stroke-linecap="round"/>
+      <path d="M 281.21 477.00 A 220.00 220.00 0 0 1 477.00 281.21" fill="none" stroke="url(#vhRing)" stroke-width="44" stroke-linecap="round"/>
+      <path d="M 523.00 281.21 A 220.00 220.00 0 0 1 718.79 477.00" fill="none" stroke="url(#vhRing)" stroke-width="44" stroke-linecap="round"/>
+
+      <!-- subtle inner highlight stroke -->
+      <circle cx="500" cy="500" r="220" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="3"/>
+    </g>
+
+    <!-- Core -->
+    <circle cx="500" cy="500" r="176" fill="url(#vhCore)"/>
+
+    <!-- Micro “lock” flares (very subtle) -->
+    <g opacity="0.28">
+      <path d="M 280 500 L 330 500" stroke="#B9F7FF" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 670 500 L 720 500" stroke="#E2D3FF" stroke-width="6" stroke-linecap="round"/>
+    </g>
+  </g>
 </svg>
