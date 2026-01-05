@@ -306,17 +306,30 @@ type ZkSeal = Readonly<{
   matches?: Readonly<{ vaultCanonical?: boolean; vaultPoseidon?: boolean }>;
 }>;
 
-const isStringArray = (v: unknown): v is readonly string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
-const isStringArray2 = (v: unknown): v is readonly (readonly string[])[] =>
-  Array.isArray(v) && v.every((row) => Array.isArray(row) && row.every((x) => typeof x === "string"));
+const isStringOrNumberArray = (v: unknown): v is readonly (string | number)[] =>
+  Array.isArray(v) && v.every((x) => typeof x === "string" || typeof x === "number");
+
+const normalizeStringArray = (v: unknown): readonly string[] | undefined =>
+  isStringOrNumberArray(v) ? v.map((entry) => String(entry)) : undefined;
+
+const normalizeStringArray2 = (v: unknown): readonly (readonly string[])[] | undefined =>
+  Array.isArray(v) && v.every((row) => isStringOrNumberArray(row))
+    ? v.map((row) => row.map((entry) => String(entry)))
+    : undefined;
 
 const normalizeGroth16Proof = (v: unknown): Groth16Proof | undefined => {
   if (!isRecord(v)) return undefined;
-  if (isStringArray(v["pi_a"]) && isStringArray2(v["pi_b"]) && isStringArray(v["pi_c"])) {
-    return { pi_a: v["pi_a"], pi_b: v["pi_b"], pi_c: v["pi_c"] };
+  const piA = normalizeStringArray(v["pi_a"]);
+  const piB = normalizeStringArray2(v["pi_b"]);
+  const piC = normalizeStringArray(v["pi_c"]);
+  if (piA && piB && piC) {
+    return { pi_a: piA, pi_b: piB, pi_c: piC };
   }
-  if (isStringArray(v["a"]) && isStringArray2(v["b"]) && isStringArray(v["c"])) {
-    return { pi_a: v["a"], pi_b: v["b"], pi_c: v["c"] };
+  const a = normalizeStringArray(v["a"]);
+  const b = normalizeStringArray2(v["b"]);
+  const c = normalizeStringArray(v["c"]);
+  if (a && b && c) {
+    return { pi_a: a, pi_b: b, pi_c: c };
   }
   if (isRecord(v["proof"])) return normalizeGroth16Proof(v["proof"]);
   return undefined;
@@ -357,10 +370,9 @@ const extractZkFromUnknown = (src: unknown): ZkExtract => {
   const proofHints = isRecord(src["proofHints"]) ? (src["proofHints"] as Readonly<Record<string, unknown>>) : undefined;
 
   const zkPublicInputs =
-    isStringArray(src["zkPublicInputs"]) ? (src["zkPublicInputs"] as readonly string[])
-    : isStringArray(src["publicInputs"]) ? (src["publicInputs"] as readonly string[])
-    : isStringArray(src["zkPublicInput"]) ? (src["zkPublicInput"] as readonly string[])
-    : undefined;
+    normalizeStringArray(src["zkPublicInputs"]) ??
+    normalizeStringArray(src["publicInputs"]) ??
+    normalizeStringArray(src["zkPublicInput"]);
 
   const candidates: readonly unknown[] = [
     src["zkProof"],

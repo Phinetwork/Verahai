@@ -2,6 +2,7 @@
 "use client";
 
 import JSZip from "jszip";
+import { EXPORT_PX, pngBlobFromSvg } from "../../utils/qrExport";
 
 export type VictoryBundleInput = Readonly<{
   svgText: string;
@@ -28,12 +29,15 @@ export const sanitizeBundleName = (raw: string): string =>
 export async function buildVictoryBundleZip(input: VictoryBundleInput): Promise<VictoryBundleResult> {
   void input.filenameBase;
   const zip = new JSZip();
+  const svgBlob = new Blob([input.svgText], { type: "image/svg+xml;charset=utf-8" });
+  const pngBlob = await pngBlobFromSvg(svgBlob, EXPORT_PX);
   zip.file("victory-sigil.svg", input.svgText);
+  zip.file("victory-sigil.png", pngBlob);
   zip.file("receipt.json", JSON.stringify(input.receipt, null, 2));
   zip.file("proof.json", JSON.stringify(input.proof, null, 2));
   zip.file("README.txt", input.readme);
 
-  const fileNames = ["victory-sigil.svg", "receipt.json", "proof.json", "README.txt"] as const;
+  const fileNames = ["victory-sigil.svg", "victory-sigil.png", "receipt.json", "proof.json", "README.txt"] as const;
 
   if (input.output === "uint8array") {
     const data = await zip.generateAsync({ type: "uint8array" });
