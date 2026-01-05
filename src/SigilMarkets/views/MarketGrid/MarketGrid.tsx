@@ -94,7 +94,7 @@ export const MarketGrid = (props: MarketGridProps) => {
   return (
     <div className="sm-page sm-honeycomb-page" data-sm="market-grid">
       <TopBar
-        title="Prophecies"
+        title="Vérahai"
         rightSubtitle={subtitle}
         now={props.now}
         scrollMode={props.scrollMode}
