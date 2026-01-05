@@ -14,6 +14,7 @@ import { MarketOrderPanel } from "./MarketOrderPanel";
 import { MarketRules } from "./MarketRules";
 import { MarketActivity } from "./MarketActivity";
 import { Card, CardContent } from "../../ui/atoms/Card";
+import { labelForCategory, normalizeMarketCategory } from "../../constants/marketCategories";
 
 export type MarketRoomProps = Readonly<{
   marketId: MarketId;
@@ -36,8 +37,8 @@ export const MarketRoom = (props: MarketRoomProps) => {
   const subtitle = useMemo(() => {
     const market = m.market;
     if (!market) return "Missing";
-    const cat = market.def.category as unknown as string;
-    return `${cat} • close p${market.def.timing.closePulse}`;
+    const cat = normalizeMarketCategory(market.def.category);
+    return `${labelForCategory(cat)} • close p${market.def.timing.closePulse}`;
   }, [m.market]);
 
   if (m.status === "missing" || !m.market) {

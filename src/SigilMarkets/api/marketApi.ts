@@ -665,7 +665,6 @@ const withQuery = (url: string, query?: Readonly<Record<string, string>>): strin
     PULSE: "pulse",
     KAI: "kai",
     CULTURE: "culture",
-    MARKETS: "markets",
     FINANCE: "finance",
     CRYPTO: "crypto",
     TECH: "tech",
@@ -859,7 +858,7 @@ mk("m_culture_mirror_close", "mirror-close", "Does today mirror itself cleanly?"
     "Some closes mirror, others distort. YES if today’s close reflects symmetry.",
 }),
 mk("m_markets_position_bias", "position-bias", "Is today positioned early in the value cycle?", {
-  category: CAT.MARKETS,
+    category: CAT.FINANCE,
   tags: ["kks", "position"],
   iconEmoji: "📍",
   closeInPulses: P_DAY,
@@ -867,7 +866,7 @@ mk("m_markets_position_bias", "position-bias", "Is today positioned early in the
     "Value emerges from where you are, not what you expect. YES if today sits in the early half of the lattice.",
 }),
 mk("m_markets_arc_pressure", "arc-pressure", "Is pressure building or releasing today?", {
-  category: CAT.MARKETS,
+    category: CAT.FINANCE,
   tags: ["kks", "arc"],
   iconEmoji: "⚡",
   closeInPulses: P_DAY,
@@ -1031,7 +1030,7 @@ mk("m_tech_resonance_phase", "resonance-phase", "Is resonance rising rather than
     ───────────────────────────────────────────────────────────── */
 
     mk("m_markets_grid_half_gate", "grid-half-gate", "Does today’s lattice residue land in the first half of 17,424 (Residue < 8,712)?", {
-      category: CAT.MARKETS,
+      category: CAT.FINANCE,
       tags: ["kks", "17424", "gate", "phi"],
       iconEmoji: "🧭",
       closeInPulses: P_DAY,
@@ -1040,7 +1039,7 @@ mk("m_tech_resonance_phase", "resonance-phase", "Is resonance rising rather than
     }),
 
     mk("m_markets_arc_half_gate", "arc-half-gate", "Does today’s CLOSE pulse land in the first half of an ARC (Residue < 1,452)?", {
-      category: CAT.MARKETS,
+      category: CAT.FINANCE,
       tags: ["kks", "arc", "2904", "gate"],
       iconEmoji: "⚡",
       closeInPulses: P_DAY,
@@ -1294,7 +1293,7 @@ mk("m_tech_resonance_phase", "resonance-phase", "Is resonance rising rather than
       "resonance-lock",
       "Resonance Lock: Is exactly ONE true — (CLOSE%484 < 242) XOR (StepIndex is EVEN)?",
       {
-        category: CAT.MARKETS,
+        category: CAT.FINANCE,
         tags: ["harmonic", "physics", "resonance", "xor", "kks", "484", "44", "50-50"],
         iconEmoji: "🔒",
         closeInPulses: P_DAY,

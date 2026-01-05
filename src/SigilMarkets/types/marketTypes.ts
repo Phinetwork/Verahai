@@ -106,7 +106,6 @@ export const isMarketStatus = (v: unknown): v is MarketStatus =>
 export type MarketCategory =
   | "pulse"
   | "kai"
-  | "markets"
   | "calendar"
   | "weather"
   | "sports"

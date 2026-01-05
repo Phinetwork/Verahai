@@ -6,7 +6,6 @@ import type { MarketCategory } from "../types/marketTypes";
 export const MARKET_CATEGORIES: readonly MarketCategory[] = [
   "pulse",
   "kai",
-  "markets",
   "calendar",
   "weather",
   "sports",
@@ -24,7 +23,6 @@ export const MARKET_CATEGORIES: readonly MarketCategory[] = [
 const CATEGORY_LABELS: Record<MarketCategory, string> = {
   pulse: "Pulse",
   kai: "Kai",
-  markets: "Markets",
   calendar: "Calendar",
   weather: "Weather",
   sports: "Sports",
@@ -39,4 +37,10 @@ const CATEGORY_LABELS: Record<MarketCategory, string> = {
   other: "Other",
 };
 
-export const labelForCategory = (category: MarketCategory): string => CATEGORY_LABELS[category] ?? category;
+export const normalizeMarketCategory = (category: MarketCategory): MarketCategory =>
+  category === "markets" ? "finance" : category;
+
+export const labelForCategory = (category: MarketCategory): string => {
+  const normalized = normalizeMarketCategory(category);
+  return CATEGORY_LABELS[normalized] ?? normalized;
+};

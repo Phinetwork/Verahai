@@ -6,6 +6,7 @@ import type { KaiPulse, Market, MarketCategory, MarketId, PhiMicro, PriceMicro }
 import { useMarkets } from "../state/marketStore";
 import { useSigilMarketsUi } from "../state/uiStore";
 import type { MarketGridFilters, MarketGridPrefs, MarketSort } from "../types/uiTypes";
+import { normalizeMarketCategory } from "../constants/marketCategories";
 
 export type MarketGridItem = Readonly<{
   market: Market;
@@ -60,7 +61,8 @@ const matchesQuery = (m: Market, q: string): boolean => {
 
 const categoryAllowed = (cat: MarketCategory, allowed: readonly MarketCategory[]): boolean => {
   if (allowed.length === 0) return true;
-  return allowed.includes(cat);
+  const normalized = normalizeMarketCategory(cat);
+  return allowed.some((entry) => normalizeMarketCategory(entry) === normalized);
 };
 
 const tagsAllowed = (tags: readonly string[], required?: readonly string[]): boolean => {

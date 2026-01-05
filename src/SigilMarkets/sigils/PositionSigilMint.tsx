@@ -1501,7 +1501,7 @@ const amountW = wholeW + fracW;
       style="paint-order: stroke; stroke: rgba(0,0,0,0.55); stroke-width: 1.6; letter-spacing: 4.8;"
       filter="url(#etchStrong)"
     >
-      <tspan font-size="14" opacity="0.85">PURE HARMONIC ENTRAINMENT • ULTRA LUXE</tspan>
+      <tspan font-size="14" opacity="0.85">Victory was never luck — it was the breath remembering what you already sealed.</tspan>
     </text>`
         : ""
     }

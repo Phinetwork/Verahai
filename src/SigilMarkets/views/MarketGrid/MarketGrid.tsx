@@ -6,7 +6,7 @@ import type { KaiMoment, MarketCategory } from "../../types/marketTypes";
 import { useMarketGrid } from "../../hooks/useMarketGrid";
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useScrollRestoration } from "../../hooks/useScrollRestoration";
-import { MARKET_CATEGORIES, labelForCategory } from "../../constants/marketCategories";
+import { MARKET_CATEGORIES, labelForCategory, normalizeMarketCategory } from "../../constants/marketCategories";
 
 import { TopBar } from "../../ui/chrome/TopBar";
 import { MarketCell } from "./MarketCell";
@@ -48,7 +48,7 @@ export const MarketGrid = (props: MarketGridProps) => {
     for (const cat of MARKET_CATEGORIES) map.set(cat, []);
 
     for (const it of items) {
-      const cat = it.market.def.category as MarketCategory;
+      const cat = normalizeMarketCategory(it.market.def.category as MarketCategory);
       const list = map.get(cat);
       if (list) list.push(it);
     }
