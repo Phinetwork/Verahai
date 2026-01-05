@@ -931,10 +931,11 @@ useEffect(() => {
       payload.chakraDay ?? ""
     }`;
   }, [payload, localHash]);
+  const allowOgCapture = urlQs.get("og") === "1";
 
   /* Build OG image */
   useEffect(() => {
-    if (isProphecySigil) {
+    if (isProphecySigil || !allowOgCapture) {
       ogCapturedRef.current = null;
       setOgImgUrl(null);
       setMeta("property", "og:image", "");
@@ -963,7 +964,7 @@ useEffect(() => {
       seoDesc: seoStrings.desc,
     });
     return stop;
-  }, [payload, localHash, seoStrings.title, seoStrings.desc, isProphecySigil, ogKey]);
+  }, [payload, localHash, seoStrings.title, seoStrings.desc, isProphecySigil, ogKey, allowOgCapture]);
 
   /* allow page scroll */
   useLayoutEffect(() => {
