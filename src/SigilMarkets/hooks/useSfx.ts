@@ -37,6 +37,12 @@ export type SfxKind =
 
 type AudioLike = AudioContext | null;
 
+const canUseAudioContext = (): boolean => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const AC = (g["AudioContext"] ?? g["webkitAudioContext"]) as unknown;
+  return typeof AC === "function";
+};
+
 const getAudioContext = (): AudioLike => {
   try {
     const g = globalThis as unknown as Record<string, unknown>;
@@ -190,14 +196,7 @@ export const useSfx = (): UseSfx => {
   const unlockedRef = useRef<boolean>(false);
 
   const supported = useMemo(() => {
-    const ctx = getAudioContext();
-    if (!ctx) return false;
-    try {
-      void ctx.close();
-    } catch {
-      // ignore
-    }
-    return true;
+    return canUseAudioContext();
   }, []);
 
   const ensureCtx = useCallback((): AudioContext | null => {
@@ -257,12 +256,22 @@ export const useSfx = (): UseSfx => {
   const unlock = useCallback(() => {
     const ctx = ensureCtx();
     if (!ctx) return;
-    ensureGraph();
     if (unlockedRef.current) return;
 
     try {
-      if (ctx.state === "suspended") void ctx.resume();
-      unlockedRef.current = true;
+      if (ctx.state === "suspended") {
+        void ctx.resume().then(() => {
+          if (ctx.state === "running") {
+            unlockedRef.current = true;
+            ensureGraph();
+          }
+        });
+        return;
+      }
+      if (ctx.state === "running") {
+        unlockedRef.current = true;
+        ensureGraph();
+      }
     } catch {
       // ignore
     }
@@ -275,14 +284,17 @@ export const useSfx = (): UseSfx => {
       const ctx = ensureCtx();
       if (!ctx) return;
 
+      if (!unlockedRef.current && ctx.state !== "running") return;
+
       const graph = ensureGraph();
       if (!graph) return;
 
-      // Best effort resume if suspended (still requires gesture in many browsers)
-      try {
-        if (ctx.state === "suspended") void ctx.resume();
-      } catch {
-        // ignore
+      if (ctx.state === "suspended" && unlockedRef.current) {
+        try {
+          void ctx.resume();
+        } catch {
+          // ignore
+        }
       }
 
       const now = ctx.currentTime;
