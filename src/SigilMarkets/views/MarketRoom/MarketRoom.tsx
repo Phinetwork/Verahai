@@ -44,7 +44,7 @@ export const MarketRoom = (props: MarketRoomProps) => {
     return (
       <div className="sm-page" data-sm="market-room">
         <TopBar
-          title="Market"
+          title="Prophecy"
           subtitle={subtitle}
           now={props.now}
           scrollMode={props.scrollMode}
@@ -54,7 +54,7 @@ export const MarketRoom = (props: MarketRoomProps) => {
         />
         <Card variant="glass">
           <CardContent>
-            <div className="sm-title">Market not found.</div>
+            <div className="sm-title">Prophecy not found.</div>
             <div className="sm-subtitle" style={{ marginTop: 8 }}>
               It may be offline or removed.
             </div>
@@ -69,7 +69,7 @@ export const MarketRoom = (props: MarketRoomProps) => {
   return (
     <div className="sm-page" data-sm="market-room">
       <TopBar
-        title="Market"
+        title="Prophecy"
         subtitle={subtitle}
         now={props.now}
         scrollMode={props.scrollMode}

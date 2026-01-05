@@ -41,7 +41,7 @@ export const PositionCard = (props: PositionCardProps) => {
   const p = props.position;
 
   const market = useMarketById(p.marketId);
-  const question = market?.def.question ?? "Market";
+  const question = market?.def.question ?? "Prophecy";
 
   const stakeLabel = useMemo(
     () => formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }),

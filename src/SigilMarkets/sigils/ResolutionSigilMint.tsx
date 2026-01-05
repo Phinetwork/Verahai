@@ -127,7 +127,7 @@ const buildResolutionSvg = (payload: ResolutionSigilPayloadV1, seedStr: string):
   const metaJson = JSON.stringify(payload);
 
   const title = `SigilMarkets Resolution — ${payload.outcome} — p${payload.finalPulse}`;
-  const desc = `Market ${marketIdStr}; Outcome ${payload.outcome}; FinalPulse ${payload.finalPulse}; Oracle ${providerStr}`;
+  const desc = `Prophecy ${marketIdStr}; Outcome ${payload.outcome}; FinalPulse ${payload.finalPulse}; Oracle ${providerStr}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"

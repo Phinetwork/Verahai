@@ -151,7 +151,7 @@ export const ProphecyFeed = (props: ProphecyFeedProps) => {
               key={p.id as unknown as string}
               prophecy={p}
               now={props.now}
-              marketQuestion={questionById.get(p.marketId as unknown as string) ?? "Market"}
+              marketQuestion={questionById.get(p.marketId as unknown as string) ?? "Prophecy"}
               onSealMore={() => {
                 setSheetMarketId(p.marketId);
                 setSheetOpen(true);

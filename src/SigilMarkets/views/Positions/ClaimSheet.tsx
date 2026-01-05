@@ -247,7 +247,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
       open={props.open}
       onClose={props.onClose}
       title={title}
-      subtitle={canRefund ? "Market voided/canceled. Your stake returns." : "You won. Your shares redeem into your Vault."}
+      subtitle={canRefund ? "Prophecy voided/canceled. Your stake returns." : "You won. Your shares redeem into your Vault."}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <Button variant="ghost" onClick={props.onClose} disabled={loading}>

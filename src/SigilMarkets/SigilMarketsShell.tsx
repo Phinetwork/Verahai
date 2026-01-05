@@ -285,7 +285,7 @@ const ShellInner = (props: Readonly<{ windowScroll: boolean }>) => {
         evidenceHashes: r.evidence?.hashes,
       });
 
-      ui.toast("info", "Market resolved", `${m.def.question}`, { atPulse: r.resolvedPulse });
+      ui.toast("info", "Prophecy resolved", `${m.def.question}`, { atPulse: r.resolvedPulse });
       if (sfxEnabled) sfx.play("resolve");
     }
   }, [feed, marketState.byId, marketState.ids, positions, sfx, sfxEnabled, ui]);

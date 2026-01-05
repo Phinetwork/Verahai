@@ -60,7 +60,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
     if (!p) {
       return {
         missing: true as const,
-        question: "Market",
+        question: "Prophecy",
         subtitle: "Missing",
         stake: "",
         shares: "",
@@ -69,7 +69,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
       };
     }
 
-    const q = market?.def.question ?? "Market";
+    const q = market?.def.question ?? "Prophecy";
     const stake = formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true });
     const shares = formatSharesMicro(p.entry.sharesMicro, { maxDecimals: 2 });
     const lockIdRaw = p.lock.lockId as unknown as string;
