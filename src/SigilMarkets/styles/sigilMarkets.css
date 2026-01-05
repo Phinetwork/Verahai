@@ -3916,3 +3916,168 @@ body{
   -webkit-backdrop-filter: blur(18px);
   overflow: hidden;
 }
+/* Premium file picker (frosted, consistent, mobile-friendly) */
+.sm-proph-sigil-file-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--sm-fg, rgba(255, 255, 255, 0.88));
+
+  padding: 10px 12px;
+
+  border-radius: 12px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.14));
+  background: var(--sm-glass, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(12px);
+
+  outline: none;
+}
+
+.sm-proph-sigil-file-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sm-proph-sigil-file-input:focus-visible {
+  border-color: var(--sm-focus, rgba(255, 255, 255, 0.28));
+  box-shadow: 0 0 0 3px var(--sm-focus-ring, rgba(255, 255, 255, 0.12));
+}
+
+/* Standards-compliant */
+.sm-proph-sigil-file-input::file-selector-button {
+  margin-right: 10px;
+
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.sm-proph-sigil-file-input::file-selector-button:hover {
+  background: var(--sm-btn-hover, rgba(255, 255, 255, 0.16));
+  border-color: var(--sm-border-hover, rgba(255, 255, 255, 0.26));
+}
+
+.sm-proph-sigil-file-input::file-selector-button:active {
+  transform: translateY(1px);
+}
+
+/* Safari */
+.sm-proph-sigil-file-input::-webkit-file-upload-button {
+  margin-right: 10px;
+
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-proph-sigil-file-input::file-selector-button,
+  .sm-proph-sigil-file-input::-webkit-file-upload-button {
+    transition: none;
+  }
+}
+
+/* Make the "Remove" button feel XS without needing size="xs" */
+.sm-proph-sigil-remove-btn {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  border-radius: 10px !important;
+}
+.sm-proph-sigil-file-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--sm-fg, rgba(255, 255, 255, 0.88));
+
+  padding: 10px 12px;
+
+  border-radius: 12px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.14));
+  background: var(--sm-glass, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(12px);
+
+  outline: none;
+}
+
+.sm-proph-sigil-file-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sm-proph-sigil-file-input:focus-visible {
+  border-color: var(--sm-focus, rgba(255, 255, 255, 0.28));
+  box-shadow: 0 0 0 3px var(--sm-focus-ring, rgba(255, 255, 255, 0.12));
+}
+
+/* Modern browsers */
+.sm-proph-sigil-file-input::file-selector-button {
+  margin-right: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.sm-proph-sigil-file-input::file-selector-button:hover {
+  background: var(--sm-btn-hover, rgba(255, 255, 255, 0.16));
+  border-color: var(--sm-border-hover, rgba(255, 255, 255, 0.26));
+}
+
+.sm-proph-sigil-file-input::file-selector-button:active {
+  transform: translateY(1px);
+}
+
+/* Safari */
+.sm-proph-sigil-file-input::-webkit-file-upload-button {
+  margin-right: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-proph-sigil-file-input::file-selector-button,
+  .sm-proph-sigil-file-input::-webkit-file-upload-button {
+    transition: none;
+  }
+}
