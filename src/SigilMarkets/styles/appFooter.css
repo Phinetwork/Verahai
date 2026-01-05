@@ -1,0 +1,51 @@
+/* SigilMarkets/styles/appFooter.css */
+
+.sm-app-footer{
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  color: var(--sm-dimmer);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.sm-app-footer__inner{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.sm-app-footer__text{
+  color: var(--sm-dim);
+}
+
+.sm-app-footer__link{
+  color: var(--sm-dimmer);
+  text-decoration: none;
+  transition: color 160ms ease, opacity 160ms ease;
+}
+
+.sm-app-footer__link:hover{
+  color: var(--sm-text);
+}
+
+.sm-app-footer__link:focus-visible{
+  outline: none;
+  color: var(--sm-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (min-width: 720px){
+  .sm-app-footer{
+    justify-content: flex-end;
+    text-align: right;
+  }
+}
