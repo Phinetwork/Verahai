@@ -18,6 +18,7 @@ import { SigilHowTo } from "./SigilHowTo";
 import { SigilShareSheet } from "./sigils/SigilShareSheet";
 import { useSigilMarketsPositionStore } from "./state/positionStore";
 import { useVaultById } from "./state/vaultStore";
+import { AppFooter } from "./ui/chrome/AppFooter";
 
 import { InhaleGlyphGate } from "./sigils/InhaleGlyphGate";
 import { SealPredictionSheet } from "./views/Prophecy/SealPredictionSheet";
@@ -141,6 +142,7 @@ export const SigilMarketsRoutes = (props: SigilMarketsRoutesProps) => {
       {content}
       <SigilHowTo />
       <SigilMarketsDock now={props.now} />
+      <AppFooter />
       <SheetsLayer now={props.now} />
     </div>
   );
