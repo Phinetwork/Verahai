@@ -223,8 +223,21 @@ export function decodePayloadFromQuery(search: string): SigilPayload | null {
       (payload as SigilPayload & { sigilId?: string }).sigilId = extras.sigilId;
     }
     if (extras.prophecyPayload && typeof extras.prophecyPayload === "object") {
+      const rawProphecy = extras.prophecyPayload as Record<string, unknown>;
+      const trimmedProphecy: Record<string, unknown> = {};
+      if (typeof rawProphecy.kind === "string") trimmedProphecy.kind = rawProphecy.kind;
+      if (typeof rawProphecy.text === "string") trimmedProphecy.text = rawProphecy.text;
+      if (typeof rawProphecy.escrowPhiMicro === "string") {
+        trimmedProphecy.escrowPhiMicro = rawProphecy.escrowPhiMicro;
+      }
+      if (typeof rawProphecy.expirationPulse === "number") {
+        trimmedProphecy.expirationPulse = rawProphecy.expirationPulse;
+      }
+      if (typeof rawProphecy.prophecyId === "string") {
+        trimmedProphecy.prophecyId = rawProphecy.prophecyId;
+      }
       (payload as SigilPayload & { prophecyPayload?: unknown }).prophecyPayload =
-        extras.prophecyPayload;
+        trimmedProphecy;
     }
     if (typeof extras.svgUrl === "string") {
       (payload as SigilPayload & { svgUrl?: string }).svgUrl = extras.svgUrl;
