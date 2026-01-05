@@ -145,6 +145,7 @@ import {
 import { epochMsFromPulse } from "../../utils/kai_pulse";
 import { formatPhiMicro } from "../../SigilMarkets/utils/format";
 import { parsePhiMicro } from "../../SigilMarkets/utils/guards";
+import { computeProphecyCanonicalHash } from "../../SigilMarkets/utils/prophecySigil";
 import type { ProphecySigilPayloadV1 } from "../../SigilMarkets/types/prophecySigilTypes";
 // registry.ts
 import {
@@ -1736,10 +1737,53 @@ if (linkStatus === "archived" && !ALLOW_ARCHIVED_VERIFIED) return;           // 
   (async () => {
     try {
       if (isProphecySigil) {
-        if (typeof payload.kaiSignature !== "string" || typeof payload.userPhiKey !== "string") return;
-        const derivedPhi = await derivePhiKeyFromSigCanon(payload.kaiSignature);
-        const phiOk = payload.userPhiKey.toLowerCase() === derivedPhi.toLowerCase();
-        if (!cancelled && phiOk && verified !== "verified") {
+        const prophecy = prophecyPayload as Partial<ProphecySigilPayloadV1> | null;
+        if (!prophecy) return;
+        if (typeof prophecy.kaiSignature !== "string" || typeof prophecy.userPhiKey !== "string") return;
+        const derivedPhi = await derivePhiKeyFromSigCanon(prophecy.kaiSignature);
+        const phiOk = prophecy.userPhiKey.toLowerCase() === derivedPhi.toLowerCase();
+
+        if (typeof prophecy.canonicalHash !== "string") return;
+        if (
+          typeof prophecy.v !== "string" ||
+          typeof prophecy.kind !== "string" ||
+          typeof prophecy.prophecyId !== "string" ||
+          typeof prophecy.text !== "string" ||
+          typeof prophecy.textEnc !== "string" ||
+          typeof prophecy.pulse !== "number" ||
+          typeof prophecy.beat !== "number" ||
+          typeof prophecy.stepIndex !== "number" ||
+          typeof prophecy.stepPct !== "number" ||
+          typeof prophecy.chakraDay !== "string" ||
+          typeof prophecy.createdAtPulse !== "number"
+        ) {
+          return;
+        }
+
+        const basePayload: Omit<ProphecySigilPayloadV1, "canonicalHash" | "zk"> = {
+          v: prophecy.v as ProphecySigilPayloadV1["v"],
+          kind: prophecy.kind as ProphecySigilPayloadV1["kind"],
+          prophecyId: prophecy.prophecyId as ProphecySigilPayloadV1["prophecyId"],
+          text: prophecy.text,
+          textEnc: prophecy.textEnc as ProphecySigilPayloadV1["textEnc"],
+          category: typeof prophecy.category === "string" ? prophecy.category : undefined,
+          expirationPulse: typeof prophecy.expirationPulse === "number" ? prophecy.expirationPulse : undefined,
+          escrowPhiMicro: typeof prophecy.escrowPhiMicro === "string" ? prophecy.escrowPhiMicro : undefined,
+          evidence: prophecy.evidence,
+          userPhiKey: prophecy.userPhiKey as ProphecySigilPayloadV1["userPhiKey"],
+          kaiSignature: prophecy.kaiSignature as ProphecySigilPayloadV1["kaiSignature"],
+          pulse: prophecy.pulse,
+          beat: prophecy.beat,
+          stepIndex: prophecy.stepIndex,
+          stepPct: prophecy.stepPct,
+          chakraDay: prophecy.chakraDay,
+          createdAtPulse: prophecy.createdAtPulse,
+        };
+
+        const computed = await computeProphecyCanonicalHash(basePayload);
+        const canonOk = computed.toLowerCase() === prophecy.canonicalHash.toLowerCase();
+
+        if (!cancelled && phiOk && canonOk && verified !== "verified") {
           setVerified("verified");
         }
         return;
@@ -1784,7 +1828,7 @@ if (!cancelled && sigmaOk && phiOk && verified !== "verified") {
   })();
 
   return () => { cancelled = true; };
-}, [payload, glyphAuth, verified, linkStatus, isProphecySigil]);
+}, [payload, glyphAuth, verified, linkStatus, isProphecySigil, prophecyPayload]);
 
 
 useEffect(() => {

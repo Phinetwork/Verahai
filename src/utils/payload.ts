@@ -225,16 +225,33 @@ export function decodePayloadFromQuery(search: string): SigilPayload | null {
     if (extras.prophecyPayload && typeof extras.prophecyPayload === "object") {
       const rawProphecy = extras.prophecyPayload as Record<string, unknown>;
       const trimmedProphecy: Record<string, unknown> = {};
+      const isFiniteNumber = (value: unknown): value is number =>
+        typeof value === "number" && Number.isFinite(value);
+      if (typeof rawProphecy.v === "string") trimmedProphecy.v = rawProphecy.v;
       if (typeof rawProphecy.kind === "string") trimmedProphecy.kind = rawProphecy.kind;
       if (typeof rawProphecy.text === "string") trimmedProphecy.text = rawProphecy.text;
+      if (typeof rawProphecy.textEnc === "string") trimmedProphecy.textEnc = rawProphecy.textEnc;
+      if (typeof rawProphecy.category === "string") trimmedProphecy.category = rawProphecy.category;
       if (typeof rawProphecy.escrowPhiMicro === "string") {
         trimmedProphecy.escrowPhiMicro = rawProphecy.escrowPhiMicro;
       }
-      if (typeof rawProphecy.expirationPulse === "number") {
+      if (isFiniteNumber(rawProphecy.expirationPulse)) {
         trimmedProphecy.expirationPulse = rawProphecy.expirationPulse;
       }
       if (typeof rawProphecy.prophecyId === "string") {
         trimmedProphecy.prophecyId = rawProphecy.prophecyId;
+      }
+      if (typeof rawProphecy.userPhiKey === "string") trimmedProphecy.userPhiKey = rawProphecy.userPhiKey;
+      if (typeof rawProphecy.kaiSignature === "string") trimmedProphecy.kaiSignature = rawProphecy.kaiSignature;
+      if (typeof rawProphecy.canonicalHash === "string") trimmedProphecy.canonicalHash = rawProphecy.canonicalHash;
+      if (isFiniteNumber(rawProphecy.pulse)) trimmedProphecy.pulse = rawProphecy.pulse;
+      if (isFiniteNumber(rawProphecy.beat)) trimmedProphecy.beat = rawProphecy.beat;
+      if (isFiniteNumber(rawProphecy.stepIndex)) trimmedProphecy.stepIndex = rawProphecy.stepIndex;
+      if (isFiniteNumber(rawProphecy.stepPct)) trimmedProphecy.stepPct = rawProphecy.stepPct;
+      if (typeof rawProphecy.chakraDay === "string") trimmedProphecy.chakraDay = rawProphecy.chakraDay;
+      if (isFiniteNumber(rawProphecy.createdAtPulse)) trimmedProphecy.createdAtPulse = rawProphecy.createdAtPulse;
+      if (rawProphecy.evidence && typeof rawProphecy.evidence === "object") {
+        trimmedProphecy.evidence = rawProphecy.evidence;
       }
       (payload as SigilPayload & { prophecyPayload?: unknown }).prophecyPayload =
         trimmedProphecy;
