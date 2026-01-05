@@ -49,9 +49,22 @@ function sigilProofApi() {
 
 export default defineConfig(({ command }) => {
   const sigilProxy = {
-    '/sigils': SIGIL_API_TARGET,
-    '/api/sigils': SIGIL_API_TARGET,
-    ...(USE_EXTERNAL_PROOF_API ? { '/api/proof/sigil': PROOF_API_TARGET } : {}),
+    '^/sigils': {
+      target: SIGIL_API_TARGET,
+      changeOrigin: true
+    },
+    '^/api/sigils': {
+      target: SIGIL_API_TARGET,
+      changeOrigin: true
+    },
+    ...(USE_EXTERNAL_PROOF_API
+      ? {
+          '^/api/proof/sigil': {
+            target: PROOF_API_TARGET,
+            changeOrigin: true
+          }
+        }
+      : {})
   };
 
   const devServer = command === 'serve' ? { proxy: sigilProxy } : undefined;
