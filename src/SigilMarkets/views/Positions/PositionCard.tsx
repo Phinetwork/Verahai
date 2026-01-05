@@ -28,10 +28,10 @@ const toneForStatus = (st: string): ChipTone => {
 };
 
 const statusLabel = (st: string): string => {
-  if (st === "claimable") return "claimable";
+  if (st === "claimable") return "won";
   if (st === "refundable") return "refundable";
   if (st === "lost") return "lost";
-  if (st === "claimed") return "claimed";
+  if (st === "claimed") return "victory sealed";
   if (st === "refunded") return "refunded";
   return "open";
 };
@@ -41,7 +41,7 @@ export const PositionCard = (props: PositionCardProps) => {
   const p = props.position;
 
   const market = useMarketById(p.marketId);
-  const question = market?.def.question ?? "Market";
+  const question = market?.def.question ?? "Prophecy";
 
   const stakeLabel = useMemo(
     () => formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }),

@@ -27,6 +27,15 @@ export type PositionDetailProps = Readonly<{
   scrollRef: React.RefObject<HTMLDivElement | null> | null;
 }>;
 
+const statusLabel = (st: string): string => {
+  if (st === "claimable") return "won";
+  if (st === "claimed") return "victory sealed";
+  if (st === "refundable") return "refundable";
+  if (st === "refunded") return "refunded";
+  if (st === "lost") return "lost";
+  return "open";
+};
+
 export const PositionDetail = (props: PositionDetailProps) => {
   const { state: uiState, actions } = useSigilMarketsUi();
 
@@ -51,7 +60,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
     if (!p) {
       return {
         missing: true as const,
-        question: "Market",
+        question: "Prophecy",
         subtitle: "Missing",
         stake: "",
         shares: "",
@@ -60,7 +69,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
       };
     }
 
-    const q = market?.def.question ?? "Market";
+    const q = market?.def.question ?? "Prophecy";
     const stake = formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true });
     const shares = formatSharesMicro(p.entry.sharesMicro, { maxDecimals: 2 });
     const lockIdRaw = p.lock.lockId as unknown as string;
@@ -68,7 +77,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
     return {
       missing: false as const,
       question: q,
-      subtitle: `${p.status} • p${p.entry.openedAt.pulse}`,
+      subtitle: `${statusLabel(p.status)} • p${p.entry.openedAt.pulse}`,
       stake,
       shares,
       lockIdShort: shortHash(lockIdRaw, 10, 6),
@@ -105,7 +114,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
   const position = p;
   const hasClaimProof =
     !!position.resolution && (position.status === "claimable" || position.status === "lost");
-  const exportLabel = hasClaimProof ? "Download claim proof" : "Export";
+  const exportLabel = hasClaimProof ? "Download victory proof" : "Export";
   const canAccessVault = !!activeVault && activeVault.vaultId === position.lock.vaultId;
 
   const openClaimSheet = (): void => {
@@ -134,7 +143,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
 
           <div className="sm-pos-detail-row">
             <span className={`sm-pos-side ${position.entry.side === "YES" ? "is-yes" : "is-no"}`}>{position.entry.side}</span>
-            <span className="sm-pill">{position.status}</span>
+            <span className="sm-pill">{statusLabel(position.status)}</span>
           </div>
 
           <Divider />
@@ -163,7 +172,7 @@ export const PositionDetail = (props: PositionDetailProps) => {
                 onClick={openClaimSheet}
                 leftIcon={<Icon name="check" size={14} tone="gold" />}
               >
-                {position.status === "claimable" ? "Claim" : "Refund"}
+                {position.status === "claimable" ? "Claim victory" : "Refund"}
               </Button>
             ) : null}
 

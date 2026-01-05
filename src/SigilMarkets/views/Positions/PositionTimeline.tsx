@@ -59,7 +59,7 @@ export const PositionTimeline = (props: PositionTimelineProps) => {
       out.push({
         key: "lost",
         title: "Lost",
-        detail: "Lock consumed • no claim available",
+        detail: "Lock consumed • no victory available",
         pulse: p.updatedPulse,
         tone: toneFor("lost"),
       });
@@ -68,7 +68,7 @@ export const PositionTimeline = (props: PositionTimelineProps) => {
     if (p.settlement && p.status === "claimed") {
       out.push({
         key: "claimed",
-        title: "Claimed",
+        title: "Victory sealed",
         detail: `+${formatPhiMicro(p.settlement.creditedMicro, { withUnit: true, maxDecimals: 6, trimZeros: true })}`,
         pulse: p.settlement.settledPulse,
         tone: toneFor("claimed"),

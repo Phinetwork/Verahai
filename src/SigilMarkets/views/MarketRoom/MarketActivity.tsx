@@ -14,8 +14,8 @@ export type MarketActivityProps = Readonly<{
 }>;
 
 const labelFor = (e: MarketActivityEvent): string => {
-  if (e.type === "market-created") return "Market created";
-  if (e.type === "market-closed") return "Market closed";
+  if (e.type === "market-created") return "Prophecy created";
+  if (e.type === "market-closed") return "Prophecy closed";
   if (e.type === "resolution-proposed") return `Resolution proposed • ${e.outcome}`;
   if (e.type === "market-resolved") return `Resolved • ${e.outcome}`;
   return "Trade";

@@ -24,10 +24,10 @@ export type ExportPositionSheetProps = Readonly<{
 }>;
 
 const statusLabel = (st: string): string => {
-  if (st === "claimable") return "claimable";
+  if (st === "claimable") return "won";
   if (st === "refundable") return "refundable";
   if (st === "lost") return "lost";
-  if (st === "claimed") return "claimed";
+  if (st === "claimed") return "victory sealed";
   if (st === "refunded") return "refunded";
   return "open";
 };
@@ -51,7 +51,7 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
 
   const hasResolution = !!p.resolution;
   const shouldLabelClaimProof = hasResolution && (p.status === "claimable" || p.status === "lost");
-  const exportLabel = shouldLabelClaimProof ? "Download claim proof" : undefined;
+  const exportLabel = shouldLabelClaimProof ? "Download victory proof" : undefined;
 
   const filenameBase = useMemo(() => {
     const pid = p.id as unknown as string;

@@ -23,17 +23,17 @@ export const sanitizeBundleName = (raw: string): string =>
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 120) || "claim";
+    .slice(0, 120) || "victory";
 
 export async function buildVictoryBundleZip(input: VictoryBundleInput): Promise<VictoryBundleResult> {
   void input.filenameBase;
   const zip = new JSZip();
-  zip.file("claim-sigil.svg", input.svgText);
+  zip.file("victory-sigil.svg", input.svgText);
   zip.file("receipt.json", JSON.stringify(input.receipt, null, 2));
   zip.file("proof.json", JSON.stringify(input.proof, null, 2));
   zip.file("README.txt", input.readme);
 
-  const fileNames = ["claim-sigil.svg", "receipt.json", "proof.json", "README.txt"] as const;
+  const fileNames = ["victory-sigil.svg", "receipt.json", "proof.json", "README.txt"] as const;
 
   if (input.output === "uint8array") {
     const data = await zip.generateAsync({ type: "uint8array" });

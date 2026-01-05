@@ -108,7 +108,7 @@ export const SealPredictionSheet = (props: SealPredictionSheetProps) => {
     >
       <div className="sm-seal">
         <div className="sm-seal-field">
-          <div className="sm-seal-label">Market</div>
+          <div className="sm-seal-label">Prophecy</div>
 
           <select
             className="sm-select"

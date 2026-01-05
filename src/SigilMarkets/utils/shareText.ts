@@ -38,7 +38,7 @@ export const shareTextForMarket = (m: Market, ctx?: ShareContext): string => {
 export const shareTextForPosition = (p: PositionRecord, marketQuestion?: string, ctx?: ShareContext): string => {
   const app = ctx?.appName ?? "Sigil Markets";
   const url = ctx?.baseUrl ? `${ctx.baseUrl}/#position=${encodeURIComponent(p.id as unknown as string)}` : "";
-  const q = marketQuestion ?? "Market";
+  const q = marketQuestion ?? "Prophecy";
   return [
     `Position • ${p.entry.side}`,
     q,
@@ -57,7 +57,7 @@ export const shareTextForPosition = (p: PositionRecord, marketQuestion?: string,
 
 export const shareTextForProphecy = (p: ProphecyRecord, marketQuestion?: string, ctx?: ShareContext): string => {
   const app = ctx?.appName ?? "Sigil Markets";
-  const q = marketQuestion ?? "Market";
+  const q = marketQuestion ?? "Prophecy";
   const author = shortKey(p.author.userPhiKey as unknown as string);
   return [
     `Prophecy sealed • ${p.side}`,

@@ -55,9 +55,9 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
   const statusMessage = useMemo(() => {
     if (marketStatus === "closed") return "Trading closed • awaiting resolution.";
     if (marketStatus === "resolving") return "Resolution in progress.";
-    if (marketStatus === "resolved") return "Resolved • claims available.";
-    if (marketStatus === "voided") return "Market voided.";
-    if (marketStatus === "canceled") return "Market canceled.";
+    if (marketStatus === "resolved") return "Resolved • victories available.";
+    if (marketStatus === "voided") return "Prophecy voided.";
+    if (marketStatus === "canceled") return "Prophecy canceled.";
     return null;
   }, [marketStatus]);
 
@@ -143,7 +143,7 @@ export const MarketOrderPanel = (props: MarketOrderPanelProps) => {
     if (!quote) return;
     if (marketStatus !== "open") {
       setConfirmOpen(false);
-      ui.toast("error", "Market closed", "Trading is no longer open for this market.", { atPulse: props.now.pulse });
+      ui.toast("error", "Prophecy closed", "Trading is no longer open for this prophecy.", { atPulse: props.now.pulse });
       sfx.play("error");
       return;
     }

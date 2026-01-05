@@ -37,16 +37,16 @@ export const PositionsHome = (props: PositionsHomeProps) => {
 
   const subtitle = useMemo(() => {
     if (counts.total === 0) return "No positions yet";
-    return `${counts.total} • ${counts.open} open • ${counts.claimable} claimable`;
+    return `${counts.total} • ${counts.open} open • ${counts.claimable} won`;
   }, [counts]);
 
   const sections = useMemo(() => {
     const base = [
-      { key: "claimable", title: "Claimable", items: buckets.claimable, tone: "gold" as const },
+      { key: "claimable", title: "Won", items: buckets.claimable, tone: "gold" as const },
       { key: "open", title: "Open", items: buckets.open, tone: "cyan" as const },
       { key: "lost", title: "Lost", items: buckets.lost, tone: "danger" as const },
       { key: "refundable", title: "Refundable", items: buckets.refundable, tone: "violet" as const },
-      { key: "claimed", title: "Claimed", items: buckets.claimed, tone: "default" as const },
+      { key: "claimed", title: "Victory sealed", items: buckets.claimed, tone: "default" as const },
       { key: "refunded", title: "Refunded", items: buckets.refunded, tone: "default" as const },
     ].filter((s) => s.items.length > 0);
 

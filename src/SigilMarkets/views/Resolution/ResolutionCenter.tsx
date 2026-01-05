@@ -69,7 +69,7 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
         />
         <Card variant="glass">
           <CardContent>
-            <div className="sm-title">Market not found.</div>
+            <div className="sm-title">Prophecy not found.</div>
           </CardContent>
         </Card>
       </div>
@@ -102,7 +102,7 @@ export const ResolutionCenter = (props: ResolutionCenterProps) => {
             <CardContent>
               <div className="sm-title">Awaiting resolution.</div>
               <div className="sm-subtitle" style={{ marginTop: 8 }}>
-                This market will be resolved by its oracle policy. When posted, you’ll be able to claim/refund positions.
+                This prophecy will be resolved by its oracle policy. When posted, you’ll be able to seal victory/refund positions.
               </div>
             </CardContent>
           </Card>

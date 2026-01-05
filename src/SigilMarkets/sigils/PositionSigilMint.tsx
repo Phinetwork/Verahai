@@ -864,10 +864,10 @@ export const buildClaimPayload = async (
 ): Promise<ClaimSigilPayloadV1> => {
   const identity = vault.owner.identitySigil;
   if (!identity) {
-    throw new Error("Missing identity sigil. Inhale your root sigil to mint claims.");
+    throw new Error("Missing identity sigil. Inhale your root sigil to mint victories.");
   }
   if (!pos.resolution) {
-    throw new Error("Missing resolution snapshot for claim sigil.");
+    throw new Error("Missing resolution snapshot for victory sigil.");
   }
 
   const lineageRoot = resolveLineageRoot(identity);
@@ -915,8 +915,8 @@ export const buildClaimPayload = async (
     openedAt: coerceKaiMoment(pos.entry.openedAt as unknown),
     claimedAt: claimMoment,
     marketDefinitionHash: pos.entry.marketDefinitionHash,
-    label: `Claim ${outcome}`,
-    note: pos.status === "lost" ? "Loss settled" : "Claim settled",
+    label: `Victory ${outcome}`,
+    note: pos.status === "lost" ? "Loss settled" : "Victory sealed",
     lineageRootSigilId: lineageRoot.lineageRootSigilId,
     lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
     lineageId,
@@ -1020,6 +1020,14 @@ const buildSvg = async (
   const stakeUsdNum = usdValueFromPhi(stakePhiNum, usdPerPhi);
   const stakeUsd2 = formatUsd2(stakeUsdNum);
 
+  const payoutPhiDec6 = isClaim ? microDecToPhiDec6(String(payload.payoutPhiMicro)) : "0.000000";
+  const payoutPhiNum = isClaim ? phiDec6ToNumber(payoutPhiDec6) : 0;
+  const payoutUsdNum = isClaim ? usdValueFromPhi(payoutPhiNum, usdPerPhi) : 0;
+  const payoutUsd2 = formatUsd2(payoutUsdNum);
+
+  const amountPhiDec6 = isClaim ? payoutPhiDec6 : stakePhiDec6;
+  const amountUsdLabel = isClaim ? `+$${payoutUsd2}` : `$${stakeUsd2}`;
+
 
   // Embed φ logo from public/phi.svg
   const phiLogo = await getPhiLogoMarkupAsync();
@@ -1034,6 +1042,9 @@ const buildSvg = async (
   payloadForMeta["phiPerUsd"] = phiPerUsd;
   payloadForMeta["usdSource"] = "issuance";
   payloadForMeta["wagerUsd"] = stakeUsd2;
+  if (isClaim) {
+    payloadForMeta["payoutUsd"] = payoutUsd2;
+  }
 
   const payloadJsonRaw = JSON.stringify(payloadForMeta);
 
@@ -1077,7 +1088,7 @@ const buildSvg = async (
     {
       tone: "hi",
       text: isClaimPayload(payload)
-        ? `PAYOUT • Φ ${microDecToPhiDec6(String(payload.payoutPhiMicro))} • ${payload.payoutPhiDisplay}`
+        ? `VICTORY • Φ ${payoutPhiDec6} • +$${payoutUsd2}`
         : `POSITION • marketId=${String(payload.marketId)} • side=${payload.side} • ${openedShort}`,
     },
     { tone: "mid", text: `marketId=${String(payload.marketId)} • side=${payload.side} • ${openedShort}` },
@@ -1140,8 +1151,8 @@ const buildSvg = async (
   const chipTilt = (-4 + centerRnd() * 8).toFixed(3);
 
   // Amount typography split
-  const mm = /^([0-9]+)\.([0-9]{6})$/.exec(stakePhiDec6);
-  const whole = mm ? mm[1] : stakePhiDec6;
+  const mm = /^([0-9]+)\.([0-9]{6})$/.exec(amountPhiDec6);
+  const whole = mm ? mm[1] : amountPhiDec6;
   const frac = mm ? mm[2] : "000000";
 
   // Amount layout (currency-lock): deterministic left edge + Φ prefix
@@ -1171,12 +1182,12 @@ const amountW = wholeW + fracW;
 
   // Center ring microtext (official feel)
   const microSeal = isClaim
-    ? `ΦNET • CLAIM • ${seal.scheme} • ${payload.claimedAt.pulse} • ${String(payload.marketId)} •`
+    ? `ΦNET • VICTORY • ${seal.scheme} • ${payload.claimedAt.pulse} • ${String(payload.marketId)} •`
     : `ΦNET • ${okWord} • ${seal.scheme} • ${openedShort} • ${String(payload.marketId)} •`;
 
   const dataKind = isClaim ? "sigilmarkets-claim" : "sigilmarkets-position";
   const ariaLabel = isClaim
-    ? `SigilMarkets Claim — ${payload.outcome} — pulse ${payload.claimedAt.pulse}`
+    ? `SigilMarkets Victory — ${payload.outcome} — pulse ${payload.claimedAt.pulse}`
     : `SigilMarkets Position — ${payload.side} — pulse ${payload.openedAt.pulse}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -1202,6 +1213,7 @@ const amountW = wholeW + fracW;
   ${isClaim ? `data-outcome="${esc(payload.outcome)}"` : ""}
   ${isClaim ? `data-payout-phi="${esc(String(payload.payoutPhiMicro))}"` : ""}
   ${isClaim ? `data-payout-display="${esc(String(payload.payoutPhiDisplay))}"` : ""}
+  ${isClaim ? `data-payout-usd="${esc(payoutUsd2)}"` : ""}
   data-vault-id="${esc(String(payload.vaultId))}"
   data-lock-id="${esc(String(payload.lockId))}"
   data-user-phikey="${esc(String(payload.userPhiKey))}"
@@ -1226,7 +1238,7 @@ const amountW = wholeW + fracW;
   data-payload-hash="${esc(seal.canonicalHashHex)}"
 >
   <title>${esc(ariaLabel)}</title>
-  <desc id="${esc(descId)}">${esc(isClaim ? "Claim sigil with embedded payout + lineage." : "Atlantean chip sigil with embedded proof + metadata.")}</desc>
+  <desc id="${esc(descId)}">${esc(isClaim ? "Victory sigil with embedded payout + lineage." : "Atlantean chip sigil with embedded proof + metadata.")}</desc>
 
   <metadata>${safeCdata(payloadJsonRaw)}</metadata>
   <metadata id="sm-zk">${safeCdata(sealJsonRaw)}</metadata>
@@ -1457,16 +1469,42 @@ const amountW = wholeW + fracW;
     <!-- VERIFIED / SEALED stamp -->
     <text
       x="500"
-      y="436"
+      y="418"
       text-anchor="middle"
       dominant-baseline="middle"
       font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
       fill="${seal.zkOk ? "rgba(185,252,255,0.92)" : "rgba(255,255,255,0.70)"}"
-      style="paint-order: stroke; stroke: rgba(0,0,0,0.62); stroke-width: 2.0; letter-spacing: 5.2;"
+      style="paint-order: stroke; stroke: rgba(0,0,0,0.62); stroke-width: 2.0; letter-spacing: 6.4;"
       filter="url(#etchStrong)"
     >
-      <tspan font-size="18" opacity="0.80">${esc(seal.zkOk ? "VERIFIED" : "SEALED")}</tspan>
+      <tspan font-size="22" opacity="0.9">${esc(
+        isClaim
+          ? payload.outcome === "VOID"
+            ? "VOID"
+            : payload.side === payload.outcome
+              ? "VICTORY"
+              : "SETTLED"
+          : seal.zkOk
+            ? "VERIFIED"
+            : "SEALED",
+      )}</tspan>
     </text>
+    ${
+      isClaim && payload.side === payload.outcome
+        ? `<text
+      x="500"
+      y="448"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
+      fill="rgba(255,255,255,0.82)"
+      style="paint-order: stroke; stroke: rgba(0,0,0,0.55); stroke-width: 1.6; letter-spacing: 4.8;"
+      filter="url(#etchStrong)"
+    >
+      <tspan font-size="14" opacity="0.85">PURE HARMONIC ENTRAINMENT • ULTRA LUXE</tspan>
+    </text>`
+        : ""
+    }
 
     <!-- φ logo -->
     ${
@@ -1545,8 +1583,25 @@ const amountW = wholeW + fracW;
       style="paint-order: stroke; stroke: rgba(0,0,0,0.68); stroke-width: 2.0; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
       filter="url(#etchStrong)"
     >
-      <tspan font-size="36">$${esc(stakeUsd2)}</tspan>
+      <tspan font-size="36">${esc(amountUsdLabel)}</tspan>
     </text>
+    ${
+      isClaim
+        ? `<text
+      x="500"
+      y="616"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
+      fill="rgba(185,252,255,0.78)"
+      letter-spacing="0.6"
+      style="paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 1.6; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';"
+      filter="url(#etchStrong)"
+    >
+      <tspan font-size="22">WAGER Φ ${esc(stakePhiDec6)} • $${esc(stakeUsd2)}</tspan>
+    </text>`
+        : ""
+    }
   </g>
 </svg>`;
 };
