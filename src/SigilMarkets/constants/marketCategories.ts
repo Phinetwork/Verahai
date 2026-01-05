@@ -6,7 +6,7 @@ import type { MarketCategory } from "../types/marketTypes";
 export const MARKET_CATEGORIES: readonly MarketCategory[] = [
   "pulse",
   "kai",
-  "calendar",
+  "kalendar",
   "weather",
   "sports",
   "politics",
@@ -16,14 +16,14 @@ export const MARKET_CATEGORIES: readonly MarketCategory[] = [
   "crypto",
   "tech",
   "world",
-  "culture",
+  "kulture",
   "other",
 ];
 
 const CATEGORY_LABELS: Record<MarketCategory, string> = {
   pulse: "Pulse",
   kai: "Kai",
-  calendar: "Calendar",
+  calendar: "kalendar",
   weather: "Weather",
   sports: "Sports",
   politics: "Politics",
@@ -33,7 +33,7 @@ const CATEGORY_LABELS: Record<MarketCategory, string> = {
   crypto: "Crypto",
   tech: "Tech",
   world: "World",
-  culture: "Culture",
+  culture: "Kulture",
   other: "Other",
 };
 
