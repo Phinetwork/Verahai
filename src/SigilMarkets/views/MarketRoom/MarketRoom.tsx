@@ -14,6 +14,7 @@ import { MarketOrderPanel } from "./MarketOrderPanel";
 import { MarketRules } from "./MarketRules";
 import { MarketActivity } from "./MarketActivity";
 import { Card, CardContent } from "../../ui/atoms/Card";
+import { labelForCategory, normalizeMarketCategory } from "../../constants/marketCategories";
 
 export type MarketRoomProps = Readonly<{
   marketId: MarketId;
@@ -36,15 +37,15 @@ export const MarketRoom = (props: MarketRoomProps) => {
   const subtitle = useMemo(() => {
     const market = m.market;
     if (!market) return "Missing";
-    const cat = market.def.category as unknown as string;
-    return `${cat} • close p${market.def.timing.closePulse}`;
+    const cat = normalizeMarketCategory(market.def.category);
+    return `${labelForCategory(cat)} • close p${market.def.timing.closePulse}`;
   }, [m.market]);
 
   if (m.status === "missing" || !m.market) {
     return (
       <div className="sm-page" data-sm="market-room">
         <TopBar
-          title="Market"
+          title="Prophecy"
           subtitle={subtitle}
           now={props.now}
           scrollMode={props.scrollMode}
@@ -54,7 +55,7 @@ export const MarketRoom = (props: MarketRoomProps) => {
         />
         <Card variant="glass">
           <CardContent>
-            <div className="sm-title">Market not found.</div>
+            <div className="sm-title">Prophecy not found.</div>
             <div className="sm-subtitle" style={{ marginTop: 8 }}>
               It may be offline or removed.
             </div>
@@ -69,7 +70,7 @@ export const MarketRoom = (props: MarketRoomProps) => {
   return (
     <div className="sm-page" data-sm="market-room">
       <TopBar
-        title="Market"
+        title="Prophecy"
         subtitle={subtitle}
         now={props.now}
         scrollMode={props.scrollMode}

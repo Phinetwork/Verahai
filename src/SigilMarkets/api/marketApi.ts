@@ -650,17 +650,21 @@ const withQuery = (url: string, query?: Readonly<Record<string, string>>): strin
 
 /**
  * Local seeded markets for standalone app / offline mode.
- * IMPORTANT:
- * - Categories are set explicitly so the UI can filter (Sports tab shows sports, etc.).
- * - We keep each market ID unique (no duplicates like “btc-green” + “btc-red”).
- */
-export const seedDemoMarkets = (nowPulse: KaiPulse): readonly Market[] => {
+ *
+ * KKS v1 “Sovereignty Test” (deterministic curriculum):
+ * - Every market resolves from Kai-Klok math only.
+ * - Every question teaches canon: lattice (11/44/36/6), primes, Fibonacci/Lucas/φ motifs, and cycle structure.
+ * - No external reality. No feeds. No weather. No sports teams. No Chronos calendar.
+ *
+ * Design:
+ * - Questions are simple to read.
+ * - But hard to answer unless you understand the canon (or learn it by playing).
+ */export const seedDemoMarkets = (nowPulse: KaiPulse): readonly Market[] => {
   // Keep category strings stable — your UI filter can key off these exactly.
   const CAT = {
     PULSE: "pulse",
     KAI: "kai",
     CULTURE: "culture",
-    MARKETS: "markets",
     FINANCE: "finance",
     CRYPTO: "crypto",
     TECH: "tech",
@@ -687,7 +691,9 @@ export const seedDemoMarkets = (nowPulse: KaiPulse): readonly Market[] => {
   ): Market => {
     const base = makeEmptyBinaryMarket({ id, slug, question, nowPulse });
 
-    const closeIn = typeof opts.closeInPulses === "number" && Number.isFinite(opts.closeInPulses) ? opts.closeInPulses : undefined;
+    const closeIn =
+      typeof opts.closeInPulses === "number" && Number.isFinite(opts.closeInPulses) ? opts.closeInPulses : undefined;
+
     const timing = closeIn
       ? (() => {
           const period = Math.max(1, Math.floor(closeIn));
@@ -698,7 +704,6 @@ export const seedDemoMarkets = (nowPulse: KaiPulse): readonly Market[] => {
 
           return {
             ...base.def.timing,
-            // Anchor to genesis pulse so cycles are stable across reloads.
             createdPulse: openPulse,
             openPulse,
             closePulse,
@@ -719,498 +724,623 @@ export const seedDemoMarkets = (nowPulse: KaiPulse): readonly Market[] => {
     };
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // KKS v1 Canon constants (discrete lattice)
+  // ─────────────────────────────────────────────────────────────
+  const PULSES_PER_STEP = 11;
+  const STEPS_PER_BEAT = 44;
+  const BEATS_PER_DAY = 36;
+  const BEATS_PER_ARC = 6;
+
+  const DAYS_PER_WEEK = 6;
+  const WEEKS_PER_MONTH = 7;
+  const MONTHS_PER_YEAR = 8;
+
+  const P_BEAT = PULSES_PER_STEP * STEPS_PER_BEAT; // 484
+  const P_ARC = P_BEAT * BEATS_PER_ARC; // 2,904
+
+  // Discrete lattice day (indexing truth): 36×44×11 = 17,424
+  const P_GRID_DAY = P_BEAT * BEATS_PER_DAY; // 17,424
+
+  // Demo day bucket used for seeded markets: lattice day + drift
+  // (teaches the canon difference: 17,491 − 17,424 = 67)
+  const P_DAY = P_GRID_DAY + 67; // 17,491
+
+  const P_WEEK = P_DAY * DAYS_PER_WEEK; // 6-day Kai week
+  const P_MONTH = P_WEEK * WEEKS_PER_MONTH; // 42-day Kai month
+  const P_YEAR = P_MONTH * MONTHS_PER_YEAR; // 336-day Kai year
+
+  // Educational note (for your UI / help modal):
+  // - StepIndex  = floor((pulse / 11) % 44)      ∈ [0..43]
+  // - BeatIndex  = floor((pulse / 484) % 36)     ∈ [0..35]
+  // - ArcIndex   = floor(BeatIndex / 6)          ∈ [0..5]
+  // - WeekdayIdx = floor((pulse / P_DAY) % 6)    ∈ [0..5]
+  //
+  // Balance rule (50/50):
+  // - We use exact halves (<= 21 in 0..43, <= 17 in 0..35, <= 2 in 0..5),
+  //   parity checks, and hash high-bit style checks (0..7 vs 8..f) to keep outcomes ~50/50.
+
   return [
     /* ─────────────────────────────────────────────────────────────
-       🔮 PULSE (Zero-API games — fully deterministic in-app)
-       - These are “pure Kai + seed rules” games.
-       - Category: pulse
-       - Tags: pulse, game
+       🔮 PULSE — Fast Sovereignty Gates (11 / 484 / 2,904)
+       “Breathe. Count. Verify.” Quick cycles that train the lattice.
+       Each resolves ~50/50 per cycle.
     ───────────────────────────────────────────────────────────── */
+mk("m_pulse_step_gate_lowhalf", "step-gate-lowhalf", "Is the next step rising toward clarity?", {
+  category: CAT.PULSE,
+  tags: ["kks", "step", "11", "44", "gate"],
+  iconEmoji: "🧿",
+  closeInPulses: PULSES_PER_STEP,
+  description:
+    "There are 44 steps per beat. When the next step begins, we say YES if it lands in the first 22. This reveals whether the pulse is moving toward ignition or descent.",
+}),
 
-    /* Coin / Dice / Cards / Roulette */
-    mk("m_pulse_coinflip_next", "coinflip-next", "Will the next Kai coinflip land HEADS?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "coinflip"],
-      iconEmoji: "🪙",
-      closeInPulses: 44,
-    }),
-    mk("m_pulse_coinflip_bestof3_heads", "coinflip-bestof3", "Will HEADS win best-of-3 (next 3 flips)?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "coinflip"],
-      iconEmoji: "🪙",
-      closeInPulses: 44 * 3,
-    }),
-    mk("m_pulse_coinflip_streak3_today", "coinflip-streak3", "Will there be a 3-in-a-row HEADS streak today?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "coinflip", "today"],
-      iconEmoji: "🧬",
-      closeInPulses: 17_491,
-    }),
+mk("m_pulse_beat_gate_lowhalf", "beat-gate-lowhalf", "Will the next beat still echo the morning?", {
+  category: CAT.PULSE,
+  tags: ["kks", "beat", "484", "36", "gate"],
+  iconEmoji: "🥁",
+  closeInPulses: P_BEAT,
+  description:
+    "There are 36 beats in a Kai day. If the next beat is in the first 18, we answer YES. This tests whether the day is still rising or has begun to reflect.",
+}),
 
-    mk("m_pulse_dice_six_next", "dice-six-next", "Will the next Kai dice roll be a 6?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "dice"],
-      iconEmoji: "🎲",
-      closeInPulses: 44,
-    }),
-    mk("m_pulse_dice_even_next", "dice-even-next", "Will the next Kai dice roll be EVEN?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "dice"],
-      iconEmoji: "🎲",
-      closeInPulses: 44,
-    }),
-    mk("m_pulse_dice_sum_7_next2", "dice-sum7-next2", "Will the next TWO Kai dice rolls sum to 7?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "dice"],
-      iconEmoji: "🎲",
-      closeInPulses: 44 * 2,
-    }),
+mk("m_pulse_arc_gate_first_triad", "arc-gate-first-triad", "Are we entering a light-facing arc?", {
+  category: CAT.PULSE,
+  tags: ["kks", "arc", "6", "gate"],
+  iconEmoji: "⚡",
+  closeInPulses: P_ARC,
+  description:
+    "Each day contains 6 arcs. The first 3 (Ignition, Integration, Harmonization) form the arc of ascent. If we’re entering one of these, the answer is YES.",
+}),
 
-    mk("m_pulse_roulette_red_next", "roulette-red-next", "Will the next Kai roulette spin land RED?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "roulette"],
-      iconEmoji: "🎰",
-      closeInPulses: 44,
-    }),
-    mk("m_pulse_roulette_zero_next", "roulette-zero-next", "Will the next Kai roulette spin land on 0?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "roulette"],
-      iconEmoji: "🎯",
-      closeInPulses: 44,
-    }),
+mk("m_pulse_grid_residue_half", "grid-residue-half", "Is this moment breathing from the lighter side of the grid?", {
+  category: CAT.PULSE,
+  tags: ["kks", "17424", "residue", "gate"],
+  iconEmoji: "🧭",
+  closeInPulses: PULSES_PER_STEP,
+  description:
+    "Each Kai day is made of 17,424 pulses. If the current pulse is less than 8,712, the moment is on the lighter half. This reveals where the resonance rests.",
+}),
+mk("m_pulse_step_crossing", "step-crossing", "Is the next step crossing a threshold?", {
+  category: CAT.PULSE,
+  tags: ["kks", "step", "threshold"],
+  iconEmoji: "🪜",
+  closeInPulses: PULSES_PER_STEP,
+  description:
+    "Steps move from early to late. YES if the next step lands before the midpoint. This tests whether motion is still building or has begun to resolve.",
+}),
+mk("m_pulse_beat_weight", "beat-weight", "Will the next beat feel heavier or lighter?", {
+  category: CAT.PULSE,
+  tags: ["kks", "beat", "weight"],
+  iconEmoji: "🥁",
+  closeInPulses: P_BEAT,
+  description:
+    "Beats rise and fall across the day. YES means the next beat lands in the lighter half. You learn to feel weight without numbers.",
+}),
+mk("m_pulse_arc_turn", "arc-turn", "Is the day turning toward expansion right now?", {
+  category: CAT.PULSE,
+  tags: ["kks", "arc", "turn"],
+  iconEmoji: "🔁",
+  closeInPulses: P_ARC,
+  description:
+    "Arcs have a clear turn point. YES means the next arc begins before the shift from growth to release.",
+}),
+mk("m_kai_day_rising", "day-rising", "Is today still rising rather than releasing?", {
+  category: CAT.KAI,
+  tags: ["kks", "day", "rise"],
+  iconEmoji: "🌅",
+  closeInPulses: P_DAY,
+  description:
+    "Kai days breathe. YES if today is positioned before its natural midpoint. This trains day‑level intuition.",
+}),
+mk("m_kai_arc_alignment", "arc-alignment", "Is today aligned with forward motion?", {
+  category: CAT.KAI,
+  tags: ["kks", "arc", "alignment"],
+  iconEmoji: "🌀",
+  closeInPulses: P_DAY,
+  description:
+    "Some arcs push forward, others integrate. YES if today belongs to the forward‑moving half of the arc cycle.",
+}),
+mk("m_culture_balance_mark", "balance-mark", "Did today close in balance?", {
+  category: CAT.CULTURE,
+  tags: ["parity", "balance"],
+  iconEmoji: "⚖️",
+  closeInPulses: P_DAY,
+  description:
+    "YES if the close lands evenly. This teaches balance without measuring anything.",
+}),
+mk("m_culture_mirror_close", "mirror-close", "Does today mirror itself cleanly?", {
+  category: CAT.CULTURE,
+  tags: ["digits", "mirror"],
+  iconEmoji: "🪞",
+  closeInPulses: P_DAY,
+  description:
+    "Some closes mirror, others distort. YES if today’s close reflects symmetry.",
+}),
+mk("m_markets_position_bias", "position-bias", "Is today positioned early in the value cycle?", {
+    category: CAT.FINANCE,
+  tags: ["kks", "position"],
+  iconEmoji: "📍",
+  closeInPulses: P_DAY,
+  description:
+    "Value emerges from where you are, not what you expect. YES if today sits in the early half of the lattice.",
+}),
 
-    mk("m_pulse_card_ace_next", "card-ace-next", "Will the next Kai card draw be an ACE?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "cards"],
-      iconEmoji: "🃏",
-      closeInPulses: 44,
-    }),
-    mk("m_pulse_card_face_next", "card-face-next", "Will the next Kai card draw be a FACE card (J/Q/K)?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "cards"],
-      iconEmoji: "🃏",
-      closeInPulses: 44,
-    }),
-    mk("m_pulse_card_heart_next", "card-heart-next", "Will the next Kai card draw be a HEART?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "game", "cards"],
-      iconEmoji: "♥️",
-      closeInPulses: 44,
-    }),
 
-    /* Hash / seed micro-proofs */
-    mk("m_pulse_hash_even_next", "hash-even-next", "Will the next pulse-hash end in an even hex digit?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "hash"],
-      iconEmoji: "🔐",
-      closeInPulses: 11,
-    }),
-    mk("m_pulse_hash_00_next", "hash-00-next", "Will the next pulse-hash start with '00'?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "hash"],
-      iconEmoji: "🔐",
-      closeInPulses: 11,
-    }),
-    mk("m_pulse_hash_contains_dead_today", "hash-dead-today", "Will any pulse-hash contain 'dead' today?", {
-      category: CAT.PULSE,
-      tags: ["pulse", "hash", "today"],
-      iconEmoji: "🧾",
-      closeInPulses: 17_491,
-    }),
+mk("m_crypto_proof_closure", "proof-closure", "Did the proof close cleanly?", {
+  category: CAT.CRYPTO,
+  tags: ["hash", "closure"],
+  iconEmoji: "🧩",
+  closeInPulses: P_DAY,
+  description:
+    "YES if the final mark closes evenly. You’re learning to feel proof endings.",
+}),
+mk("m_other_scale_conflict", "scale-conflict", "Do the large rhythm and small rhythm disagree?", {
+  category: CAT.OTHER,
+  tags: ["kks", "residue"],
+  iconEmoji: "🧬",
+  closeInPulses: P_DAY,
+  description:
+    "YES if one rhythm says early while another says late. This trains multi‑scale awareness.",
+}),
+mk("m_other_single_truth", "single-truth", "Is exactly one signal speaking right now?", {
+  category: CAT.OTHER,
+  tags: ["kks", "xor"],
+  iconEmoji: "🔀",
+  closeInPulses: P_DAY,
+  description:
+    "YES if only one of two harmonic checks resolves true. Discernment beats agreement.",
+}),
+mk("m_tech_fib_turn", "fib-turn", "Is this moment before the Fibonacci turn?", {
+  category: CAT.TECH,
+  tags: ["harmonic", "fibonacci"],
+  iconEmoji: "🌀",
+  closeInPulses: P_DAY,
+  description:
+    "YES if the Fibonacci window is still open. You learn φ by position, not formulas.",
+}),
+mk("m_tech_resonance_phase", "resonance-phase", "Is resonance rising rather than collapsing?", {
+  category: CAT.TECH,
+  tags: ["harmonic", "resonance"],
+  iconEmoji: "⚡",
+  closeInPulses: P_DAY,
+  description:
+    "YES if the resonance window is in its first half. Physics becomes readable.",
+}),
 
-    /* Lattice mini-games (KKS indexing) */
-    mk("m_pulse_next_beat_boundary_even", "next-beat-even", "Will the next BEAT boundary pulse be EVEN?", {
+    mk("m_pulse_step_gate_lowhalf", "step-gate-lowhalf", "At the next STEP boundary, is the STEP index in the lower half (0–21)?", {
       category: CAT.PULSE,
-      tags: ["pulse", "kai", "lattice"],
+      tags: ["kks", "step", "11", "44", "gate"],
       iconEmoji: "🧿",
-      closeInPulses: 44,
+      closeInPulses: PULSES_PER_STEP,
+      description:
+        "KKS: 11 pulses/step, 44 steps/beat. Rule: compute StepIndex = floor((pulse/11) % 44). YES if StepIndex ≤ 21 (Fibonacci 21 gate).",
     }),
-    mk("m_pulse_next_step_boundary_even", "next-step-even", "Will the next STEP boundary pulse be EVEN?", {
+
+    mk("m_pulse_beat_gate_lowhalf", "beat-gate-lowhalf", "At the next BEAT boundary, is the BEAT index in the lower half (0–17)?", {
       category: CAT.PULSE,
-      tags: ["pulse", "kai", "lattice"],
-      iconEmoji: "🧿",
-      closeInPulses: 11,
+      tags: ["kks", "beat", "484", "36", "gate"],
+      iconEmoji: "🥁",
+      closeInPulses: P_BEAT,
+      description:
+        "KKS: 484 pulses/beat, 36 beats/day. Rule: BeatIndex = floor((pulse/484) % 36). YES if BeatIndex ≤ 17.",
     }),
-    mk("m_pulse_next_beat_prime", "next-beat-prime", "Will the next moment's beat be PRIME?", {
+
+    mk("m_pulse_arc_gate_first_triad", "arc-gate-first-triad", "At the next ARC boundary, is the ARC index in the first triad (0–2)?", {
       category: CAT.PULSE,
-      tags: ["pulse", "kai", "lattice"],
-      iconEmoji: "🔢",
-      closeInPulses: 44,
+      tags: ["kks", "arc", "6", "gate"],
+      iconEmoji: "⚡",
+      closeInPulses: P_ARC,
+      description:
+        "KKS: 6 beats/arc (2,904 pulses). Rule: ArcIndex = floor(BeatIndex/6). YES if ArcIndex ∈ {0,1,2}.",
+    }),
+
+    mk("m_pulse_grid_residue_half", "grid-residue-half", "At the next STEP boundary, is the lattice residue in the first half of the 17,424 grid?", {
+      category: CAT.PULSE,
+      tags: ["kks", "17424", "residue", "gate"],
+      iconEmoji: "🧭",
+      closeInPulses: PULSES_PER_STEP,
+      description:
+        "Rule: Residue = pulse % 17,424. YES if Residue < 8,712. (Teaches the 36×44×11 lattice day.)",
     }),
 
     /* ─────────────────────────────────────────────────────────────
-       🌈 KAI (Daily Oracles — real Kai math, no vibes)
-       - These are computed from your KKS engine (weekday/arc/seed residues).
-       - Category: kai
+       🌈 KAI — Daily Coherence Tests (Weekday + Arc + Position)
+       Each resolves once per Kai day bucket. All ~50/50.
     ───────────────────────────────────────────────────────────── */
 
-    /* Kai weekday (6) */
-    mk("m_kai_weekday_solhara_today", "weekday-solhara", "Will today's Kai weekday be Solhara?", {
+    mk("m_kai_weekday_triad_solar", "weekday-solar-triad", "Is today a SOLAR weekday (Solhara / Aquaris / Flamora)?", {
       category: CAT.KAI,
-      tags: ["kai", "weekday"],
+      tags: ["kks", "weekday", "6", "triad"],
       iconEmoji: "☀️",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_weekday_aquaris_today", "weekday-aquaris", "Will today's Kai weekday be Aquaris?", {
-      category: CAT.KAI,
-      tags: ["kai", "weekday"],
-      iconEmoji: "💧",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_weekday_flamora_today", "weekday-flamora", "Will today's Kai weekday be Flamora?", {
-      category: CAT.KAI,
-      tags: ["kai", "weekday"],
-      iconEmoji: "🔥",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_weekday_verdari_today", "weekday-verdari", "Will today's Kai weekday be Verdari?", {
-      category: CAT.KAI,
-      tags: ["kai", "weekday"],
-      iconEmoji: "🌿",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_weekday_sonari_today", "weekday-sonari", "Will today's Kai weekday be Sonari?", {
-      category: CAT.KAI,
-      tags: ["kai", "weekday"],
-      iconEmoji: "🎶",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_weekday_kaelith_today", "weekday-kaelith", "Will today's Kai weekday be Kaelith?", {
-      category: CAT.KAI,
-      tags: ["kai", "weekday"],
-      iconEmoji: "🪞",
-      closeInPulses: 17_491,
+      closeInPulses: P_DAY,
+      description:
+        "KKS week = 6 days. Rule: WeekdayIdx = floor((pulse/P_DAY) % 6). YES if WeekdayIdx ∈ {0,1,2}.",
     }),
 
-    /* Kai arc (6) */
-    mk("m_kai_arc_ignition_today", "arc-ignition", "Will today's Kai arc be Ignition?", {
+    mk("m_kai_arc_triad_light", "arc-light-triad", "Is today in a LIGHT arc (Ignition / Integration / Harmonization)?", {
       category: CAT.KAI,
-      tags: ["kai", "arc"],
-      iconEmoji: "⚡",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_arc_integration_today", "arc-integration", "Will today's Kai arc be Integration?", {
-      category: CAT.KAI,
-      tags: ["kai", "arc"],
-      iconEmoji: "🧩",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_arc_harmonization_today", "arc-harmonization", "Will today's Kai arc be Harmonization?", {
-      category: CAT.KAI,
-      tags: ["kai", "arc"],
+      tags: ["kks", "arc", "6", "triad"],
       iconEmoji: "🌀",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_arc_reflection_today", "arc-reflection", "Will today's Kai arc be Reflection?", {
-      category: CAT.KAI,
-      tags: ["kai", "arc"],
-      iconEmoji: "🪞",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_arc_purification_today", "arc-purification", "Will today's Kai arc be Purification?", {
-      category: CAT.KAI,
-      tags: ["kai", "arc"],
-      iconEmoji: "💠",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_arc_dream_today", "arc-dream", "Will today's Kai arc be Dream?", {
-      category: CAT.KAI,
-      tags: ["kai", "arc"],
-      iconEmoji: "🌙",
-      closeInPulses: 17_491,
+      closeInPulses: P_DAY,
+      description:
+        "KKS day has 6 arcs. Rule: ArcIndex = floor(BeatIndex/6). YES if ArcIndex ∈ {0,1,2}.",
     }),
 
-    /* Day-seed residues (derived from dayStartPulse % 36/%44/%11) */
-    mk("m_kai_seedbeat_prime_today", "seedbeat-prime", "Is today's Day-Seed Beat PRIME?", {
+    mk("m_kai_step_fib_gate_21", "step-fib-21", "Is today’s STEP gate below Fibonacci 21 (StepIndex ≤ 21)?", {
       category: CAT.KAI,
-      tags: ["kai", "seed", "beat"],
-      iconEmoji: "🔢",
-      closeInPulses: 17_491,
+      tags: ["phi", "fibonacci", "21", "kks", "step"],
+      iconEmoji: "🌀",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: StepIndex = floor((pulse/11) % 44). YES if StepIndex ≤ 21. (21 is the φ-teaching threshold.)",
     }),
-    mk("m_kai_seedstep_div11_today", "seedstep-div11", "Is today's Day-Seed Step divisible by 11?", {
+
+    mk("m_kai_beat_half", "beat-half", "Is today’s BEAT position in the first half of the day (BeatIndex ≤ 17)?", {
       category: CAT.KAI,
-      tags: ["kai", "seed", "step"],
-      iconEmoji: "🧿",
-      closeInPulses: 17_491,
-    }),
-    mk("m_kai_seedpulse_is_0_today", "seedpulse-0", "Is today's Day-Seed Pulse = 0?", {
-      category: CAT.KAI,
-      tags: ["kai", "seed", "pulse"],
-      iconEmoji: "0️⃣",
-      closeInPulses: 17_491,
+      tags: ["kks", "beat", "36", "half"],
+      iconEmoji: "🥁",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: BeatIndex = floor((pulse/484) % 36). YES if BeatIndex ≤ 17. (Teaches 36 beats/day.)",
     }),
 
     /* ─────────────────────────────────────────────────────────────
-       💬 CULTURE (no API required — resolved by public artifact proof)
-       - Category: culture
+       🧾 CULTURE — Number Literacy (Mirror / Symmetry / Parity)
+       Not “news”. Culture here is: can you read the stamp.
+       Balanced ~50/50 using parity / halves.
     ───────────────────────────────────────────────────────────── */
 
-    mk("m_culture_song_hits_spotify_global1_week", "song-global1-week", "Will ANY new song hit #1 on Spotify Global this week?", {
+    mk("m_culture_close_digit_sum_even", "close-digit-sum-even", "Is the digit-sum of today’s CLOSE pulse EVEN?", {
       category: CAT.CULTURE,
-      tags: ["culture", "music", "chart", "week"],
-      iconEmoji: "🎧",
-      closeInPulses: 17_491 * 7,
+      tags: ["digits", "parity", "literacy"],
+      iconEmoji: "🧾",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: sum the decimal digits of CLOSE pulse. YES if the sum is even. (Sovereignty = fast verification.)",
     }),
-    mk("m_culture_album_hits_apple1_week", "album-apple1-week", "Will ANY new album hit #1 on Apple Music (Top Albums) this week?", {
+
+    mk("m_culture_close_last_digit_even", "close-last-digit-even", "Is the last digit of today’s CLOSE pulse EVEN?", {
       category: CAT.CULTURE,
-      tags: ["culture", "music", "chart", "week"],
-      iconEmoji: "💿",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_culture_trailer_hits_yt_trending_week", "trailer-trending-week", "Will a movie/series trailer hit YouTube Trending this week?", {
-      category: CAT.CULTURE,
-      tags: ["culture", "tv", "film", "week"],
-      iconEmoji: "🎬",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_culture_platform_outage_x_week", "x-outage-week", "Will X (Twitter) have a widespread outage this week?", {
-      category: CAT.CULTURE,
-      tags: ["culture", "platform", "week"],
-      iconEmoji: "📵",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_culture_new_meme_template_week", "new-meme-template", "Will a new meme template be born this week?", {
-      category: CAT.CULTURE,
-      tags: ["culture", "meme", "week"],
-      iconEmoji: "😂",
-      closeInPulses: 17_491 * 7,
+      tags: ["digits", "parity", "literacy"],
+      iconEmoji: "⚖️",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: look at the last decimal digit of CLOSE pulse. YES if it’s 0/2/4/6/8. (Simple. Absolute. Deterministic.)",
     }),
 
     /* ─────────────────────────────────────────────────────────────
-       🪙 MARKETS (screenshot-proof)
-       - Category: markets
+       🪙 MARKETS — φ Gates (value literacy without external prices)
+       We teach φ by thresholds, not feeds.
+       Balanced using exact halves.
     ───────────────────────────────────────────────────────────── */
 
-    mk("m_crypto_btc_100k", "btc-100k", "Will BTC touch 100k before the day closes?", {
-      category: CAT.MARKETS,
-      tags: ["markets", "crypto", "btc", "today"],
-      iconEmoji: "₿",
-      closeInPulses: 17_491,
-    }),
-    mk("m_crypto_btc_green_today", "btc-green-today", "Will BTC close UP today?", {
-      category: CAT.MARKETS,
-      tags: ["markets", "crypto", "btc", "today"],
-      iconEmoji: "📈",
-      closeInPulses: 17_491,
-    }),
-    mk("m_crypto_eth_5k", "eth-5k", "Will ETH touch 5k before the day closes?", {
-      category: CAT.MARKETS,
-      tags: ["markets", "crypto", "eth", "today"],
-      iconEmoji: "Ξ",
-      closeInPulses: 17_491,
-    }),
-    mk("m_markets_spy_green_today", "spy-green-today", "Will SPY close green today?", {
-      category: CAT.MARKETS,
-      tags: ["markets", "stocks", "index", "today"],
-      iconEmoji: "🏛️",
-      closeInPulses: 17_491,
-    }),
-    mk("m_markets_vix_over_20_today", "vix-20-today", "Will VIX touch 20+ today?", {
-      category: CAT.MARKETS,
-      tags: ["markets", "volatility", "today"],
-      iconEmoji: "🌪️",
-      closeInPulses: 17_491,
-    }),
-
-    /* ─────────────────────────────────────────────────────────────
-       💰 FINANCE / 💠 CRYPTO / 🧪 TECH / 🌍 WORLD / 🧩 OTHER
-       - Category: finance / crypto / tech / world / other
-    ───────────────────────────────────────────────────────────── */
-
-    mk("m_finance_fed_rate_hold", "fed-rate-hold", "Will the Fed keep rates unchanged at the next meeting?", {
+    mk("m_markets_grid_half_gate", "grid-half-gate", "Does today’s lattice residue land in the first half of 17,424 (Residue < 8,712)?", {
       category: CAT.FINANCE,
-      tags: ["finance", "macro", "rates"],
-      iconEmoji: "🏦",
-      closeInPulses: 17_491 * 14,
-    }),
-    mk("m_crypto_btc_dominance_up", "btc-dominance-up", "Will BTC dominance be higher by week’s end?", {
-      category: CAT.CRYPTO,
-      tags: ["crypto", "btc", "week"],
-      iconEmoji: "₿",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_tech_ai_release_week", "ai-release-week", "Will a major AI model release land this week?", {
-      category: CAT.TECH,
-      tags: ["tech", "ai", "week"],
-      iconEmoji: "🤖",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_world_major_summit_week", "major-summit-week", "Will a major world summit be announced this week?", {
-      category: CAT.WORLD,
-      tags: ["world", "diplomacy", "week"],
-      iconEmoji: "🌍",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_other_surprise_event_week", "surprise-event-week", "Will a surprise event trend worldwide this week?", {
-      category: CAT.OTHER,
-      tags: ["other", "trend", "week"],
-      iconEmoji: "🧩",
-      closeInPulses: 17_491 * 7,
+      tags: ["kks", "17424", "gate", "phi"],
+      iconEmoji: "🧭",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: Residue = CLOSE pulse % 17,424. YES if Residue < 8,712. (Teaches the lattice day as an exact witness.)",
     }),
 
-    /* ─────────────────────────────────────────────────────────────
-       🏈🏀⚾🏒⚽ SPORTS (final-score proof)
-       - Category: sports
-       - Tags include league so you can sub-filter in UI later.
-    ───────────────────────────────────────────────────────────── */
-
-    /* NFL */
-    mk("m_nfl_cowboys_win", "cowboys-win", "Will the Dallas Cowboys win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nfl"],
-      iconEmoji: "🏈",
-      closeInPulses: 17_491 * 3,
-    }),
-    mk("m_nfl_chiefs_win", "chiefs-win", "Will the Kansas City Chiefs win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nfl"],
-      iconEmoji: "🏈",
-      closeInPulses: 17_491 * 3,
-    }),
-    mk("m_nfl_eagles_win", "eagles-win", "Will the Philadelphia Eagles win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nfl"],
-      iconEmoji: "🏈",
-      closeInPulses: 17_491 * 3,
-    }),
-    mk("m_nfl_49ers_win", "49ers-win", "Will the San Francisco 49ers win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nfl"],
-      iconEmoji: "🏈",
-      closeInPulses: 17_491 * 3,
-    }),
-    mk("m_nfl_giants_win", "giants-win", "Will the New York Giants win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nfl"],
-      iconEmoji: "🏈",
-      closeInPulses: 17_491 * 3,
-    }),
-
-    /* NBA */
-    mk("m_nba_knicks_win", "knicks-win", "Will the New York Knicks win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nba"],
-      iconEmoji: "🏀",
-      closeInPulses: 17_491 * 2,
-    }),
-    mk("m_nba_lakers_win", "lakers-win", "Will the Los Angeles Lakers win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nba"],
-      iconEmoji: "🏀",
-      closeInPulses: 17_491 * 2,
-    }),
-    mk("m_nba_celtics_win", "celtics-win", "Will the Boston Celtics win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nba"],
-      iconEmoji: "🏀",
-      closeInPulses: 17_491 * 2,
-    }),
-    mk("m_nba_warriors_win", "warriors-win", "Will the Golden State Warriors win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nba"],
-      iconEmoji: "🏀",
-      closeInPulses: 17_491 * 2,
-    }),
-
-    /* MLB */
-    mk("m_mlb_yankees_win", "yankees-win", "Will the New York Yankees win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "mlb"],
-      iconEmoji: "⚾",
-      closeInPulses: 17_491 * 4,
-    }),
-    mk("m_mlb_dodgers_win", "dodgers-win", "Will the Los Angeles Dodgers win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "mlb"],
-      iconEmoji: "⚾",
-      closeInPulses: 17_491 * 4,
-    }),
-
-    /* NHL */
-    mk("m_nhl_rangers_win", "rangers-win", "Will the New York Rangers win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nhl"],
-      iconEmoji: "🏒",
-      closeInPulses: 17_491 * 3,
-    }),
-    mk("m_nhl_mapleleafs_win", "leafs-win", "Will the Toronto Maple Leafs win their next game?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "nhl"],
-      iconEmoji: "🏒",
-      closeInPulses: 17_491 * 3,
-    }),
-
-    /* Soccer (clubs) */
-    mk("m_soccer_manutd_win", "manutd-win", "Will Manchester United win their next match?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "soccer"],
-      iconEmoji: "⚽",
-      closeInPulses: 17_491 * 4,
-    }),
-    mk("m_soccer_realmadrid_win", "realmadrid-win", "Will Real Madrid win their next match?", {
-      category: CAT.SPORTS,
-      tags: ["sports", "soccer"],
-      iconEmoji: "⚽",
-      closeInPulses: 17_491 * 4,
-    }),
-
-    /* ─────────────────────────────────────────────────────────────
-       🌦️ WEATHER (local observation — no API)
-       - Category: weather
-       - Note: location specificity is in the question; demo uses NYC.
-    ───────────────────────────────────────────────────────────── */
-
-    mk("m_weather_rain_tomorrow", "rain-tomorrow", "Will it rain tomorrow in NYC?", {
-      category: CAT.WEATHER,
-      tags: ["weather", "nyc", "tomorrow"],
-      iconEmoji: "🌧️",
-      closeInPulses: 17_491,
-    }),
-    mk("m_weather_rain_before_noon_tomorrow", "rain-before-noon", "Will it rain before noon tomorrow in NYC?", {
-      category: CAT.WEATHER,
-      tags: ["weather", "nyc", "tomorrow"],
-      iconEmoji: "⛅",
-      closeInPulses: 17_491,
-    }),
-    mk("m_weather_snow_sticks_week", "snow-sticks-week", "Will NYC see snow that sticks this week?", {
-      category: CAT.WEATHER,
-      tags: ["weather", "nyc", "week"],
-      iconEmoji: "❄️",
-      closeInPulses: 17_491 * 7,
-    }),
-    mk("m_weather_thunder_week", "thunder-week", "Will NYC get thunder at least once this week?", {
-      category: CAT.WEATHER,
-      tags: ["weather", "nyc", "week"],
+    mk("m_markets_arc_half_gate", "arc-half-gate", "Does today’s CLOSE pulse land in the first half of an ARC (Residue < 1,452)?", {
+      category: CAT.FINANCE,
+      tags: ["kks", "arc", "2904", "gate"],
       iconEmoji: "⚡",
-      closeInPulses: 17_491 * 7,
+      closeInPulses: P_DAY,
+      description:
+        "Rule: Residue = CLOSE pulse % 2,904. YES if Residue < 1,452. (Half-arc gate = coherence balance.)",
     }),
 
     /* ─────────────────────────────────────────────────────────────
-       🗓️ CALENDAR / REALITY (deterministic, always resolvable)
-       - Category: calendar
-       - These are “pure math” checks (Kai boundary / residue / date patterns).
+       💰 FINANCE — Stewardship Tests (clean arithmetic, no oracle)
+       Balanced ~50/50, trains the mind to measure.
     ───────────────────────────────────────────────────────────── */
 
-    mk("m_calendar_kai_daystart_even_tomorrow", "kai-daystart-even", "Will tomorrow's Kai day-start pulse be EVEN?", {
-      category: CAT.CALENDAR,
-      tags: ["calendar", "kai", "tomorrow"],
-      iconEmoji: "🗓️",
-      closeInPulses: 17_491,
+    mk("m_finance_close_mod_484_lowhalf", "close-mod484-lowhalf", "Is today’s CLOSE pulse within the first half of a BEAT (CLOSE % 484 < 242)?", {
+      category: CAT.FINANCE,
+      tags: ["kks", "484", "stewardship", "half"],
+      iconEmoji: "📏",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: CLOSE % 484 < 242. (Teaches 44×11 = 484, and that stewardship is residue-reading.)",
     }),
-    mk("m_calendar_kai_daystart_ends00_tomorrow", "kai-daystart-ends00", "Will tomorrow's Kai day-start pulse end with '00'?", {
-      category: CAT.CALENDAR,
-      tags: ["calendar", "kai", "tomorrow"],
+
+    mk("m_finance_day_index_even", "day-index-even", "Is today’s Kai DAY index EVEN?", {
+      category: CAT.FINANCE,
+      tags: ["kks", "day", "parity", "stewardship"],
+      iconEmoji: "🪙",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: DayIndex = floor(CLOSE / P_DAY). YES if DayIndex is even. (Discipline: count your days by pulse.)",
+    }),
+
+    /* ─────────────────────────────────────────────────────────────
+       🔐 CRYPTO — Witness Games (deterministic hash bits)
+       If you can compute the witness, you’re sovereign.
+       Each is ~50/50 by construction.
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_crypto_close_hash_first_hex_low", "close-hash-firsthex-low", "Is the FIRST hex digit of hash(CLOSE pulse) in 0–7?", {
+      category: CAT.CRYPTO,
+      tags: ["hash", "proof", "witness", "50-50"],
+      iconEmoji: "🔐",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: take hash(CLOSE pulse). Read the FIRST hex digit. YES if it’s 0–7 (high-bit = 0).",
+    }),
+
+    mk("m_crypto_close_hash_last_hex_even", "close-hash-lasthex-even", "Is the LAST hex digit of hash(CLOSE pulse) EVEN?", {
+      category: CAT.CRYPTO,
+      tags: ["hash", "proof", "witness", "parity"],
+      iconEmoji: "⚖️",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: take hash(CLOSE pulse). Read the LAST hex digit. YES if it’s even (0/2/4/6/8/a/c/e).",
+    }),
+
+    /* ─────────────────────────────────────────────────────────────
+       🧪 TECH — Protocol Competency (learn the machine)
+       No invariants as markets. Only variable gates that reference invariants.
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_tech_grid_day_boundary_half", "gridday-boundary-half", "At CLOSE, is (CLOSE % 17,424) in the first half ( < 8,712 )?", {
+      category: CAT.TECH,
+      tags: ["kks", "17424", "protocol", "gate"],
+      iconEmoji: "🧠",
+      closeInPulses: P_DAY,
+      description:
+        "Teaches the discrete lattice day. Variable outcome. Sovereigns read residues, not opinions.",
+    }),
+
+    mk("m_tech_step_gate_evenness", "stepindex-even", "Is today’s StepIndex EVEN?", {
+      category: CAT.TECH,
+      tags: ["kks", "step", "44", "parity"],
       iconEmoji: "🧮",
-      closeInPulses: 17_491,
+      closeInPulses: P_DAY,
+      description:
+        "Rule: StepIndex = floor((CLOSE/11) % 44). YES if StepIndex is even. (Fast lattice computation.)",
     }),
-    mk("m_calendar_next_month_starts_weekend", "next-month-weekend", "Will next month start on a weekend?", {
+
+    /* ─────────────────────────────────────────────────────────────
+       🌍 WORLD — Long Cycles (6 / 7 / 8) without Chronos
+       Balanced gates on week/month/year boundaries.
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_world_week_index_even", "week-index-even", "At the next KKS WEEK boundary, is the WeekIndex EVEN?", {
+      category: CAT.WORLD,
+      tags: ["kks", "week", "6", "parity"],
+      iconEmoji: "🌍",
+      closeInPulses: P_WEEK,
+      description:
+        "Rule: WeekIndex = floor((CLOSE / P_WEEK)). YES if even. (KKS week = 6 days.)",
+    }),
+
+    mk("m_world_month_half_gate", "month-half-gate", "At the next KKS MONTH boundary, is MonthIndex in the first half (0–3 of 0–7)?", {
+      category: CAT.WORLD,
+      tags: ["kks", "month", "7", "8", "half"],
+      iconEmoji: "🗺️",
+      closeInPulses: P_MONTH,
+      description:
+        "KKS: 7 weeks/month, 8 months/year. Rule: MonthIndex = floor((CLOSE / P_MONTH) % 8). YES if 0..3.",
+    }),
+
+    mk("m_world_year_index_even", "year-index-even", "At the next KKS YEAR boundary, is YearIndex EVEN?", {
+      category: CAT.WORLD,
+      tags: ["kks", "year", "336", "parity"],
+      iconEmoji: "🏛️",
+      closeInPulses: P_YEAR,
+      description:
+        "KKS year = 336 days (8 months × 7 weeks × 6 days). Rule: YearIndex = floor(CLOSE / P_YEAR). YES if even.",
+    }),
+
+    /* ─────────────────────────────────────────────────────────────
+       🧩 OTHER — Mastery Gates (hard but clean)
+       These feel like riddles, but they are pure math.
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_other_arc_vs_beat_residue", "arc-vs-beat", "At CLOSE, is the ARC residue smaller than the BEAT residue?", {
+      category: CAT.OTHER,
+      tags: ["kks", "residue", "mastery"],
+      iconEmoji: "🧩",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: a = CLOSE % 2,904; b = CLOSE % 484. YES if a < b. (Trains multi-scale residue intuition.)",
+    }),
+
+    mk("m_other_grid_vs_arc_half_xor", "grid-xor-arc", "At CLOSE, is exactly ONE of these true: (grid residue in first half) XOR (arc residue in first half)?", {
+      category: CAT.OTHER,
+      tags: ["kks", "xor", "mastery", "gate"],
+      iconEmoji: "🧬",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: g = (CLOSE%17,424 < 8,712), a = (CLOSE%2,904 < 1,452). YES if (g !== a). Balanced and deep.",
+    }),
+
+    /* ─────────────────────────────────────────────────────────────
+       🏁 SPORTS — Competitive Reasoning Trials
+       Sports here = proving skill under rules (not teams).
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_sports_beatindex_even", "beatindex-even", "Is today’s BeatIndex EVEN?", {
+      category: CAT.SPORTS,
+      tags: ["kks", "beat", "36", "trial"],
+      iconEmoji: "🏁",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: BeatIndex = floor((CLOSE/484) % 36). YES if even. (A clean skill check.)",
+    }),
+
+    mk("m_sports_arcindex_first_triad", "arcindex-first-triad", "Is today’s ArcIndex in the first triad (0–2)?", {
+      category: CAT.SPORTS,
+      tags: ["kks", "arc", "6", "trial"],
+      iconEmoji: "🏋️",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: ArcIndex = floor(BeatIndex/6). YES if 0..2. (Triad mastery.)",
+    }),
+
+    /* ─────────────────────────────────────────────────────────────
+       🌦️ WEATHER — Coherence Climate (pattern density, not sky)
+       Balanced gates that train calm observation.
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_weather_grid_climate_light", "climate-light", "Is today’s lattice residue in the first half (a LIGHT climate)?", {
+      category: CAT.WEATHER,
+      tags: ["kks", "17424", "climate", "coherence"],
+      iconEmoji: "🌤️",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: CLOSE%17,424 < 8,712. The ‘weather’ is your coherence climate — measurable, not vibes.",
+    }),
+
+    mk("m_weather_arc_climate_calm", "climate-calm", "Is today’s arc residue in the first half (a CALM climate)?", {
+      category: CAT.WEATHER,
+      tags: ["kks", "arc", "climate", "coherence"],
+      iconEmoji: "🌫️",
+      closeInPulses: P_DAY,
+      description:
+        "Rule: CLOSE%2,904 < 1,452. Calm = early arc; storm = late arc. Deterministic entrainment.",
+    }),
+
+    /* ─────────────────────────────────────────────────────────────
+       🗓️ CALENDAR — Sovereign Calendar Gates (6/7/8)
+       These resolve on calendar boundaries only.
+    ───────────────────────────────────────────────────────────── */
+
+    mk("m_calendar_week_boundary_hash_low", "week-hash-low", "At the next WEEK boundary, is the first hex digit of hash(CLOSE) in 0–7?", {
       category: CAT.CALENDAR,
-      tags: ["calendar", "chronos"],
-      iconEmoji: "📅",
-      closeInPulses: 17_491 * 14,
+      tags: ["kks", "week", "hash", "witness"],
+      iconEmoji: "🗓️",
+      closeInPulses: P_WEEK,
+      description:
+        "Boundary witness: hash(CLOSE) first hex digit in 0–7. Teaches: week = 6 Kai days, verified by proof not authority.",
     }),
+
+    mk("m_calendar_month_boundary_half_gate", "month-boundary-half", "At the next MONTH boundary, is (CLOSE % 17,424) in the first half?", {
+      category: CAT.CALENDAR,
+      tags: ["kks", "month", "17424", "gate"],
+      iconEmoji: "📅",
+      closeInPulses: P_MONTH,
+      description:
+        "Month = 7 weeks = 42 days. We read boundary alignment by lattice residue. YES if CLOSE%17,424 < 8,712.",
+    }),
+        /* ─────────────────────────────────────────────────────────────
+       🧬 HARMONIC PHYSICS — Sovereignty Science (deterministic, 50/50)
+       These are not “vibes.” They are gates you can compute.
+       Every gate is built on exact halves so YES/NO stays ~50/50,
+       while training Fibonacci / lattice / resonance logic.
+    ───────────────────────────────────────────────────────────── */
+
+    // Fibonacci Gate 34 (exact 50/50)
+    mk("m_tech_fib_gate_34", "fib-gate-34", "Harmonic Gate 34: Is (CLOSE % 34) in the first half (0–16)?", {
+      category: CAT.TECH,
+      tags: ["harmonic", "physics", "fibonacci", "34", "gate", "50-50"],
+      iconEmoji: "🧬",
+      closeInPulses: P_DAY,
+      description:
+        "Fibonacci Gate: 34 is a Fibonacci number. Rule: r = CLOSE % 34. YES if r < 17. Exact half-split → true 50/50.",
+    }),
+
+    // Fibonacci Gate 144 (exact 50/50)
+    mk("m_tech_fib_gate_144", "fib-gate-144", "Harmonic Gate 144: Is (CLOSE % 144) in the first half (0–71)?", {
+      category: CAT.TECH,
+      tags: ["harmonic", "physics", "fibonacci", "144", "gate", "50-50"],
+      iconEmoji: "🌀",
+      closeInPulses: P_DAY,
+      description:
+        "Fibonacci Gate: 144 is Fibonacci. Rule: r = CLOSE % 144. YES if r < 72. Exact half-split → true 50/50.",
+    }),
+
+    // 13-Node Harmonic Shell (made exact 50/50 by doubling)
+    mk("m_tech_shell_gate_26", "shell-gate-26", "13-Node Shell Gate: Is (CLOSE % 26) in the first half (0–12)?", {
+      category: CAT.TECH,
+      tags: ["harmonic", "physics", "shell", "13", "26", "gate", "50-50"],
+      iconEmoji: "💠",
+      closeInPulses: P_DAY,
+      description:
+        "Shell literacy: 13 is a harmonic node count. To keep exact 50/50 we use 26. Rule: r = CLOSE % 26. YES if r < 13.",
+    }),
+
+    // 137-Resonance Gate (kept exact 50/50 by doubling to 274)
+    mk("m_tech_resonance_gate_274", "resonance-gate-274", "Resonance Gate 274: Is (CLOSE % 274) in the first half (0–136)?", {
+      category: CAT.TECH,
+      tags: ["harmonic", "physics", "resonance", "274", "gate", "50-50"],
+      iconEmoji: "⚡",
+      closeInPulses: P_DAY,
+      description:
+        "Resonance gate: we use 274 (= 2×137) so the split is exact. Rule: r = CLOSE % 274. YES if r < 137.",
+    }),
+
+    // Resonance Lock (XOR of two exact 50/50 gates → balanced + harder)
+    mk(
+      "m_markets_resonance_lock_xor",
+      "resonance-lock",
+      "Resonance Lock: Is exactly ONE true — (CLOSE%484 < 242) XOR (StepIndex is EVEN)?",
+      {
+        category: CAT.FINANCE,
+        tags: ["harmonic", "physics", "resonance", "xor", "kks", "484", "44", "50-50"],
+        iconEmoji: "🔒",
+        closeInPulses: P_DAY,
+        description:
+          "Two witnesses: (1) BeatPhaseHalf: CLOSE%484 < 242. (2) StepPolarity: StepIndex even. YES only if they disagree (XOR). Balanced + trains multi-scale thinking.",
+      },
+    ),
+
+    // Fibonacci Cross-Gate (XOR of exact Fibonacci halves → balanced + teaches φ-lineage)
+    mk(
+      "m_other_fib_cross_gate_xor",
+      "fib-cross-gate",
+      "Fibonacci Cross-Gate: Is exactly ONE true — (CLOSE%34 < 17) XOR (CLOSE%144 < 72)?",
+      {
+        category: CAT.OTHER,
+        tags: ["harmonic", "physics", "fibonacci", "xor", "34", "144", "50-50"],
+        iconEmoji: "🧩",
+        closeInPulses: P_DAY,
+        description:
+          "Cross-gate training: two Fibonacci gates, one verdict. YES only if exactly one gate is open. This forces real computation, not guessing.",
+      },
+    ),
+
+    // Lattice vs Fibonacci Gate (balanced XOR, teaches 17,424 lattice day + Fibonacci gate)
+    mk(
+      "m_other_lattice_vs_fib_xor",
+      "lattice-vs-fib",
+      "Lattice vs Fibonacci: Is exactly ONE true — (CLOSE%17,424 < 8,712) XOR (CLOSE%144 < 72)?",
+      {
+        category: CAT.OTHER,
+        tags: ["harmonic", "physics", "kks", "17424", "fibonacci", "144", "xor", "50-50"],
+        iconEmoji: "🧿",
+        closeInPulses: P_DAY,
+        description:
+          "This is the sovereignty test: lattice witness (17,424) versus Fibonacci witness (144). YES only if they disagree (XOR).",
+      },
+    ),
+
+    // Beat Gate on Fibonacci window (fast + exact, resolves often)
+    mk("m_pulse_fib_gate_34_next_step", "fib34-next-step", "Next STEP: Is (pulse % 34) in the first half (0–16)?", {
+      category: CAT.PULSE,
+      tags: ["harmonic", "physics", "fibonacci", "34", "step", "50-50"],
+      iconEmoji: "🧬",
+      closeInPulses: PULSES_PER_STEP,
+      description:
+        "Instant Fibonacci literacy. Rule at the next step boundary: r = pulse % 34. YES if r < 17. Exact half-split.",
+    }),
+
+    // Beat Gate on Fibonacci 144 at beat boundary (slower, but teaches beat discipline)
+    mk("m_pulse_fib_gate_144_next_beat", "fib144-next-beat", "Next BEAT: Is (pulse % 144) in the first half (0–71)?", {
+      category: CAT.PULSE,
+      tags: ["harmonic", "physics", "fibonacci", "144", "beat", "50-50"],
+      iconEmoji: "🥁",
+      closeInPulses: P_BEAT,
+      description:
+        "Beat-disciplined Fibonacci gate. Rule at the next beat boundary: r = pulse % 144. YES if r < 72. Exact half-split.",
+    }),
+
   ];
 };
+
 
 /**
  * Fetch the market list.

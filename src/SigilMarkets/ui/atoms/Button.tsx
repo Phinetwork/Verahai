@@ -1,10 +1,9 @@
-// SigilMarkets/ui/atoms/Button.tsx
 "use client";
 
 import React, { forwardRef, useMemo } from "react";
 
 export type ButtonVariant = "default" | "primary" | "danger" | "ghost";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 export type ButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color"> & {
   variant?: ButtonVariant;
@@ -18,6 +17,8 @@ const cx = (...parts: Array<string | false | null | undefined>): string => parts
 
 const sizeClass = (size: ButtonSize): string => {
   switch (size) {
+    case "xs":
+      return "sm-btn-xs";
     case "sm":
       return "sm-btn-sm";
     case "lg":

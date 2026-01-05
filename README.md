@@ -1,6 +1,6 @@
 # SigilMarkets — Prediction Markets as Portable Sigil Artifacts
 
-SigilMarkets is a **Polymarket-style** prediction experience built on a different primitive:
+SigilMarkets is a **prediction experience** built on a different primitive:
 
 > **Positions are not “rows in a database.”  
 > They are minted as Sigil Glyph artifacts (SVG) that carry their own proof and can live offline.**

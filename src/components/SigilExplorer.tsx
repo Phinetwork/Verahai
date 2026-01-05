@@ -2395,6 +2395,7 @@ type SigilTreeNodeProps = {
   phiTotalsByPulse: ReadonlyMap<number, number>;
   usernameClaims: UsernameClaimRegistry;
   transferRegistry: ReadonlyMap<string, SigilTransferRecord>;
+  ledgerEvents: ReadonlyMap<string, SigilLedgerEvent>;
 };
 
 function SigilTreeNode({
@@ -2404,6 +2405,7 @@ function SigilTreeNode({
   phiTotalsByPulse,
   usernameClaims,
   transferRegistry,
+  ledgerEvents,
 }: SigilTreeNodeProps) {
   const open = expanded.has(node.id);
 
@@ -2415,7 +2417,7 @@ function SigilTreeNode({
   const phiSentFromPulse = pulseKey != null ? phiTotalsByPulse.get(pulseKey) : undefined;
 
   const openHref = explorerOpenUrl(node.url);
-  const detailEntries = open ? buildDetailEntries(node, usernameClaims, transferRegistry, ledgerRegistry.events) : [];
+  const detailEntries = open ? buildDetailEntries(node, usernameClaims, transferRegistry, ledgerEvents) : [];
   const transferMove = resolveTransferMoveForNode(node, transferRegistry);
 
   return (
@@ -2534,6 +2536,7 @@ function SigilTreeNode({
                   phiTotalsByPulse={phiTotalsByPulse}
                   usernameClaims={usernameClaims}
                   transferRegistry={transferRegistry}
+                  ledgerEvents={ledgerEvents}
                 />
               ))}
             </div>
@@ -2551,6 +2554,7 @@ function OriginPanel({
   phiTotalsByPulse,
   usernameClaims,
   transferRegistry,
+  ledgerEvents,
 }: {
   root: SigilNode;
   expanded: ReadonlySet<string>;
@@ -2558,6 +2562,7 @@ function OriginPanel({
   phiTotalsByPulse: ReadonlyMap<number, number>;
   usernameClaims: UsernameClaimRegistry;
   transferRegistry: ReadonlyMap<string, SigilTransferRecord>;
+  ledgerEvents: ReadonlyMap<string, SigilLedgerEvent>;
 }) {
   const count = useMemo(() => {
     let n = 0;
@@ -2620,6 +2625,7 @@ function OriginPanel({
                 phiTotalsByPulse={phiTotalsByPulse}
                 usernameClaims={usernameClaims}
                 transferRegistry={transferRegistry}
+                ledgerEvents={ledgerEvents}
               />
             ))}
           </div>
@@ -2665,10 +2671,6 @@ function ExplorerToolbar({
               KAIROS <span>Keystream</span>
             </h1>
             <div className="kx-tagline">Sovereign Lineage • No DB • Pure Φ</div>
-            <p className="kx-origin-note">
-              Sigils outside the registry are top-level origins. The registry lists first-derivative children; the
-              origin appears only after it’s sent.
-            </p>
           </div>
         </div>
 
@@ -3492,6 +3494,7 @@ breathTimer = null;
   const forest = useMemo(() => buildForest(memoryRegistry), [registryRev]);
   const transferRegistry = useMemo(() => readSigilTransferRegistry(), [transferRev]);
   const ledgerRegistry = useMemo(() => readSigilLedgerRegistry(), [ledgerRev]);
+  const ledgerEvents = ledgerRegistry.events;
 
   const phiTotalsByPulse = useMemo((): ReadonlyMap<number, number> => {
     const totals = new Map<number, number>();
@@ -3770,6 +3773,7 @@ breathTimer = null;
                   phiTotalsByPulse={phiTotalsByPulse}
                   usernameClaims={usernameClaims}
                   transferRegistry={transferRegistry}
+                  ledgerEvents={ledgerEvents}
                 />
               ))}
             </div>

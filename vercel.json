@@ -6,6 +6,8 @@
     { "source": "/profile", "destination": "/" },
     { "source": "/success", "destination": "/" },
     { "source": "/s/:hash", "destination": "/" },
+    { "source": "/sigils/seal", "destination": "/api/sigils/seal" },
+    { "source": "/sigils/:id.svg", "destination": "/api/sigils/:id" },
 
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/_next/(.*)", "destination": "/_next/$1" },

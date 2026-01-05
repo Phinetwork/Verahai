@@ -3082,6 +3082,140 @@ body{
   flex-wrap: wrap;
 }
 
+.sm-proph-sigil-grid{
+  margin-top: 12px;
+  display: grid;
+  gap: 14px;
+}
+
+.sm-proph-sigil-list{
+  display: grid;
+  gap: 12px;
+}
+
+.sm-proph-sigil-item{
+  display: grid;
+  gap: 8px;
+}
+
+.sm-proph-sigil-card{
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.sm-proph-sigil-top{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.sm-proph-sigil-text{
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.92);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sm-proph-sigil-meta{
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sm-proph-sigil-actions{
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sm-proph-sigil-row{
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 720px){
+  .sm-proph-sigil-row{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sm-proph-sigil-field{
+  display: grid;
+  gap: 6px;
+}
+
+.sm-proph-sigil-evidence{
+  display: grid;
+  gap: 10px;
+}
+
+.sm-proph-sigil-evidence-row{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sm-proph-sigil-evidence-list{
+  display: grid;
+  gap: 6px;
+}
+
+.sm-proph-sigil-evidence-item{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+
+.sm-proph-sigil-status{
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sm-proph-sigil-badges{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sm-proph-sigil-zk{
+  margin-top: 8px;
+}
+
+.sm-sigil-raw{
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #05060c;
+}
+
+.sm-err{ color: rgba(255,105,105,0.92); }
+.sm-warn{ color: rgba(255,208,120,0.92); }
+
+.sm-vault-proph-list{
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.sm-vault-proph-empty{
+  margin-top: 12px;
+}
+
 .sm-select{
   width: 100%;
   padding: 10px 12px;
@@ -3090,6 +3224,14 @@ body{
   background: rgba(255,255,255,0.05);
   color: rgba(255,255,255,0.90);
   outline: none;
+}
+
+.sm-label{
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .sm-textarea{
@@ -3742,4 +3884,200 @@ body{
   opacity: .78;
   line-height: 1.25;
   margin: 0;
+}
+.sm-chart {
+  /* Line + glow */
+  --sm-chart-line: rgba(255, 255, 255, 0.80);
+  --sm-chart-glow: rgba(191, 252, 255, 0.18);
+
+  /* Fill */
+  --sm-chart-fill-top: rgba(191, 252, 255, 0.10);
+  --sm-chart-fill-bot: rgba(255, 255, 255, 0.00);
+
+  /* Grid / baseline */
+  --sm-chart-grid: rgba(255, 255, 255, 0.06);
+  --sm-chart-base: rgba(255, 255, 255, 0.10);
+
+  /* Head dot */
+  --sm-chart-dot: rgba(191, 252, 255, 0.92);
+
+  /* Frost */
+  --sm-chart-sheen-a: rgba(255, 255, 255, 0.08);
+  --sm-chart-sheen-b: rgba(255, 255, 255, 0.00);
+  --sm-chart-grain-alpha: 0.035;
+}
+
+/* Container glass (your existing classnames; tweak as desired) */
+.sm-chart-canvas-wrap {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+/* Premium file picker (frosted, consistent, mobile-friendly) */
+.sm-proph-sigil-file-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--sm-fg, rgba(255, 255, 255, 0.88));
+
+  padding: 10px 12px;
+
+  border-radius: 12px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.14));
+  background: var(--sm-glass, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(12px);
+
+  outline: none;
+}
+
+.sm-proph-sigil-file-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sm-proph-sigil-file-input:focus-visible {
+  border-color: var(--sm-focus, rgba(255, 255, 255, 0.28));
+  box-shadow: 0 0 0 3px var(--sm-focus-ring, rgba(255, 255, 255, 0.12));
+}
+
+/* Standards-compliant */
+.sm-proph-sigil-file-input::file-selector-button {
+  margin-right: 10px;
+
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.sm-proph-sigil-file-input::file-selector-button:hover {
+  background: var(--sm-btn-hover, rgba(255, 255, 255, 0.16));
+  border-color: var(--sm-border-hover, rgba(255, 255, 255, 0.26));
+}
+
+.sm-proph-sigil-file-input::file-selector-button:active {
+  transform: translateY(1px);
+}
+
+/* Safari */
+.sm-proph-sigil-file-input::-webkit-file-upload-button {
+  margin-right: 10px;
+
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-proph-sigil-file-input::file-selector-button,
+  .sm-proph-sigil-file-input::-webkit-file-upload-button {
+    transition: none;
+  }
+}
+
+/* Make the "Remove" button feel XS without needing size="xs" */
+.sm-proph-sigil-remove-btn {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  border-radius: 10px !important;
+}
+.sm-proph-sigil-file-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--sm-fg, rgba(255, 255, 255, 0.88));
+
+  padding: 10px 12px;
+
+  border-radius: 12px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.14));
+  background: var(--sm-glass, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(12px);
+
+  outline: none;
+}
+
+.sm-proph-sigil-file-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sm-proph-sigil-file-input:focus-visible {
+  border-color: var(--sm-focus, rgba(255, 255, 255, 0.28));
+  box-shadow: 0 0 0 3px var(--sm-focus-ring, rgba(255, 255, 255, 0.12));
+}
+
+/* Modern browsers */
+.sm-proph-sigil-file-input::file-selector-button {
+  margin-right: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.sm-proph-sigil-file-input::file-selector-button:hover {
+  background: var(--sm-btn-hover, rgba(255, 255, 255, 0.16));
+  border-color: var(--sm-border-hover, rgba(255, 255, 255, 0.26));
+}
+
+.sm-proph-sigil-file-input::file-selector-button:active {
+  transform: translateY(1px);
+}
+
+/* Safari */
+.sm-proph-sigil-file-input::-webkit-file-upload-button {
+  margin-right: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--sm-border, rgba(255, 255, 255, 0.18));
+  background: var(--sm-btn, rgba(255, 255, 255, 0.10));
+  color: inherit;
+
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-proph-sigil-file-input::file-selector-button,
+  .sm-proph-sigil-file-input::-webkit-file-upload-button {
+    transition: none;
+  }
 }

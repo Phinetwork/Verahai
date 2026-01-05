@@ -6,6 +6,7 @@ import type { KaiMoment, MarketId } from "../../types/marketTypes";
 import { useSigilMarketsUi } from "../../state/uiStore";
 import { useScrollRestoration } from "../../hooks/useScrollRestoration";
 import { useProphecyFeed } from "../../hooks/useProphecyFeed";
+import { useProphecySigils } from "../../hooks/useProphecySigils";
 import { useMarkets } from "../../state/marketStore";
 
 import { TopBar } from "../../ui/chrome/TopBar";
@@ -14,6 +15,8 @@ import { Chip } from "../../ui/atoms/Chip";
 import { Icon } from "../../ui/atoms/Icon";
 
 import { ProphecyCard } from "./ProphecyCard";
+import { ProphecySigilComposer } from "./ProphecySigilComposer";
+import { ProphecySigilCard } from "./ProphecySigilCard";
 import { SealPredictionSheet } from "./SealPredictionSheet";
 import { ProphecyLeaderboard } from "./ProphecyLeaderboard";
 
@@ -23,7 +26,7 @@ export type ProphecyFeedProps = Readonly<{
   scrollRef: React.RefObject<HTMLDivElement | null> | null;
 }>;
 
-type ViewMode = "feed" | "leaderboard";
+type ViewMode = "sigils" | "feed" | "leaderboard";
 
 export const ProphecyFeed = (props: ProphecyFeedProps) => {
   const { state: uiState, actions: ui } = useSigilMarketsUi();
@@ -46,21 +49,23 @@ export const ProphecyFeed = (props: ProphecyFeedProps) => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMarketId, setSheetMarketId] = useState<MarketId | null>(null);
 
-  const [mode, setMode] = useState<ViewMode>("feed");
+  const [mode, setMode] = useState<ViewMode>("sigils");
 
   const { prophecies, counts, leaderboard, activeVault, actions } = useProphecyFeed({
     visibility: "all",
     includeResolved: true,
   });
+  const { prophecies: sigils, activeVault: sigilVault, actions: sigilActions } = useProphecySigils();
 
   const subtitle = useMemo(() => {
+    if (mode === "sigils") return `${sigils.length} sealed sigils`;
     const parts: string[] = [];
     parts.push(`${counts.total} total`);
     if (counts.sealed > 0) parts.push(`${counts.sealed} sealed`);
     if (counts.fulfilled > 0) parts.push(`${counts.fulfilled} fulfilled`);
     if (counts.missed > 0) parts.push(`${counts.missed} missed`);
     return parts.join(" • ");
-  }, [counts.fulfilled, counts.missed, counts.sealed, counts.total]);
+  }, [counts.fulfilled, counts.missed, counts.sealed, counts.total, mode, sigils.length]);
 
   return (
     <div className="sm-page" data-sm="prophecy">
@@ -68,6 +73,15 @@ export const ProphecyFeed = (props: ProphecyFeedProps) => {
 
       <div className="sm-proph-toolbar">
         <div className="sm-proph-left">
+          <Chip
+            size="sm"
+            selected={mode === "sigils"}
+            onClick={() => setMode("sigils")}
+            left={<Icon name="spark" size={14} tone="gold" />}
+          >
+            Sigils
+          </Chip>
+
           <Chip
             size="sm"
             selected={mode === "feed"}
@@ -88,43 +102,91 @@ export const ProphecyFeed = (props: ProphecyFeedProps) => {
         </div>
 
         <div className="sm-proph-right">
-          <Chip
-            size="sm"
-            selected={false}
-            tone="gold"
-            onClick={() => {
-              setSheetMarketId(null);
-              setSheetOpen(true);
-            }}
-            left={<Icon name="plus" size={14} tone="gold" />}
-          >
-            Seal
-          </Chip>
+          {mode === "feed" ? (
+            <>
+              <Chip
+                size="sm"
+                selected={false}
+                tone="gold"
+                onClick={() => {
+                  setSheetMarketId(null);
+                  setSheetOpen(true);
+                }}
+                left={<Icon name="plus" size={14} tone="gold" />}
+              >
+                Seal
+              </Chip>
 
-          {!activeVault ? (
-            <Chip
-              size="sm"
-              selected={false}
-              variant="outline"
-              onClick={() => actions.requireAuth("auth")}
-              left={<Icon name="scan" size={14} tone="cyan" />}
-            >
-              Inhale
-            </Chip>
-          ) : (
-            <Chip size="sm" selected={false} variant="outline" left={<Icon name="vault" size={14} tone="dim" />}>
-              bound
-            </Chip>
-          )}
+              {!activeVault ? (
+                <Chip
+                  size="sm"
+                  selected={false}
+                  variant="outline"
+                  onClick={() => actions.requireAuth("auth")}
+                  left={<Icon name="scan" size={14} tone="cyan" />}
+                >
+                  Inhale
+                </Chip>
+              ) : (
+                <Chip size="sm" selected={false} variant="outline" left={<Icon name="vault" size={14} tone="dim" />}>
+                  bound
+                </Chip>
+              )}
+            </>
+          ) : null}
+
+          {mode === "sigils" ? (
+            !sigilVault ? (
+              <Chip
+                size="sm"
+                selected={false}
+                variant="outline"
+                onClick={() => sigilActions.requireAuth()}
+                left={<Icon name="scan" size={14} tone="cyan" />}
+              >
+                Inhale
+              </Chip>
+            ) : (
+              <Chip size="sm" selected={false} variant="outline" left={<Icon name="vault" size={14} tone="dim" />}>
+                bound
+              </Chip>
+            )
+          ) : null}
         </div>
       </div>
 
       {mode === "leaderboard" ? (
         <ProphecyLeaderboard rows={leaderboard} />
+      ) : mode === "sigils" ? (
+        <div className="sm-proph-sigil-grid">
+          <ProphecySigilComposer now={props.now} />
+
+          {sigils.length === 0 ? (
+            <Card variant="glass">
+              <CardContent>
+                <div className="sm-title">No prophecy sigils yet.</div>
+                <div className="sm-subtitle" style={{ marginTop: 8 }}>
+                  Seal a textual claim into a self-verifying SVG. Proofs verify offline, without a server.
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="sm-proph-sigil-list">
+              {sigils.slice(0, 60).map((p) => (
+                <ProphecySigilCard
+                  key={p.id as unknown as string}
+                  prophecy={p}
+                  now={props.now}
+                  onRemove={() => sigilActions.remove(p.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       ) : prophecies.length === 0 ? (
         <Card variant="glass">
           <CardContent>
-            <div className="sm-title">No prophecies yet.</div>
+            <div className="sm-title">No market prophecies yet.</div>
             <div className="sm-subtitle" style={{ marginTop: 8 }}>
               Seal a prediction as a portable proof-of-forecast. It can stand alone or accompany a wager.
             </div>
@@ -151,7 +213,7 @@ export const ProphecyFeed = (props: ProphecyFeedProps) => {
               key={p.id as unknown as string}
               prophecy={p}
               now={props.now}
-              marketQuestion={questionById.get(p.marketId as unknown as string) ?? "Market"}
+              marketQuestion={questionById.get(p.marketId as unknown as string) ?? "Prophecy"}
               onSealMore={() => {
                 setSheetMarketId(p.marketId);
                 setSheetOpen(true);

@@ -11,6 +11,7 @@ import { SigilMarketsMarketProvider, useSigilMarketsMarketStore } from "./state/
 import { SigilMarketsVaultProvider } from "./state/vaultStore";
 import { SigilMarketsPositionProvider, useSigilMarketsPositionStore } from "./state/positionStore";
 import { SigilMarketsFeedProvider, useSigilMarketsFeedStore } from "./state/feedStore";
+import { SigilMarketsProphecySigilProvider } from "./state/prophecySigilStore";
 import { SigilMarketsRuntimeConfigProvider, useSigilMarketsRuntimeConfig } from "./state/runtimeConfig";
 
 import { SigilMarketsRoutes } from "./SigilMarketsRoutes";
@@ -285,7 +286,7 @@ const ShellInner = (props: Readonly<{ windowScroll: boolean }>) => {
         evidenceHashes: r.evidence?.hashes,
       });
 
-      ui.toast("info", "Market resolved", `${m.def.question}`, { atPulse: r.resolvedPulse });
+      ui.toast("info", "Prophecy resolved", `${m.def.question}`, { atPulse: r.resolvedPulse });
       if (sfxEnabled) sfx.play("resolve");
     }
   }, [feed, marketState.byId, marketState.ids, positions, sfx, sfxEnabled, ui]);
@@ -325,7 +326,9 @@ export const SigilMarketsShell = (props: SigilMarketsShellProps) => {
             <SigilMarketsVaultProvider>
               <SigilMarketsPositionProvider>
                 <SigilMarketsFeedProvider>
-                  <ShellInner windowScroll={windowScroll} />
+                  <SigilMarketsProphecySigilProvider>
+                    <ShellInner windowScroll={windowScroll} />
+                  </SigilMarketsProphecySigilProvider>
                 </SigilMarketsFeedProvider>
               </SigilMarketsPositionProvider>
             </SigilMarketsVaultProvider>

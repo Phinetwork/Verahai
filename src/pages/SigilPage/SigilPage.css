@@ -359,6 +359,40 @@ body.bp-open :where(.sigilpage, .sp-viewport, .sp-shell, .sp-veil, .sp-veil-star
 .sp-hash-label{ color:var(--sp-dim); font-size:.9rem; }
 .sp-hash-short{ font-family:var(--font-mono); }
 
+.sp-prophecy{
+  display:grid;
+  gap:8px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(120, 200, 255, 0.18);
+  background: linear-gradient(180deg, rgba(26, 36, 48, 0.6), rgba(10, 14, 16, 0.5));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+}
+.sp-prophecy__label{
+  font-size:0.72rem;
+  letter-spacing:.32em;
+  text-transform:uppercase;
+  color:var(--sp-dim);
+}
+.sp-prophecy__text{
+  font-size:1rem;
+  font-weight:600;
+  color:#eefcff;
+  line-height:1.4;
+  text-shadow:0 0 12px rgba(120, 220, 255, 0.22);
+}
+.sp-prophecy__meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  font-size:0.85rem;
+  color:rgba(232, 252, 255, 0.78);
+}
+.sp-prophecy__meta strong{
+  font-weight:700;
+  color:#ffffff;
+}
+
 /* ========== 6) BUTTONS & BUSY ================================== */
 .sp-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .sp-actions > *{ min-height:44px; }

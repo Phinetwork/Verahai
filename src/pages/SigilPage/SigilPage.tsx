@@ -142,6 +142,11 @@ import {
   currentCanonical as currentCanonicalUtil,
   currentToken as currentTokenUtil,
 } from "../../utils/urlShort";
+import { epochMsFromPulse } from "../../utils/kai_pulse";
+import { formatPhiMicro } from "../../SigilMarkets/utils/format";
+import { parsePhiMicro } from "../../SigilMarkets/utils/guards";
+import { computeProphecyCanonicalHash } from "../../SigilMarkets/utils/prophecySigil";
+import type { ProphecySigilPayloadV1 } from "../../SigilMarkets/types/prophecySigilTypes";
 // registry.ts
 import {
   buildClaim,
@@ -456,6 +461,49 @@ export default function SigilPage() {
   );
   void setLoading;
   const payload = payloadState;
+
+  type ProphecyDetails = Readonly<{
+    text: string;
+    escrowLabel: string | null;
+    expirationPulse: number | null;
+    expirationDate: string | null;
+  }>;
+
+  const prophecyPayload = useMemo(() => {
+    const raw = (payload as SigilPayload & { prophecyPayload?: unknown } | null)?.prophecyPayload;
+    if (!raw || typeof raw !== "object") return null;
+    const candidate = raw as ProphecySigilPayloadV1;
+    return candidate.kind === "prophecy" ? candidate : null;
+  }, [payload]);
+
+  const prophecyDetails = useMemo<ProphecyDetails | null>(() => {
+    if (!prophecyPayload) return null;
+    const text = typeof prophecyPayload.text === "string" ? prophecyPayload.text : "";
+    const escrowMicro = parsePhiMicro(prophecyPayload.escrowPhiMicro);
+    const escrowLabel =
+      escrowMicro != null
+        ? formatPhiMicro(escrowMicro, { withUnit: true, maxDecimals: 6, trimZeros: true })
+        : null;
+    const expirationPulse =
+      typeof prophecyPayload.expirationPulse === "number" ? prophecyPayload.expirationPulse : null;
+    const expirationDate = (() => {
+      if (expirationPulse == null) return null;
+      const msEpoch = Number(epochMsFromPulse(expirationPulse));
+      if (!Number.isFinite(msEpoch)) return null;
+      return new Date(msEpoch).toLocaleString();
+    })();
+    return {
+      text,
+      escrowLabel,
+      expirationPulse,
+      expirationDate,
+    };
+  }, [prophecyPayload]);
+
+  const isProphecySigil = useMemo(() => {
+    const sigilKind = (payload as SigilPayload & { sigilKind?: string } | null)?.sigilKind;
+    return sigilKind === "prophecy" || prophecyPayload?.kind === "prophecy";
+  }, [payload, prophecyPayload]);
 
   // live Kai (eternal)
   const { pulse: currentPulse, msToNextPulse } = useKaiTicker();
@@ -777,6 +825,7 @@ useEffect(() => {
   /* SEO / Sharing text */
   const [ogImgUrl, setOgImgUrl] = useState<string | null>(null);
   const deferredPayload = useDeferredValue(payload);
+  const ogCapturedRef = useRef<string | null>(null);
 
   const seoStrings = useMemo(() => {
     const stepsNum: number = (deferredPayload?.stepsPerBeat ?? STEPS_PER_BEAT) as number;
@@ -875,19 +924,47 @@ useEffect(() => {
     setJsonLd("sigil-jsonld", jsonld);
   }, [absUrl, seoStrings.title, seoStrings.desc, payload, ogImgUrl, localHash, historyLite?.length]);
 
+  const ogKey = useMemo(() => {
+    if (!payload) return null;
+    const canon = (payload.canonicalHash ?? localHash ?? "").toLowerCase();
+    return `${canon}|${payload.pulse}|${payload.beat}|${payload.stepIndex ?? ""}|${
+      payload.chakraDay ?? ""
+    }`;
+  }, [payload, localHash]);
+  const allowOgCapture = urlQs.get("og") === "1";
+
   /* Build OG image */
   useEffect(() => {
+    if (isProphecySigil || !allowOgCapture) {
+      ogCapturedRef.current = null;
+      setOgImgUrl(null);
+      setMeta("property", "og:image", "");
+      setMeta("property", "og:image:alt", "");
+      setMeta("property", "og:image:width", "");
+      setMeta("property", "og:image:height", "");
+      setMeta("name", "twitter:image", "");
+      return;
+    }
+    if (!payload || !ogKey) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    if (ogCapturedRef.current === ogKey) return;
+
+    const setOgImgUrlOnce = (next: string | null) => {
+      if (next && ogCapturedRef.current !== ogKey) ogCapturedRef.current = ogKey;
+      setOgImgUrl(next);
+    };
+
     const stop = runOgImageEffect({
       stageId: "sigil-stage",
       payload: payload ? { ...payload } : null,
       localHash,
-      setOgImgUrl,
+      setOgImgUrl: setOgImgUrlOnce,
       setMeta,
       seoTitle: seoStrings.title,
       seoDesc: seoStrings.desc,
     });
     return stop;
-  }, [payload, localHash, sigilSize, seoStrings.title, seoStrings.desc]);
+  }, [payload, localHash, seoStrings.title, seoStrings.desc, isProphecySigil, ogKey, allowOgCapture]);
 
   /* allow page scroll */
   useLayoutEffect(() => {
@@ -1679,6 +1756,59 @@ if (linkStatus === "archived" && !ALLOW_ARCHIVED_VERIFIED) return;           // 
   let cancelled = false;
   (async () => {
     try {
+      if (isProphecySigil) {
+        const prophecy = prophecyPayload as Partial<ProphecySigilPayloadV1> | null;
+        if (!prophecy) return;
+        if (typeof prophecy.kaiSignature !== "string" || typeof prophecy.userPhiKey !== "string") return;
+        const derivedPhi = await derivePhiKeyFromSigCanon(prophecy.kaiSignature);
+        const phiOk = prophecy.userPhiKey.toLowerCase() === derivedPhi.toLowerCase();
+
+        if (typeof prophecy.canonicalHash !== "string") return;
+        if (
+          typeof prophecy.v !== "string" ||
+          typeof prophecy.kind !== "string" ||
+          typeof prophecy.prophecyId !== "string" ||
+          typeof prophecy.text !== "string" ||
+          typeof prophecy.textEnc !== "string" ||
+          typeof prophecy.pulse !== "number" ||
+          typeof prophecy.beat !== "number" ||
+          typeof prophecy.stepIndex !== "number" ||
+          typeof prophecy.stepPct !== "number" ||
+          typeof prophecy.chakraDay !== "string" ||
+          typeof prophecy.createdAtPulse !== "number"
+        ) {
+          return;
+        }
+
+        const basePayload: Omit<ProphecySigilPayloadV1, "canonicalHash" | "zk"> = {
+          v: prophecy.v as ProphecySigilPayloadV1["v"],
+          kind: prophecy.kind as ProphecySigilPayloadV1["kind"],
+          prophecyId: prophecy.prophecyId as ProphecySigilPayloadV1["prophecyId"],
+          text: prophecy.text,
+          textEnc: prophecy.textEnc as ProphecySigilPayloadV1["textEnc"],
+          category: typeof prophecy.category === "string" ? prophecy.category : undefined,
+          expirationPulse: typeof prophecy.expirationPulse === "number" ? prophecy.expirationPulse : undefined,
+          escrowPhiMicro: typeof prophecy.escrowPhiMicro === "string" ? prophecy.escrowPhiMicro : undefined,
+          evidence: prophecy.evidence,
+          userPhiKey: prophecy.userPhiKey as ProphecySigilPayloadV1["userPhiKey"],
+          kaiSignature: prophecy.kaiSignature as ProphecySigilPayloadV1["kaiSignature"],
+          pulse: prophecy.pulse,
+          beat: prophecy.beat,
+          stepIndex: prophecy.stepIndex,
+          stepPct: prophecy.stepPct,
+          chakraDay: prophecy.chakraDay,
+          createdAtPulse: prophecy.createdAtPulse,
+        };
+
+        const computed = await computeProphecyCanonicalHash(basePayload);
+        const canonOk = computed.toLowerCase() === prophecy.canonicalHash.toLowerCase();
+
+        if (!cancelled && phiOk && canonOk && verified !== "verified") {
+          setVerified("verified");
+        }
+        return;
+      }
+
       const stepsNum: number = (payload.stepsPerBeat ?? STEPS_PER_BEAT) as number;
       const sealedIdx = stepIndexFromPulse(payload.pulse, stepsNum);
 const intention = readIntentionSigil(payload); // must not depend on debits/originalAmount/…!
@@ -1718,7 +1848,7 @@ if (!cancelled && sigmaOk && phiOk && verified !== "verified") {
   })();
 
   return () => { cancelled = true; };
-}, [payload, glyphAuth, verified, linkStatus]);
+}, [payload, glyphAuth, verified, linkStatus, isProphecySigil, prophecyPayload]);
 
 
 useEffect(() => {
@@ -2831,6 +2961,7 @@ useEffect(() => {
             balancePhi={displayedChipPhi ?? 0}
             balanceUsd={chipUsd ?? 0}
             stage={stageNode}
+            prophecyDetails={prophecyDetails ?? undefined}
           />{/* Breath Proof overlay (portal) */}
           {proofOpen && breathProof &&
             createPortal(

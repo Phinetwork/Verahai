@@ -10,6 +10,13 @@ type PressHandlers = {
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
 };
 
+type ProphecyDetails = Readonly<{
+  text: string;
+  escrowLabel: string | null;
+  expirationPulse: number | null;
+  expirationDate: string | null;
+}>;
+
 type Props = {
   absUrl: string;
   payload: SigilPayload | null;
@@ -33,6 +40,7 @@ type Props = {
   balancePhi: number;
   balanceUsd: number;
   stage: React.ReactNode;
+  prophecyDetails?: ProphecyDetails;
 };
 
 /* ── Exact step math (μpulse-precise; matches ProvenanceList/EternalKlock) ── */
@@ -139,6 +147,7 @@ export default function SigilMetaPanel({
   balancePhi,
   balanceUsd,
   stage,
+  prophecyDetails,
 }: Props) {
   const navigate = useNavigate();
   const keystreamPress = useFastPress<HTMLAnchorElement>((e) => {
@@ -199,6 +208,27 @@ export default function SigilMetaPanel({
 
       {/* Stage */}
       {stage}
+
+      {prophecyDetails && (
+        <div className="sp-prophecy" role="region" aria-label="Prophecy sigil details">
+          <div className="sp-prophecy__label">Prophecy Sigil</div>
+          <div className="sp-prophecy__text">
+            {prophecyDetails.text ? prophecyDetails.text : "(No prophecy text provided)"}
+          </div>
+          <div className="sp-prophecy__meta">
+            <span>
+              Wagered{" "}
+              <strong>{prophecyDetails.escrowLabel ? prophecyDetails.escrowLabel : "—"}</strong>
+            </span>
+            <span>
+              {prophecyDetails.expirationPulse != null
+                ? `Expires p${prophecyDetails.expirationPulse.toLocaleString()}`
+                : "No expiration"}
+              {prophecyDetails.expirationDate ? ` • ${prophecyDetails.expirationDate}` : ""}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Eternal Pulse */}
       {payload && (

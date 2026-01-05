@@ -43,7 +43,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
 
   const isActionable = canClaim || canRefund;
 
-  const title = canRefund ? "Refund" : "Claim";
+  const title = canRefund ? "Refund" : "Victory";
 
   const stakeLabel = useMemo(() => formatPhiMicro(p.entry.stakeMicro, { withUnit: true, maxDecimals: 6, trimZeros: true }), [p.entry.stakeMicro]);
   const sharesLabel = useMemo(() => formatSharesMicro(p.entry.sharesMicro, { maxDecimals: 2 }), [p.entry.sharesMicro]);
@@ -93,9 +93,13 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
         svgHash: claimSigil.svgHash,
         canonicalPayloadHash: claimSigil.canonicalHashHex,
         lineageId: payload.lineageId,
+        lineageRootSvgHash: payload.lineageRootSvgHash,
         rootSvgHash: payload.lineageRootSvgHash,
       };
       const proof = claimSigil.zkSeal;
+      const payoutDisplay =
+        payload.payoutPhiDisplay ||
+        formatPhiMicro(BigInt(payload.payoutPhiMicro), { withUnit: true, maxDecimals: 6, trimZeros: true });
       const readme = [
         "Verahai Victory Bundle — Offline Verification",
         "",
@@ -104,11 +108,12 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
         "3) Derive ΦKey from kaiSignature and confirm it matches userPhiKey in the payload.",
         "4) Verify ZK proof (if present) using proof.json + public inputs.",
         "",
-        `Payout: ${payload.payoutPhiDisplay} (microΦ: ${payload.payoutPhiMicro}).`,
+        `Wager: ${stakeLabel}.`,
+        `Victory: ${payoutDisplay} (microΦ: ${payload.payoutPhiMicro}).`,
       ].join("\n");
 
       const base = sanitizeBundleName(
-        `verahai-claim-${String(payload.marketId)}-${String(payload.positionId)}-${String(payload.kaiMoment.pulse)}`,
+        `verahai-victory-${String(payload.marketId)}-${String(payload.positionId)}-${String(payload.kaiMoment.pulse)}`,
       );
 
       const zip = await buildVictoryBundleZip({
@@ -173,7 +178,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
         toStatus: "paid",
         reason: "position-claim",
         updatedPulse: props.now.pulse,
-        note: "Claimed",
+        note: "Won sealed",
       });
 
       vault.moveValue({ vaultId: p.lock.vaultId, kind: "deposit", amountMicro: expectedPayout, atPulse: props.now.pulse });
@@ -184,10 +189,10 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
         creditedMicro: expectedPayout,
         debitedMicro: p.entry.stakeMicro,
         nextStatus: "claimed",
-        note: "Claimed",
+        note: "Won sealed",
       });
 
-      ui.toast("success", "Claimed", payoutLabel, { atPulse: props.now.pulse });
+      ui.toast("success", "Won sealed", payoutLabel, { atPulse: props.now.pulse });
       sfx.play("win");
       haptics.fire("success");
       ui.armConfetti(true);
@@ -235,7 +240,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
         });
       }
     } else {
-      ui.toast("error", "Claim sigil failed", mintRes.error, { atPulse: props.now.pulse });
+      ui.toast("error", "Victory sigil failed", mintRes.error, { atPulse: props.now.pulse });
     }
 
     setLoading(false);
@@ -246,7 +251,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
       open={props.open}
       onClose={props.onClose}
       title={title}
-      subtitle={canRefund ? "Market voided/canceled. Your stake returns." : "If you won, your shares redeem into your Vault."}
+      subtitle={canRefund ? "Prophecy voided/canceled. Your stake returns." : "You won. Your shares redeem into your Vault."}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <Button variant="ghost" onClick={props.onClose} disabled={loading}>
@@ -259,7 +264,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
             loading={loading}
             leftIcon={<Icon name="check" size={14} tone="gold" />}
           >
-            {canRefund ? "Refund now" : "Claim now"}
+            {canRefund ? "Refund now" : "Seal victory"}
           </Button>
         </div>
       }
@@ -278,7 +283,7 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
 
         {canClaim ? (
           <div className="sm-claim-row">
-            <span className="k">Expected payout</span>
+            <span className="k">Win payout</span>
             <span className="v">{payoutLabel}</span>
           </div>
         ) : (
@@ -288,9 +293,6 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
           </div>
         )}
 
-        <div className="sm-small" style={{ marginTop: 10 }}>
-          This is MVP settlement logic. We will wire full deterministic settlement to your on-ledger resolution keys next.
-        </div>
 
         {claimSigil ? (
           <>
@@ -300,9 +302,9 @@ export const ClaimSheet = (props: ClaimSheetProps) => {
               <span className="v mono">{String(claimSigil.payload.lineageRootSigilId).slice(0, 10)}…</span>
             </div>
             <div className="sm-claim-trophy">
-              <div className="sm-claim-trophy__label">Trophy sigil</div>
+              <div className="sm-claim-trophy__label">Victory sigil</div>
               {claimSigil.svgUrl ? (
-                <img src={claimSigil.svgUrl} alt="Claim sigil preview" className="sm-claim-trophy__img" />
+                <img src={claimSigil.svgUrl} alt="Victory sigil preview" className="sm-claim-trophy__img" />
               ) : null}
             </div>
             <Button

@@ -21,6 +21,7 @@ import { VaultGrowthLine } from "./VaultGrowthLine";
 import { VaultStreak } from "./VaultStreak";
 import { VaultActions } from "./VaultActions";
 import { DepositWithdrawSheet } from "./DepositWithdrawSheet";
+import { VaultProphecySigils } from "./VaultProphecySigils";
 
 export type VaultPanelProps = Readonly<{
   vaultId?: VaultId;
@@ -178,6 +179,15 @@ export const VaultPanel = (props: VaultPanelProps) => {
         <VaultGrowthLine vault={vault} now={props.now} />
 
         <VaultLocks vault={vault} />
+
+        <Divider />
+
+        <div className="sm-title">Prophecy Sigils</div>
+        <div className="sm-subtitle" style={{ marginTop: 6 }}>
+          Textual, time-locked claims sealed under your ΦKey with signature + ZK proofs.
+        </div>
+
+        <VaultProphecySigils vault={vault} now={props.now} />
 
         <Divider />
 

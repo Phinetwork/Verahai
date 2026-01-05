@@ -34,6 +34,7 @@ export const SM_MARKETS_CACHE_KEY = `${SIGIL_MARKETS_NS}:markets:v1`;
 export const SM_VAULTS_KEY = `${SIGIL_MARKETS_NS}:vaults:v1`;
 export const SM_POSITIONS_KEY = `${SIGIL_MARKETS_NS}:positions:v1`;
 export const SM_FEED_KEY = `${SIGIL_MARKETS_NS}:feed:v1`;
+export const SM_PROPHECY_SIGILS_KEY = `${SIGIL_MARKETS_NS}:prophecy-sigils:v1`;
 export const SM_LOCAL_QUEUE_KEY = `${SIGIL_MARKETS_NS}:queue:v1`;
 export const SM_HOWTO_DISMISSED_KEY = `${SIGIL_MARKETS_NS}:howto:dismissed:v1`;
 

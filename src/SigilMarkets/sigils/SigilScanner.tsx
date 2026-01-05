@@ -76,7 +76,7 @@ const detectKind = (svg: Element, payload: unknown | null): SigilKind => {
   if (dk?.includes("sigilmarkets-claim") || v === "SM-CLAIM-1") return "claim";
   if (dk?.includes("sigilmarkets-resolution") || v === "SM-RES-1") return "resolution";
   if (dk?.includes("sigilmarkets-vault") || v === "SM-VAULT-1") return "vault";
-  if (dk?.includes("sigilmarkets-prophecy") || v === "SM-PROP-1") return "prophecy";
+  if (dk?.includes("sigilmarkets-prophecy") || dk === "prophecy" || v === "SM-PROP-1" || v === "SM-PROPHECY-1") return "prophecy";
 
   if (payload && isRecord(payload)) {
     const vv = payload["v"];
@@ -85,7 +85,7 @@ const detectKind = (svg: Element, payload: unknown | null): SigilKind => {
     if (vv === "SM-CLAIM-1" || kind === "claim") return "claim";
     if (vv === "SM-RES-1" || kind === "resolution") return "resolution";
     if (vv === "SM-VAULT-1" || kind === "vault") return "vault";
-    if (vv === "SM-PROP-1" || kind === "prophecy") return "prophecy";
+    if (vv === "SM-PROP-1" || vv === "SM-PROPHECY-1" || kind === "prophecy") return "prophecy";
   }
 
   return "unknown";
@@ -104,6 +104,7 @@ const extractFields = (svg: Element, payload: unknown | null): Readonly<Record<s
   add("v", extractAttr(svg, ["data-v"]));
   add("kind", extractAttr(svg, ["data-kind"]));
   add("marketId", extractAttr(svg, ["data-market-id"]));
+  add("prophecyId", extractAttr(svg, ["data-prophecy-id"]));
   add("positionId", extractAttr(svg, ["data-position-id"]));
   add("side", extractAttr(svg, ["data-side"]));
   add("outcome", extractAttr(svg, ["data-outcome"]));
