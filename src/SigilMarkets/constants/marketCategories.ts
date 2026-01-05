@@ -23,7 +23,7 @@ export const MARKET_CATEGORIES: readonly MarketCategory[] = [
 const CATEGORY_LABELS: Record<MarketCategory, string> = {
   pulse: "Pulse",
   kai: "Kai",
-  calendar: "calendar",
+  calendar: "Kalendar",
   weather: "Weather",
   sports: "Sports",
   politics: "Politics",
@@ -33,7 +33,7 @@ const CATEGORY_LABELS: Record<MarketCategory, string> = {
   crypto: "Crypto",
   tech: "Tech",
   world: "World",
-  culture: "Culture",
+  culture: "Kulture",
   other: "Other",
 };
 
