@@ -475,6 +475,10 @@ export default function SigilPage() {
     const candidate = raw as ProphecySigilPayloadV1;
     return candidate.kind === "prophecy" ? candidate : null;
   }, [payload]);
+  const prophecyPayloadExtras = useMemo(
+    () => (prophecyPayload ? { prophecyPayload } : undefined),
+    [prophecyPayload],
+  );
 
   const prophecyDetails = useMemo<ProphecyDetails | null>(() => {
     if (!prophecyPayload) return null;
@@ -1480,7 +1484,7 @@ const openHistoryPress = useFastPress<HTMLButtonElement>(() => setHistoryOpen(tr
         routeHash,
         stepsPerBeat: STEPS_PER_BEAT,
         stepIndexFromPulse,
-      });
+      }, prophecyPayloadExtras);
 
       let finalUrl = out?.url || `/s/${canonical}`;
 try {
@@ -1506,7 +1510,7 @@ current.searchParams.forEach((v, k) => {
       setSealOpen(true);
       return finalUrl;
     },
-    [localHash, routeHash]
+    [localHash, routeHash, prophecyPayloadExtras]
   );
 
   /* 11-breath upgrade claim window helper */
@@ -1697,6 +1701,7 @@ current.searchParams.forEach((v, k) => {
             claimExtendAmount: amountForExport,
             attachment: payload.attachment ?? null,
             provenance: (payload.provenance as ProvenanceEntry[] | null) ?? null,
+            payloadExtras: prophecyPayloadExtras,
           }
         : null,
       isFutureSealed,
