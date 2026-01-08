@@ -6,6 +6,8 @@ import type { ProphecyId, ProphecySigilPayloadV1, ProphecySigilZkBundle } from "
 import { asProphecyId } from "../types/prophecySigilTypes";
 import type { KaiPulse, MicroDecimalString, PhiMicro } from "../types/marketTypes";
 import type { KaiMoment as KaiMomentExact } from "../../utils/kai_pulse";
+import { STEPS_BEAT } from "../../utils/kai_pulse";
+import { stepIndexFromPulse, stepProgressWithinStepFromPulse } from "../../utils/kaiMath";
 import { asMicroDecimalString } from "../types/marketTypes";
 import type { KaiSignature, UserPhiKey } from "../types/vaultTypes";
 import { sha256Hex } from "./ids";
@@ -263,25 +265,31 @@ export const buildProphecyPayloadBase = (args: Readonly<{
   userPhiKey: UserPhiKey;
   kaiSignature: KaiSignature;
   moment: KaiMomentExact;
-}>): Omit<ProphecySigilPayloadV1, "canonicalHash" | "zk"> => ({
-  v: "SM-PROPHECY-1",
-  kind: "prophecy",
-  prophecyId: args.prophecyId,
-  text: args.text,
-  textEnc: args.textEnc,
-  category: args.category,
-  expirationPulse: args.expirationPulse,
-  escrowPhiMicro: args.escrowPhiMicro,
-  evidence: args.evidence,
-  userPhiKey: args.userPhiKey,
-  kaiSignature: args.kaiSignature,
-  pulse: args.moment.pulse,
-  beat: args.moment.beat,
-  stepIndex: args.moment.stepIndex,
-  stepPct: args.moment.stepPctAcrossBeat,
-  chakraDay: args.moment.chakraDay,
-  createdAtPulse: args.moment.pulse,
-});
+}>): Omit<ProphecySigilPayloadV1, "canonicalHash" | "zk"> => {
+  const stepIndex = stepIndexFromPulse(args.moment.pulse, STEPS_BEAT);
+  const stepProgress = stepProgressWithinStepFromPulse(args.moment.pulse, STEPS_BEAT);
+  const stepPct = (stepIndex + stepProgress) / STEPS_BEAT;
+
+  return {
+    v: "SM-PROPHECY-1",
+    kind: "prophecy",
+    prophecyId: args.prophecyId,
+    text: args.text,
+    textEnc: args.textEnc,
+    category: args.category,
+    expirationPulse: args.expirationPulse,
+    escrowPhiMicro: args.escrowPhiMicro,
+    evidence: args.evidence,
+    userPhiKey: args.userPhiKey,
+    kaiSignature: args.kaiSignature,
+    pulse: args.moment.pulse,
+    beat: args.moment.beat,
+    stepIndex,
+    stepPct,
+    chakraDay: args.moment.chakraDay,
+    createdAtPulse: args.moment.pulse,
+  };
+};
 
 export const buildProphecySvg = (payload: ProphecySigilPayloadV1, textEncoded?: string): string => {
   const textEnc = payload.textEnc ?? "uri";
