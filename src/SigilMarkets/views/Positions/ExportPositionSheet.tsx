@@ -51,7 +51,7 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
 
   const hasResolution = !!p.resolution;
   const shouldLabelClaimProof = hasResolution && (p.status === "claimable" || p.status === "lost");
-  const exportLabel = shouldLabelClaimProof ? "Download victory proof" : undefined;
+  const exportLabel = shouldLabelClaimProof ? (p.status === "lost" ? "Download loss proof" : "Download victory proof") : undefined;
 
   const filenameBase = useMemo(() => {
     const pid = p.id as unknown as string;
@@ -187,6 +187,7 @@ export const ExportPositionSheet = (props: ExportPositionSheetProps) => {
               pngSizePx={2048}
               mode="zip"
               label={exportLabel}
+              allowMissingZkProof={p.status === "lost"}
             />
           ) : (
             <Button

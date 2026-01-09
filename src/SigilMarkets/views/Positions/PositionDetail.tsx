@@ -114,7 +114,11 @@ export const PositionDetail = (props: PositionDetailProps) => {
   const position = p;
   const hasClaimProof =
     !!position.resolution && (position.status === "claimable" || position.status === "lost");
-  const exportLabel = hasClaimProof ? "Download victory proof" : "Export";
+  const exportLabel = hasClaimProof
+    ? position.status === "lost"
+      ? "Download loss proof"
+      : "Download victory proof"
+    : "Export";
   const canAccessVault = !!activeVault && activeVault.vaultId === position.lock.vaultId;
 
   const openClaimSheet = (): void => {

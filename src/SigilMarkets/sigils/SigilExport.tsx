@@ -239,7 +239,10 @@ const manifestFromSigil = async (opts: {
   return { manifestHash, ...manifestPayload };
 };
 
-const ensureZkProofInSvg = async (svgText: string): Promise<string> => {
+const ensureZkProofInSvg = async (
+  svgText: string,
+  opts?: Readonly<{ allowMissingZkProof?: boolean }>,
+): Promise<string> => {
   const metadataRegex = /<metadata(?:\s[^>]*)?>([\s\S]*?)<\/metadata>/gi;
   let match: RegExpExecArray | null;
 
@@ -292,11 +295,15 @@ const ensureZkProofInSvg = async (svgText: string): Promise<string> => {
         proofHints,
       });
       if (!generated) {
-        throw new Error("ZK proof unavailable for export");
+        if (!opts?.allowMissingZkProof) {
+          throw new Error("ZK proof unavailable for export");
+        }
+        payload.proofHints = proofHints;
+      } else {
+        payload.zkProof = generated.proof as unknown;
+        payload.zkPublicInputs = generated.zkPublicInputs;
+        payload.proofHints = generated.proofHints;
       }
-      payload.zkProof = generated.proof as unknown;
-      payload.zkPublicInputs = generated.zkPublicInputs;
-      payload.proofHints = generated.proofHints;
     } else {
       payload.proofHints = proofHints;
     }
@@ -371,6 +378,9 @@ export type SigilExportOptions = Readonly<{
   /** Export which formats. Default: both */
   exportSvg?: boolean;
   exportPng?: boolean;
+
+  /** Allow export without an embedded ZK proof. */
+  allowMissingZkProof?: boolean;
 }>;
 
 export type SigilZipOptions = Readonly<{
@@ -383,6 +393,9 @@ export type SigilZipOptions = Readonly<{
 
   /** PNG size px (square). Default: 1024 */
   pngSizePx?: number;
+
+  /** Allow export without an embedded ZK proof. */
+  allowMissingZkProof?: boolean;
 }>;
 
 export const exportSigil = async (opts: SigilExportOptions): Promise<ExportResult> => {
@@ -397,7 +410,15 @@ export const exportSigil = async (opts: SigilExportOptions): Promise<ExportResul
     const svgText = opts.svgText ?? (opts.svgUrl ? await fetchText(opts.svgUrl) : null);
     if (!svgText) return { ok: false, error: "Missing svgText/svgUrl" };
 
-    const svgWithProof = await ensureZkProofInSvg(svgText);
+    let svgWithProof = svgText;
+    try {
+      svgWithProof = await ensureZkProofInSvg(svgText, { allowMissingZkProof: opts.allowMissingZkProof });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "export failed";
+      if (!opts.allowMissingZkProof || message !== "Sigil metadata missing; cannot generate ZK proof") {
+        throw err;
+      }
+    }
 
     if (exportSvg) {
       const blob = new Blob([svgWithProof], { type: "image/svg+xml" });
@@ -423,7 +444,15 @@ export const exportSigilZip = async (opts: SigilZipOptions): Promise<ExportResul
     const svgText = opts.svgText ?? (opts.svgUrl ? await fetchText(opts.svgUrl) : null);
     if (!svgText) return { ok: false, error: "Missing svgText/svgUrl" };
 
-    const svgWithProof = await ensureZkProofInSvg(svgText);
+    let svgWithProof = svgText;
+    try {
+      svgWithProof = await ensureZkProofInSvg(svgText, { allowMissingZkProof: opts.allowMissingZkProof });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "export failed";
+      if (!opts.allowMissingZkProof || message !== "Sigil metadata missing; cannot generate ZK proof") {
+        throw err;
+      }
+    }
     const size = Math.max(256, Math.min(4096, Math.floor(opts.pngSizePx ?? 1024)));
     const png = await svgToPngBlob(svgWithProof, size);
     const exportMoment = momentFromUTC(new Date());
@@ -459,6 +488,7 @@ export type SigilExportButtonProps = Readonly<{
   mode?: "pair" | "zip";
   className?: string;
   label?: string;
+  allowMissingZkProof?: boolean;
 }>;
 
 export const SigilExportButton = (props: SigilExportButtonProps) => {
@@ -478,6 +508,7 @@ export const SigilExportButton = (props: SigilExportButtonProps) => {
             svgText: props.svgText,
             svgUrl: props.svgUrl,
             pngSizePx: props.pngSizePx ?? 1400,
+            allowMissingZkProof: props.allowMissingZkProof,
           })
         : await exportSigil({
             filenameBase: props.filenameBase,
@@ -486,6 +517,7 @@ export const SigilExportButton = (props: SigilExportButtonProps) => {
             pngSizePx: props.pngSizePx ?? 1024,
             exportSvg: true,
             exportPng: true,
+            allowMissingZkProof: props.allowMissingZkProof,
           });
     if (!res.ok) ui.toast("error", "Export failed", res.error);
     else {

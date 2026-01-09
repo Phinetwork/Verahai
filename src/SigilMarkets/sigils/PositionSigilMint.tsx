@@ -927,8 +927,8 @@ export const buildClaimPayload = async (
     openedAt: coerceKaiMoment(pos.entry.openedAt as unknown),
     claimedAt: claimMoment,
     marketDefinitionHash: pos.entry.marketDefinitionHash,
-    label: `Victory ${outcome}`,
-    note: pos.status === "lost" ? "Loss settled" : "Won Sealed",
+    label: pos.status === "lost" ? `Loss ${outcome}` : `Victory ${outcome}`,
+    note: pos.status === "lost" ? "Loss settled" : "Won sealed",
     lineageRootSigilId: lineageRoot.lineageRootSigilId,
     lineageRootSvgHash: lineageRoot.lineageRootSvgHash,
     lineageId,
@@ -1193,13 +1193,15 @@ const amountW = wholeW + fracW;
 
 
   // Center ring microtext (official feel)
+  const claimTone = payload.label?.toLowerCase().includes("loss") ? "LOSS" : "VICTORY";
+  const claimLabel = claimTone === "LOSS" ? "Loss" : "Victory";
   const microSeal = isClaim
-    ? `ΦNET • VICTORY • ${seal.scheme} • ${payload.claimedAt.pulse} • ${String(payload.marketId)} •`
+    ? `ΦNET • ${claimTone} • ${seal.scheme} • ${payload.claimedAt.pulse} • ${String(payload.marketId)} •`
     : `ΦNET • ${okWord} • ${seal.scheme} • ${openedShort} • ${String(payload.marketId)} •`;
 
   const dataKind = isClaim ? "sigilmarkets-claim" : "sigilmarkets-position";
   const ariaLabel = isClaim
-    ? `SigilMarkets Victory — ${payload.outcome} — pulse ${payload.claimedAt.pulse}`
+    ? `SigilMarkets ${claimLabel} — ${payload.outcome} — pulse ${payload.claimedAt.pulse}`
     : `SigilMarkets Position — ${payload.side} — pulse ${payload.openedAt.pulse}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>

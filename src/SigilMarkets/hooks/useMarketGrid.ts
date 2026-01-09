@@ -75,7 +75,8 @@ const tagsAllowed = (tags: readonly string[], required?: readonly string[]): boo
   return true;
 };
 
-const isResolvedLike = (status: string): boolean => status === "resolved" || status === "voided" || status === "canceled";
+const isResolvedLike = (status: string, hasResolution: boolean): boolean =>
+  hasResolution || status === "resolved" || status === "voided" || status === "canceled";
 
 const microToNumberSafe = (v?: PhiMicro): number => {
   if (v === undefined) return 0;
@@ -216,7 +217,7 @@ export const useMarketGrid = (nowPulse: KaiPulse): UseMarketGridResult => {
 
     for (const m of markets) {
       // includeResolved gate
-      if (!filters.includeResolved && isResolvedLike(m.state.status)) continue;
+      if (!filters.includeResolved && isResolvedLike(m.state.status, !!m.state.resolution)) continue;
 
       // query
       if (!matchesQuery(m, filters.query)) continue;

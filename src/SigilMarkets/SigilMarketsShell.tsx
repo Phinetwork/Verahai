@@ -44,7 +44,8 @@ export type SigilMarketsShellProps = Readonly<{
 
 type AppliedResolutionKey = string;
 
-const isResolvedLike = (status: string): boolean => status === "resolved" || status === "voided" || status === "canceled";
+const isResolvedLike = (status: string, hasResolution: boolean): boolean =>
+  hasResolution || status === "resolved" || status === "voided" || status === "canceled";
 
 const resolutionKey = (m: Market): AppliedResolutionKey => {
   const rid = m.state.resolution;
@@ -209,7 +210,7 @@ const ShellInner = (props: Readonly<{ windowScroll: boolean }>) => {
     let shouldRefresh = false;
 
     for (const m of list) {
-      if (isResolvedLike(m.state.status)) continue;
+      if (isResolvedLike(m.state.status, !!m.state.resolution)) continue;
 
       const closePulse = m.def.timing.closePulse;
       const resolvePulse = Math.max(
@@ -259,7 +260,6 @@ const ShellInner = (props: Readonly<{ windowScroll: boolean }>) => {
       .filter((m): m is Market => m !== undefined);
 
     for (const m of list) {
-      if (!isResolvedLike(m.state.status)) continue;
       const r = m.state.resolution;
       if (!r) continue;
 
