@@ -25,6 +25,14 @@ type ChakraDay =
   | "Third Eye"
   | "Crown";
 
+type UnknownRecord = Record<string, unknown>;
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const PROOF_METADATA_ID = "kai-voh-proof";
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 function stableStringify(v: unknown): string {
   if (v === null || typeof v !== "object") return JSON.stringify(v);
   if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
@@ -157,6 +165,47 @@ function updateSvgUrlSurfaces(svgEl: SVGSVGElement, fullUrl: string): void {
       t.textContent = s.replace(tokenRe, `u=${fullUrl}`);
     }
   });
+}
+
+function buildProphecyZkBundle(payloadExtras?: Record<string, unknown>, shareUrl?: string): UnknownRecord | null {
+  if (!payloadExtras) return null;
+  const rawProphecy = isRecord(payloadExtras.prophecyPayload) ? payloadExtras.prophecyPayload : null;
+  const rawZk = rawProphecy && isRecord(rawProphecy.zk) ? rawProphecy.zk : null;
+  if (!rawZk) return null;
+
+  const zkPoseidonHash = typeof rawZk.poseidonHash === "string" ? rawZk.poseidonHash : undefined;
+  const zkProof = "proof" in rawZk ? rawZk.proof : undefined;
+  const zkPublicInputs =
+    Array.isArray(rawZk.publicInputs) || typeof rawZk.publicInputs === "string"
+      ? rawZk.publicInputs
+      : undefined;
+
+  if (!zkPoseidonHash && zkProof === undefined && zkPublicInputs === undefined) return null;
+
+  const bundle: UnknownRecord = {
+    shareUrl,
+    zkPoseidonHash,
+    zkProof,
+    zkPublicInputs,
+  };
+
+  Object.keys(bundle).forEach((key) => {
+    if (bundle[key] === undefined) delete bundle[key];
+  });
+
+  return bundle;
+}
+
+function upsertProofMetadata(svgEl: SVGSVGElement, bundle: UnknownRecord): void {
+  const doc = svgEl.ownerDocument ?? document;
+  let meta = svgEl.querySelector<SVGMetadataElement>(`metadata#${PROOF_METADATA_ID}`);
+  if (!meta) {
+    meta = doc.createElementNS(SVG_NS, "metadata") as SVGMetadataElement;
+    meta.setAttribute("id", PROOF_METADATA_ID);
+    meta.setAttribute("type", "application/json");
+    svgEl.appendChild(meta);
+  }
+  meta.textContent = JSON.stringify(bundle);
 }
 
 export async function exportZIP(ctx: {
@@ -301,6 +350,11 @@ export async function exportZIP(ctx: {
       metaForSvg.phiKey = metaForSvg.userPhiKey;
     }
     putMetadata(svgEl, metaForSvg);
+
+    const zkBundle = buildProphecyZkBundle(payloadExtras, fullUrlForManifest);
+    if (zkBundle) {
+      upsertProofMetadata(svgEl, zkBundle);
+    }
 
     // Display-only exposure (non-canonical marker)
     try {

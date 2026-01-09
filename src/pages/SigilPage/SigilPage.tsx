@@ -2729,8 +2729,8 @@ return () => document.body.classList.remove(cls);
         >
           <KaiSigil
             pulse={pulse}
-            beat={payload.beat}
-            stepIndex={typeof payload.stepIndex === "number" ? payload.stepIndex : undefined}
+            beat={beatIndexFromPulse(pulse)}
+            stepIndex={stepIndex}
             chakraDay={chakraDay}
             size={sigilSize}
             hashMode="deterministic"
