@@ -205,9 +205,7 @@ function upsertProofMetadata(svgEl: SVGSVGElement, bundle: UnknownRecord): void 
     meta.setAttribute("type", "application/json");
     svgEl.appendChild(meta);
   }
-  while (meta.firstChild) meta.removeChild(meta.firstChild);
-  const cdata = doc.createCDATASection(JSON.stringify(bundle));
-  meta.appendChild(cdata);
+  meta.textContent = JSON.stringify(bundle);
 }
 
 export async function exportZIP(ctx: {
