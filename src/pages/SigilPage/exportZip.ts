@@ -260,8 +260,10 @@ export async function exportZIP(ctx: {
     const claimedMetaCanon: ExportableSigilMeta = {
       ...claimedMeta,
       kaiSignature: canonicalSig,
-      userPhiKey: claimedMeta.userPhiKey || phiKeyCanon,
+      userPhiKey: phiKeyCanon,
     };
+    svgEl.setAttribute("data-kai-signature", canonicalSig);
+    svgEl.setAttribute("data-phi-key", phiKeyCanon);
     const payloadExtras = claimedMetaCanon.payloadExtras ?? {};
 
     // Build the canonical share URL for manifest — canonical is in the path, NOT the payload
