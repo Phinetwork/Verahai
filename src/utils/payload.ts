@@ -253,6 +253,9 @@ export function decodePayloadFromQuery(search: string): SigilPayload | null {
       if (rawProphecy.evidence && typeof rawProphecy.evidence === "object") {
         trimmedProphecy.evidence = rawProphecy.evidence;
       }
+      if (rawProphecy.zk && typeof rawProphecy.zk === "object") {
+        trimmedProphecy.zk = rawProphecy.zk;
+      }
       (payload as SigilPayload & { prophecyPayload?: unknown }).prophecyPayload =
         trimmedProphecy;
     }

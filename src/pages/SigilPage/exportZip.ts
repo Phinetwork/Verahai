@@ -25,6 +25,14 @@ type ChakraDay =
   | "Third Eye"
   | "Crown";
 
+type UnknownRecord = Record<string, unknown>;
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const PROOF_METADATA_ID = "kai-voh-proof";
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 function stableStringify(v: unknown): string {
   if (v === null || typeof v !== "object") return JSON.stringify(v);
   if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
@@ -58,6 +66,7 @@ export type ExportableSigilMeta = {
   /** misc */
   attachment?: { name?: string | null } | null;
   provenance?: Array<Record<string, unknown>> | null;
+  payloadExtras?: Record<string, unknown>;
 };
 
 /** Coerce any free-form value into a valid ChakraDay; default to "Root". */
@@ -158,6 +167,47 @@ function updateSvgUrlSurfaces(svgEl: SVGSVGElement, fullUrl: string): void {
   });
 }
 
+function buildProphecyZkBundle(payloadExtras?: Record<string, unknown>, shareUrl?: string): UnknownRecord | null {
+  if (!payloadExtras) return null;
+  const rawProphecy = isRecord(payloadExtras.prophecyPayload) ? payloadExtras.prophecyPayload : null;
+  const rawZk = rawProphecy && isRecord(rawProphecy.zk) ? rawProphecy.zk : null;
+  if (!rawZk) return null;
+
+  const zkPoseidonHash = typeof rawZk.poseidonHash === "string" ? rawZk.poseidonHash : undefined;
+  const zkProof = "proof" in rawZk ? rawZk.proof : undefined;
+  const zkPublicInputs =
+    Array.isArray(rawZk.publicInputs) || typeof rawZk.publicInputs === "string"
+      ? rawZk.publicInputs
+      : undefined;
+
+  if (!zkPoseidonHash && zkProof === undefined && zkPublicInputs === undefined) return null;
+
+  const bundle: UnknownRecord = {
+    shareUrl,
+    zkPoseidonHash,
+    zkProof,
+    zkPublicInputs,
+  };
+
+  Object.keys(bundle).forEach((key) => {
+    if (bundle[key] === undefined) delete bundle[key];
+  });
+
+  return bundle;
+}
+
+function upsertProofMetadata(svgEl: SVGSVGElement, bundle: UnknownRecord): void {
+  const doc = svgEl.ownerDocument ?? document;
+  let meta = svgEl.querySelector<SVGMetadataElement>(`metadata#${PROOF_METADATA_ID}`);
+  if (!meta) {
+    meta = doc.createElementNS(SVG_NS, "metadata") as SVGMetadataElement;
+    meta.setAttribute("id", PROOF_METADATA_ID);
+    meta.setAttribute("type", "application/json");
+    svgEl.appendChild(meta);
+  }
+  meta.textContent = JSON.stringify(bundle);
+}
+
 export async function exportZIP(ctx: {
   expired: boolean;
   exporting: boolean;
@@ -240,6 +290,7 @@ export async function exportZIP(ctx: {
       claimExtendUnit: payload.claimExtendUnit ?? expiryUnit,
       claimExtendAmount: payload.claimExtendAmount ?? expiryAmount,
       canonicalHash: (localHash || payload.canonicalHash || routeHash || null)?.toString() ?? null,
+      payloadExtras: payload.payloadExtras,
     };
 
     // canonical Σ and Φ (0-based stepIndex)
@@ -258,8 +309,11 @@ export async function exportZIP(ctx: {
     const claimedMetaCanon: ExportableSigilMeta = {
       ...claimedMeta,
       kaiSignature: canonicalSig,
-      userPhiKey: claimedMeta.userPhiKey || phiKeyCanon,
+      userPhiKey: phiKeyCanon,
     };
+    svgEl.setAttribute("data-kai-signature", canonicalSig);
+    svgEl.setAttribute("data-phi-key", phiKeyCanon);
+    const payloadExtras = claimedMetaCanon.payloadExtras ?? {};
 
     // Build the canonical share URL for manifest — canonical is in the path, NOT the payload
     const canonicalLower = (localHash || routeHash || "").toLowerCase();
@@ -279,19 +333,28 @@ export async function exportZIP(ctx: {
 
     const fullUrlForManifest = rewriteUrlPayload(
       baseUrlForManifest,
-      sharePayloadForManifest,
+      { ...payloadExtras, ...sharePayloadForManifest },
       tokenForManifest
     );
 
     // Canonical payload write only (single call) — include URL hints for readers
     const { putMetadata } = await import("../../utils/svgMeta");
     const metaForSvg: Record<string, unknown> = {
+      ...payloadExtras,
       ...claimedMetaCanon,
       stepsPerBeat: stepsNum,
       shareUrl: fullUrlForManifest, // hint for consumers
       fullUrl: fullUrlForManifest,  // alias
     };
+    if (typeof metaForSvg.userPhiKey === "string" && !metaForSvg.phiKey) {
+      metaForSvg.phiKey = metaForSvg.userPhiKey;
+    }
     putMetadata(svgEl, metaForSvg);
+
+    const zkBundle = buildProphecyZkBundle(payloadExtras, fullUrlForManifest);
+    if (zkBundle) {
+      upsertProofMetadata(svgEl, zkBundle);
+    }
 
     // Display-only exposure (non-canonical marker)
     try {
@@ -383,6 +446,7 @@ export async function exportZIP(ctx: {
       fullUrl: fullUrlForManifest,
       p: pValue,
       urlQuery: { p: pValue, t: tValue },
+      payloadExtras: Object.keys(payloadExtras).length ? payloadExtras : null,
     };
     const manifestHash = await sha256HexCanon(stableStringify(manifestPayload));
     const manifest = { ...manifestPayload, manifestHash };

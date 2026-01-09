@@ -122,7 +122,8 @@ function resolveStepIndex(
 export function shareTransferLink(
   meta: ShareableSigilMeta,
   forcedToken: string | undefined,
-  deps: ShareDeps
+  deps: ShareDeps,
+  payloadExtras?: Record<string, unknown>
 ): { url: string; token: string } | null {
   // Canonical hash goes in the path, not in the payload
   const canonical = ((meta.canonicalHash ?? deps.localHash ?? deps.routeHash) ?? "").toLowerCase();
@@ -161,7 +162,10 @@ export function shareTransferLink(
     claimExtendAmount: meta.claimExtendAmount ?? undefined,
   };
 
-  const url = ensureClaimTimeInUrl(withToken, metaForP as SigilPayload);
+  const url = ensureClaimTimeInUrl(withToken, {
+    ...(payloadExtras ?? {}),
+    ...metaForP,
+  } as SigilPayload);
   return { url, token };
 }
 
