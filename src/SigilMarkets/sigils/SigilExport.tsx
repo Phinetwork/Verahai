@@ -410,7 +410,15 @@ export const exportSigil = async (opts: SigilExportOptions): Promise<ExportResul
     const svgText = opts.svgText ?? (opts.svgUrl ? await fetchText(opts.svgUrl) : null);
     if (!svgText) return { ok: false, error: "Missing svgText/svgUrl" };
 
-    const svgWithProof = await ensureZkProofInSvg(svgText, { allowMissingZkProof: opts.allowMissingZkProof });
+    let svgWithProof = svgText;
+    try {
+      svgWithProof = await ensureZkProofInSvg(svgText, { allowMissingZkProof: opts.allowMissingZkProof });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "export failed";
+      if (!opts.allowMissingZkProof || message !== "Sigil metadata missing; cannot generate ZK proof") {
+        throw err;
+      }
+    }
 
     if (exportSvg) {
       const blob = new Blob([svgWithProof], { type: "image/svg+xml" });
@@ -436,7 +444,15 @@ export const exportSigilZip = async (opts: SigilZipOptions): Promise<ExportResul
     const svgText = opts.svgText ?? (opts.svgUrl ? await fetchText(opts.svgUrl) : null);
     if (!svgText) return { ok: false, error: "Missing svgText/svgUrl" };
 
-    const svgWithProof = await ensureZkProofInSvg(svgText, { allowMissingZkProof: opts.allowMissingZkProof });
+    let svgWithProof = svgText;
+    try {
+      svgWithProof = await ensureZkProofInSvg(svgText, { allowMissingZkProof: opts.allowMissingZkProof });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "export failed";
+      if (!opts.allowMissingZkProof || message !== "Sigil metadata missing; cannot generate ZK proof") {
+        throw err;
+      }
+    }
     const size = Math.max(256, Math.min(4096, Math.floor(opts.pngSizePx ?? 1024)));
     const png = await svgToPngBlob(svgWithProof, size);
     const exportMoment = momentFromUTC(new Date());
